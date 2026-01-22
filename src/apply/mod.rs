@@ -89,7 +89,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::File(file_task) = task {
-                        crate::apply::file::execute_file_task(&file_task, executor.dry_run()).await
+                        crate::apply::file::execute_file_task(file_task, executor.dry_run()).await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for file executor"))
                     }
@@ -117,7 +117,7 @@ impl TaskRegistry {
                 Box::pin(async move {
                     if let Task::Directory(dir_task) = task {
                         crate::apply::directory::execute_directory_task(
-                            &dir_task,
+                            dir_task,
                             executor.dry_run(),
                         )
                         .await
@@ -147,7 +147,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Copy(copy_task) = task {
-                        crate::apply::copy::execute_copy_task(&copy_task, executor.dry_run()).await
+                        crate::apply::copy::execute_copy_task(copy_task, executor.dry_run()).await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for copy executor"))
                     }
@@ -181,7 +181,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Package(pkg_task) = task {
-                        crate::apply::package::execute_package_task(&pkg_task, executor.dry_run())
+                        crate::apply::package::execute_package_task(pkg_task, executor.dry_run())
                             .await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for package executor"))
@@ -209,7 +209,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Apt(apt_task) = task {
-                        crate::apply::apt::execute_apt_task(&apt_task, executor.dry_run()).await
+                        crate::apply::apt::execute_apt_task(apt_task, executor.dry_run()).await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for apt executor"))
                     }
@@ -238,7 +238,7 @@ impl TaskRegistry {
                 Box::pin(async move {
                     if let Task::Service(service_task) = task {
                         crate::apply::service::execute_service_task(
-                            &service_task,
+                            service_task,
                             executor.dry_run(),
                         )
                         .await
@@ -269,7 +269,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::User(user_task) = task {
-                        crate::apply::user::execute_user_task(&user_task, executor.dry_run()).await
+                        crate::apply::user::execute_user_task(user_task, executor.dry_run()).await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for user executor"))
                     }
@@ -296,7 +296,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Group(group_task) = task {
-                        crate::apply::group::execute_group_task(&group_task, executor.dry_run())
+                        crate::apply::group::execute_group_task(group_task, executor.dry_run())
                             .await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for group executor"))
@@ -325,7 +325,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Command(cmd_task) = task {
-                        crate::apply::command::execute_command_task(&cmd_task, executor.dry_run())
+                        crate::apply::command::execute_command_task(cmd_task, executor.dry_run())
                             .await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for command executor"))
@@ -353,7 +353,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Script(script_task) = task {
-                        crate::apply::script::execute_script_task(&script_task, executor.dry_run())
+                        crate::apply::script::execute_script_task(script_task, executor.dry_run())
                             .await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for script executor"))
@@ -381,7 +381,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Raw(raw_task) = task {
-                        crate::apply::raw::execute_raw_task(&raw_task, executor.dry_run()).await
+                        crate::apply::raw::execute_raw_task(raw_task, executor.dry_run()).await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for raw executor"))
                     }
@@ -410,7 +410,7 @@ impl TaskRegistry {
                 Box::pin(async move {
                     if let Task::Debug(debug_task) = task {
                         crate::apply::executor::execute_debug_task(
-                            &debug_task,
+                            debug_task,
                             executor.variables(),
                             executor.dry_run(),
                         )
@@ -442,7 +442,7 @@ impl TaskRegistry {
                 Box::pin(async move {
                     if let Task::Assert(assert_task) = task {
                         crate::apply::executor::execute_assert_task(
-                            &assert_task,
+                            assert_task,
                             executor.variables(),
                             executor.dry_run(),
                         )
@@ -474,7 +474,7 @@ impl TaskRegistry {
                 Box::pin(async move {
                     if let Task::Fail(fail_task) = task {
                         crate::apply::executor::execute_fail_task(
-                            &fail_task,
+                            fail_task,
                             executor.variables(),
                             executor.dry_run(),
                         )
@@ -505,7 +505,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Pause(pause_task) = task {
-                        crate::apply::executor::execute_pause_task(&pause_task, executor.dry_run())
+                        crate::apply::executor::execute_pause_task(pause_task, executor.dry_run())
                             .await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for pause executor"))
@@ -524,7 +524,7 @@ impl TaskRegistry {
                     if let Task::SetFact(set_fact_task) = task {
                         let dry_run = executor.dry_run();
                         crate::apply::executor::execute_set_fact_task(
-                            &set_fact_task,
+                            set_fact_task,
                             executor.variables_mut(),
                             dry_run,
                         )
@@ -557,7 +557,7 @@ impl TaskRegistry {
                 Box::pin(async move {
                     if let Task::IncludeTasks(include_tasks_task) = task {
                         crate::apply::executor::execute_include_tasks_task(
-                            &include_tasks_task,
+                            include_tasks_task,
                             executor.variables(),
                             executor.dry_run(),
                             executor.config_dir(),
@@ -592,7 +592,7 @@ impl TaskRegistry {
                 Box::pin(async move {
                     if let Task::IncludeRole(include_role_task) = task {
                         crate::apply::executor::execute_include_role_task(
-                            &include_role_task,
+                            include_role_task,
                             executor.variables(),
                             executor.dry_run(),
                             executor.config_dir(),
@@ -627,7 +627,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Cron(cron_task) = task {
-                        crate::apply::cron::execute_cron_task(&cron_task, executor.dry_run()).await
+                        crate::apply::cron::execute_cron_task(cron_task, executor.dry_run()).await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for cron executor"))
                     }
@@ -654,7 +654,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Mount(mount_task) = task {
-                        crate::apply::mount::execute_mount_task(&mount_task, executor.dry_run())
+                        crate::apply::mount::execute_mount_task(mount_task, executor.dry_run())
                             .await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for mount executor"))
@@ -689,7 +689,7 @@ impl TaskRegistry {
                 Box::pin(async move {
                     if let Task::Filesystem(fs_task) = task {
                         crate::apply::filesystem::execute_filesystem_task(
-                            &fs_task,
+                            fs_task,
                             executor.dry_run(),
                         )
                         .await
@@ -719,7 +719,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Sysctl(sysctl_task) = task {
-                        crate::apply::sysctl::execute_sysctl_task(&sysctl_task, executor.dry_run())
+                        crate::apply::sysctl::execute_sysctl_task(sysctl_task, executor.dry_run())
                             .await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for sysctl executor"))
@@ -748,7 +748,7 @@ impl TaskRegistry {
                 Box::pin(async move {
                     if let Task::Hostname(hostname_task) = task {
                         crate::apply::hostname::execute_hostname_task(
-                            &hostname_task,
+                            hostname_task,
                             executor.dry_run(),
                         )
                         .await
@@ -779,7 +779,7 @@ impl TaskRegistry {
                 Box::pin(async move {
                     if let Task::Timezone(timezone_task) = task {
                         crate::apply::timezone::execute_timezone_task(
-                            &timezone_task,
+                            timezone_task,
                             executor.dry_run(),
                         )
                         .await
@@ -809,7 +809,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Reboot(reboot_task) = task {
-                        crate::apply::reboot::execute_reboot_task(&reboot_task, executor.dry_run())
+                        crate::apply::reboot::execute_reboot_task(reboot_task, executor.dry_run())
                             .await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for reboot executor"))
@@ -827,7 +827,7 @@ impl TaskRegistry {
                 Box::pin(async move {
                     if let Task::Shutdown(shutdown_task) = task {
                         crate::apply::shutdown::execute_shutdown_task(
-                            &shutdown_task,
+                            shutdown_task,
                             executor.dry_run(),
                         )
                         .await
@@ -848,7 +848,7 @@ impl TaskRegistry {
                 Box::pin(async move {
                     if let Task::Template(template_task) = task {
                         crate::apply::template::execute_template_task(
-                            &template_task,
+                            template_task,
                             executor.dry_run(),
                         )
                         .await
@@ -885,7 +885,7 @@ impl TaskRegistry {
                 Box::pin(async move {
                     if let Task::LineInFile(line_task) = task {
                         crate::apply::lineinfile::execute_lineinfile_task(
-                            &line_task,
+                            line_task,
                             executor.dry_run(),
                         )
                         .await
@@ -922,7 +922,7 @@ impl TaskRegistry {
                 Box::pin(async move {
                     if let Task::BlockInFile(block_task) = task {
                         crate::apply::blockinfile::execute_blockinfile_task(
-                            &block_task,
+                            block_task,
                             executor.dry_run(),
                         )
                         .await
@@ -961,7 +961,7 @@ impl TaskRegistry {
                 Box::pin(async move {
                     if let Task::Replace(replace_task) = task {
                         crate::apply::replace::execute_replace_task(
-                            &replace_task,
+                            replace_task,
                             executor.dry_run(),
                         )
                         .await
@@ -999,7 +999,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Fetch(fetch_task) = task {
-                        crate::apply::fetch::execute_fetch_task(&fetch_task, executor.dry_run())
+                        crate::apply::fetch::execute_fetch_task(fetch_task, executor.dry_run())
                             .await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for fetch executor"))
@@ -1033,7 +1033,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Uri(uri_task) = task {
-                        crate::apply::uri::execute_uri_task(&uri_task, executor.dry_run()).await
+                        crate::apply::uri::execute_uri_task(uri_task, executor.dry_run()).await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for uri executor"))
                     }
@@ -1061,7 +1061,7 @@ impl TaskRegistry {
                 Box::pin(async move {
                     if let Task::GetUrl(get_url_task) = task {
                         crate::apply::get_url::execute_get_url_task(
-                            &get_url_task,
+                            get_url_task,
                             executor.dry_run(),
                         )
                         .await
@@ -1099,7 +1099,7 @@ impl TaskRegistry {
                 Box::pin(async move {
                     if let Task::Unarchive(unarchive_task) = task {
                         crate::apply::unarchive::execute_unarchive_task(
-                            &unarchive_task,
+                            unarchive_task,
                             executor.dry_run(),
                         )
                         .await
@@ -1136,7 +1136,7 @@ impl TaskRegistry {
                 Box::pin(async move {
                     if let Task::Archive(archive_task) = task {
                         crate::apply::archive::execute_archive_task(
-                            &archive_task,
+                            archive_task,
                             executor.dry_run(),
                         )
                         .await
@@ -1173,7 +1173,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Stat(stat_task) = task {
-                        crate::apply::stat::execute_stat_task(&stat_task, executor.dry_run()).await
+                        crate::apply::stat::execute_stat_task(stat_task, executor.dry_run()).await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for stat executor"))
                     }
@@ -1201,7 +1201,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Yum(yum_task) = task {
-                        crate::apply::yum::execute_yum_task(&yum_task, executor.dry_run()).await
+                        crate::apply::yum::execute_yum_task(yum_task, executor.dry_run()).await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for yum executor"))
                     }
@@ -1228,7 +1228,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Pacman(pacman_task) = task {
-                        crate::apply::pacman::execute_pacman_task(&pacman_task, executor.dry_run())
+                        crate::apply::pacman::execute_pacman_task(pacman_task, executor.dry_run())
                             .await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for pacman executor"))
@@ -1256,7 +1256,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Zypper(zypper_task) = task {
-                        crate::apply::zypper::execute_zypper_task(&zypper_task, executor.dry_run())
+                        crate::apply::zypper::execute_zypper_task(zypper_task, executor.dry_run())
                             .await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for zypper executor"))
@@ -1285,7 +1285,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Pip(pip_task) = task {
-                        crate::apply::pip::execute_pip_task(&pip_task, executor.dry_run()).await
+                        crate::apply::pip::execute_pip_task(pip_task, executor.dry_run()).await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for pip executor"))
                     }
@@ -1312,7 +1312,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Npm(npm_task) = task {
-                        crate::apply::npm::execute_npm_task(&npm_task, executor.dry_run()).await
+                        crate::apply::npm::execute_npm_task(npm_task, executor.dry_run()).await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for npm executor"))
                     }
@@ -1339,7 +1339,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Gem(gem_task) = task {
-                        crate::apply::gem::execute_gem_task(&gem_task, executor.dry_run()).await
+                        crate::apply::gem::execute_gem_task(gem_task, executor.dry_run()).await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for gem executor"))
                     }
@@ -1368,7 +1368,7 @@ impl TaskRegistry {
                 Box::pin(async move {
                     if let Task::WaitFor(wait_for_task) = task {
                         crate::apply::executor::execute_wait_for_task(
-                            &wait_for_task,
+                            wait_for_task,
                             executor.dry_run(),
                         )
                         .await
@@ -1400,7 +1400,7 @@ impl TaskRegistry {
                 Box::pin(async move {
                     if let Task::AuthorizedKey(authorized_key_task) = task {
                         crate::apply::authorized_key::execute_authorized_key_task(
-                            &authorized_key_task,
+                            authorized_key_task,
                             executor.dry_run(),
                         )
                         .await
@@ -1433,7 +1433,7 @@ impl TaskRegistry {
                 Box::pin(async move {
                     if let Task::Sudoers(sudoers_task) = task {
                         crate::apply::sudoers::execute_sudoers_task(
-                            &sudoers_task,
+                            sudoers_task,
                             executor.dry_run(),
                         )
                         .await
@@ -1465,7 +1465,7 @@ impl TaskRegistry {
                 Box::pin(async move {
                     if let Task::Firewalld(firewalld_task) = task {
                         crate::apply::firewalld::execute_firewalld_task(
-                            &firewalld_task,
+                            firewalld_task,
                             executor.dry_run(),
                         )
                         .await
@@ -1504,7 +1504,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Ufw(ufw_task) = task {
-                        crate::apply::ufw::execute_ufw_task(&ufw_task, executor.dry_run()).await
+                        crate::apply::ufw::execute_ufw_task(ufw_task, executor.dry_run()).await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for ufw executor"))
                     }
@@ -1545,7 +1545,7 @@ impl TaskRegistry {
                 Box::pin(async move {
                     if let Task::Selinux(selinux_task) = task {
                         crate::apply::selinux::execute_selinux_task(
-                            &selinux_task,
+                            selinux_task,
                             executor.dry_run(),
                         )
                         .await
@@ -1591,7 +1591,7 @@ impl TaskRegistry {
                 Box::pin(async move {
                     if let Task::Iptables(iptables_task) = task {
                         crate::apply::iptables::execute_iptables_task(
-                            &iptables_task,
+                            iptables_task,
                             executor.dry_run(),
                         )
                         .await
@@ -1622,7 +1622,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Git(git_task) = task {
-                        crate::apply::git::execute_git_task(&git_task, executor.dry_run()).await
+                        crate::apply::git::execute_git_task(git_task, executor.dry_run()).await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for git executor"))
                     }
