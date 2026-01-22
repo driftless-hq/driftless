@@ -127,6 +127,53 @@
 //! password = "mypassword"
 //! return_content = true
 //! ```
+//!
+//! ## Register URI response
+//!
+//! This example makes a request and registers the response for use in a subsequent task.
+//!
+//! **YAML Format:**
+//! ```yaml
+//! - type: uri
+//!   description: "Get health status"
+//!   url: https://api.example.com/health
+//!   register: health_response
+//!   return_content: true
+//!
+//! - type: debug
+//!   msg: "The API status code is: {{ health_response.status }}"
+//! ```
+//!
+//! **JSON Format:**
+//! ```json
+//! [
+//!   {
+//!     "type": "uri",
+//!     "description": "Get health status",
+//!     "url": "https://api.example.com/health",
+//!     "register": "health_response",
+//!     "return_content": true
+//!   },
+//!   {
+//!     "type": "debug",
+//!     "msg": "The API status code is: {{ health_response.status }}"
+//!   }
+//! ]
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[tasks]]
+//! type = "uri"
+//! description = "Get health status"
+//! url = "https://api.example.com/health"
+//! register = "health_response"
+//! return_content = true
+//!
+//! [[tasks]]
+//! type = "debug"
+//! msg = "The API status code is: {{ health_response.status }}"
+//! ```
 
 /// HTTP method enumeration
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -162,6 +209,11 @@ pub enum UriState {
 ///
 /// Makes HTTP requests to web services and APIs. Validates responses and can
 /// return content. Similar to Ansible's `uri` module.
+///
+/// # Registered Outputs
+/// - `status` (u16): The HTTP status code of the response
+/// - `changed` (bool): Whether the request was successfully made
+/// - `content` (String): The body of the response (if `return_content` is true)
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct UriTask {
     /// Optional description of what this task does

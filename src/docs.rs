@@ -61,6 +61,13 @@ fn generate_apply_section(
         "Each operation corresponds to a specific aspect of system configuration management.\n\n",
     );
 
+    section.push_str("### Task Result Registration and Conditions\n\n");
+    section.push_str(
+        "All configuration operations support special fields for conditional execution and capturing results:\n\n",
+    );
+    section.push_str("- **`when`**: An optional expression (usually containing variables) that determines if the task should be executed. If the condition evaluates to `false`, the task is skipped.\n");
+    section.push_str("- **`register`**: An optional variable name to capture the result of the task execution. The captured data varies by task type and can be used in subsequent tasks using template expansion (e.g., `{{ my_var.stdout }}`). This field only appears in the documentation for tasks that provide output results.\n\n");
+
     // Get all registered task types from the registry
     let registered_task_types = crate::apply::TaskRegistry::get_registered_task_types();
 
@@ -140,6 +147,21 @@ fn generate_apply_section(
                             section.push('\n');
                         }
                     }
+                }
+
+                // Display registered outputs if available
+                if !task_doc.register_outputs.is_empty() {
+                    section.push_str("**Registered Outputs**:\n\n");
+                    let mut sorted_outputs: Vec<_> = task_doc.register_outputs.values().collect();
+                    sorted_outputs.sort_by(|a, b| a.name.cmp(&b.name));
+
+                    for output in sorted_outputs {
+                        section.push_str(&format!(
+                            "- `{}` ({}): {}\n",
+                            output.name, output.output_type, output.description
+                        ));
+                    }
+                    section.push('\n');
                 }
 
                 // Add examples if available
@@ -445,6 +467,35 @@ fn generate_task_schema() -> serde_json::Map<String, serde_json::Value> {
     properties.insert(
         "description".to_string(),
         serde_json::Value::Object(description_schema),
+    );
+
+    // Common fields
+    let mut register_schema = serde_json::Map::new();
+    register_schema.insert(
+        "type".to_string(),
+        serde_json::Value::String("string".to_string()),
+    );
+    register_schema.insert(
+        "description".to_string(),
+        serde_json::Value::String("Optional variable name to register the task result in".to_string()),
+    );
+    properties.insert(
+        "register".to_string(),
+        serde_json::Value::Object(register_schema),
+    );
+
+    let mut when_schema = serde_json::Map::new();
+    when_schema.insert(
+        "type".to_string(),
+        serde_json::Value::String("string".to_string()),
+    );
+    when_schema.insert(
+        "description".to_string(),
+        serde_json::Value::String("Optional condition to determine if the task should run".to_string()),
+    );
+    properties.insert(
+        "when".to_string(),
+        serde_json::Value::Object(when_schema),
     );
 
     // Task type discriminator

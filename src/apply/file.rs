@@ -108,6 +108,40 @@
 //!   owner: myapp
 //!   group: myapp
 //! ```
+//!
+//! ## Register file creation
+//!
+//! This example creates a file and registers the result.
+//!
+//! **YAML Format:**
+//! ```yaml
+//! - type: file
+//!   description: "Create marker file"
+//!   path: /tmp/driftless.marker
+//!   state: present
+//!   register: marker_file
+//! ```
+//!
+//! **JSON Format:**
+//! ```json
+//! {
+//!   "type": "file",
+//!   "description": "Create marker file",
+//!   "path": "/tmp/driftless.marker",
+//!   "state": "present",
+//!   "register": "marker_file"
+//! }
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[tasks]]
+//! type = "file"
+//! description = "Create marker file"
+//! path = "/tmp/driftless.marker"
+//! state = "present"
+//! register = "marker_file"
+//! ```
 
 /// File state enumeration
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]

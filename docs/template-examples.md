@@ -108,6 +108,68 @@ tasks:
   - type: debug
     msg: "Using {{ cluster_size }} servers"
     when: "cluster_size is defined"
+
+## Registered Variables Usage
+
+Registered variables allow you to capture the output of one task and use it in subsequent tasks. This is particularly useful for conditional execution or dynamic configuration based on command results or API responses.
+
+### Command Output Capture
+
+Capture `stdout` and use it in a template.
+
+```yaml
+tasks:
+  - type: command
+    description: "Get uptime"
+    command: uptime -p
+    register: system_uptime
+
+  - type: debug
+    msg: "The system has been up for: {{ system_uptime.stdout }}"
+```
+
+### Conditional Execution based on Command Result
+
+Use the exit code (`rc`) to decide whether to run another task.
+
+```yaml
+tasks:
+  - type: command
+    description: "Check if a configuration file is valid"
+    command: myapp --check-config /etc/myapp.conf
+    register: config_check
+    ignore_errors: true
+
+  - type: command
+    description: "Apply configuration if valid"
+    command: myapp --apply-config /etc/myapp.conf
+    when: "{{ config_check.rc }} == 0"
+
+  - type: fail
+    msg: "Configuration check failed with error: {{ config_check.stderr }}"
+    when: "{{ config_check.rc }} != 0"
+```
+
+### API Result Usage
+
+Capture a response from a web service and use its status or content.
+
+```yaml
+tasks:
+  - type: uri
+    description: "Check service health"
+    url: https://api.service.local/health
+    return_content: true
+    register: api_health
+
+  - type: debug
+    msg: "Service is healthy. Response status: {{ api_health.status }}"
+    when: "{{ api_health.status }} == 200"
+
+  - type: debug
+    msg: "Service body: {{ api_health.content }}"
+    when: "api_health.content is defined"
+```
 ```
 
 ## Template Inheritance and Composition

@@ -139,10 +139,62 @@
 //! dest = "/opt/myapp"
 //! version = "abc123def456"
 //! ```
+//!
+//! ## Register repository state
+//!
+//! This example clones a repository and registers its state for use in subsequent tasks.
+//!
+//! **YAML Format:**
+//! ```yaml
+//! - type: git
+//!   description: "Clone rust source"
+//!   repo: https://github.com/rust-lang/rust.git
+//!   dest: /opt/rust
+//!   register: rust_repo
+//!
+//! - type: debug
+//!   msg: "Rust repo is at {{ rust_repo.after }}"
+//! ```
+//!
+//! **JSON Format:**
+//! ```json
+//! [
+//!   {
+//!     "type": "git",
+//!     "description": "Clone rust source",
+//!     "repo": "https://github.com/rust-lang/rust.git",
+//!     "dest": "/opt/rust",
+//!     "register": "rust_repo"
+//!   },
+//!   {
+//!     "type": "debug",
+//!     "msg": "Rust repo is at {{ rust_repo.after }}"
+//!   }
+//! ]
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[tasks]]
+//! type = "git"
+//! description = "Clone rust source"
+//! repo = "https://github.com/rust-lang/rust.git"
+//! dest = "/opt/rust"
+//! register = "rust_repo"
+//!
+//! [[tasks]]
+//! type = "debug"
+//! msg = "Rust repo is at {{ rust_repo.after }}"
+//! ```
 
 use serde::{Deserialize, Serialize};
 
 /// Git repository management task
+///
+/// # Registered Outputs
+/// - `changed` (bool): Whether the repository was updated or cloned
+/// - `after` (String): The SHA-1 hash after the task has run
+/// - `before` (String): The SHA-1 hash before the task has run
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GitTask {
     /// Optional description of what this task does
@@ -244,37 +296,133 @@ use git2::{Cred, FetchOptions, RemoteCallbacks, Repository};
 use std::path::Path;
 
 /// Execute a git task
-pub async fn execute_git_task(task: &GitTask, dry_run: bool) -> Result<()> {
+pub async fn execute_git_task(task: &GitTask, dry_run: bool) -> Result<serde_yaml::Value> {
     let dest_path = Path::new(&task.dest);
+
+    // Get before SHA
+    let before = if dest_path.exists() && dest_path.join(".git").exists() {
+        if let Ok(repo) = Repository::open(dest_path) {
+            repo.head()
+                .ok()
+                .and_then(|h| h.target())
+                .map(|oid| oid.to_string())
+        } else {
+            None
+        }
+    } else {
+        None
+    };
 
     // Check if repository already exists
     let repo_exists = dest_path.exists() && dest_path.join(".git").exists();
 
     if !repo_exists {
         if !task.clone {
-            return Ok(()); // Don't clone if clone is false
+            let mut result = serde_yaml::Mapping::new();
+            result.insert(
+                serde_yaml::Value::from("changed"),
+                serde_yaml::Value::from(false),
+            );
+            result.insert(
+                serde_yaml::Value::from("before"),
+                serde_yaml::Value::from(before.clone().unwrap_or_default()),
+            );
+            result.insert(
+                serde_yaml::Value::from("after"),
+                serde_yaml::Value::from(before.unwrap_or_default()),
+            );
+            return Ok(serde_yaml::Value::Mapping(result));
         }
 
         if dry_run {
             println!("Would clone repository {} to {}", task.repo, task.dest);
-            return Ok(());
+            let mut result = serde_yaml::Mapping::new();
+            result.insert(
+                serde_yaml::Value::from("changed"),
+                serde_yaml::Value::from(true),
+            );
+            result.insert(
+                serde_yaml::Value::from("before"),
+                serde_yaml::Value::from(before.clone().unwrap_or_default()),
+            );
+            result.insert(
+                serde_yaml::Value::from("after"),
+                serde_yaml::Value::from("dry_run"),
+            );
+            return Ok(serde_yaml::Value::Mapping(result));
         }
 
         clone_repository(task).await?;
     } else {
         if !task.update {
-            return Ok(()); // Don't update if update is false
+            let mut result = serde_yaml::Mapping::new();
+            result.insert(
+                serde_yaml::Value::from("changed"),
+                serde_yaml::Value::from(false),
+            );
+            result.insert(
+                serde_yaml::Value::from("before"),
+                serde_yaml::Value::from(before.clone().unwrap_or_default()),
+            );
+            result.insert(
+                serde_yaml::Value::from("after"),
+                serde_yaml::Value::from(before.unwrap_or_default()),
+            );
+            return Ok(serde_yaml::Value::Mapping(result));
         }
 
         if dry_run {
             println!("Would update repository in {}", task.dest);
-            return Ok(());
+            let mut result = serde_yaml::Mapping::new();
+            result.insert(
+                serde_yaml::Value::from("changed"),
+                serde_yaml::Value::from(true),
+            );
+            result.insert(
+                serde_yaml::Value::from("before"),
+                serde_yaml::Value::from(before.clone().unwrap_or_default()),
+            );
+            result.insert(
+                serde_yaml::Value::from("after"),
+                serde_yaml::Value::from("dry_run"),
+            );
+            return Ok(serde_yaml::Value::Mapping(result));
         }
 
         update_repository(task).await?;
     }
 
-    Ok(())
+    // Get after SHA
+    let after = if dest_path.exists() && dest_path.join(".git").exists() {
+        if let Ok(repo) = Repository::open(dest_path) {
+            repo.head()
+                .ok()
+                .and_then(|h| h.target())
+                .map(|oid| oid.to_string())
+        } else {
+            None
+        }
+    } else {
+        None
+    };
+
+    let changed = before != after;
+
+    let mut result = serde_yaml::Mapping::new();
+    result.insert(
+        serde_yaml::Value::from("changed"),
+        serde_yaml::Value::from(changed),
+    );
+    result.insert(
+        serde_yaml::Value::from("before"),
+        serde_yaml::Value::from(before.unwrap_or_default()),
+    );
+    result.insert(
+        serde_yaml::Value::from("after"),
+        serde_yaml::Value::from(after.unwrap_or_default()),
+    );
+
+    Ok(serde_yaml::Value::Mapping(result))
 }
 
 /// Clone a git repository

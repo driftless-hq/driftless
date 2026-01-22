@@ -16,6 +16,13 @@ Driftless provides three main configuration components that work together to man
 
 Configuration operations define desired system state and are executed idempotently. Each operation corresponds to a specific aspect of system configuration management.
 
+### Task Result Registration and Conditions
+
+All configuration operations support special fields for conditional execution and capturing results:
+
+- **`when`**: An optional expression (usually containing variables) that determines if the task should be executed. If the condition evaluates to `false`, the task is skipped.
+- **`register`**: An optional variable name to capture the result of the task execution. The captured data varies by task type and can be used in subsequent tasks using template expansion (e.g., `{{ my_var.stdout }}`). This field only appears in the documentation for tasks that provide output results.
+
 ### Command Execution
 
 #### command
@@ -50,8 +57,21 @@ Configuration operations define desired system state and are executed idempotent
 - `group` (Option<String>):
   Whether to run command as a specific group
 
+- `register` (Option<String>):
+  Optional variable name to register the task result in
+
 - `user` (Option<String>):
   Whether to run command as a specific user
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
+
+**Registered Outputs**:
+
+- `changed` (bool): Whether the command was actually run
+- `rc` (i32): The exit code of the command
+- `stderr` (String): The standard error of the command
+- `stdout` (String): The standard output of the command
 
 **Examples**:
 
@@ -148,6 +168,49 @@ command = "systemctl restart nginx"
 user = "root"
 ```
 
+**Register command output**:
+
+**YAML Format**:
+
+```yaml
+- type: command
+  description: "Check system uptime"
+  command: uptime
+  register: uptime_result
+- type: debug
+  msg: "The system uptime is: {{ uptime_result.stdout }}"
+```
+
+**JSON Format**:
+
+```json
+[
+  {
+    "type": "command",
+    "description": "Check system uptime",
+    "command": "uptime",
+    "register": "uptime_result"
+  },
+  {
+    "type": "debug",
+    "msg": "The system uptime is: {{ uptime_result.stdout }}"
+  }
+]
+```
+
+**TOML Format**:
+
+```toml
+[[tasks]]
+type = "command"
+description = "Check system uptime"
+command = "uptime"
+register = "uptime_result"
+[[tasks]]
+type = "debug"
+msg = "The system uptime is: {{ uptime_result.stdout }}"
+```
+
 **Idempotent command**:
 
 **YAML Format**:
@@ -226,6 +289,9 @@ exit_code = 0
 
 - `timeout` (Option<u32>):
   Execution timeout in seconds
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 **Examples**:
 
@@ -412,6 +478,9 @@ chdir = "/opt/myproject"
 - `timeout` (Option<u32>):
   Execution timeout in seconds
 
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
+
 **Examples**:
 
 **Execute a script**:
@@ -589,6 +658,9 @@ timeout = 600
 
 - `dest` (Option<String>):
   Destination directory (for extraction)
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 **Examples**:
 
@@ -782,6 +854,9 @@ state = "absent"
 
 - `insertbefore` (Option<String>):
   Insert before this line (regex)
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 **Examples**:
 
@@ -1000,6 +1075,9 @@ marker = "# {mark} Old Config"
   Human-readable description of the task's purpose. Used for documentation
   and can be displayed in logs or reports.
 
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
+
 **Examples**:
 
 **Copy a file**:
@@ -1144,6 +1222,9 @@ state = "absent"
 
 - `owner` (Option<String>):
   Directory owner
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 **Examples**:
 
@@ -1307,6 +1388,9 @@ state = "absent"
 
 - `username` (Option<String>):
   Username for basic auth
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 **Examples**:
 
@@ -1524,6 +1608,9 @@ permissions, and ownership. Similar to Ansible's `file` module.
   Path to a source file to copy content from when state is `present`.
   Mutually exclusive with `content`.
 
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
+
 **Examples**:
 
 **Create a file with content**:
@@ -1587,6 +1674,41 @@ owner = "root"
 group = "root"
 ```
 
+**Register file creation**:
+
+**YAML Format**:
+
+```yaml
+- type: file
+  description: "Create marker file"
+  path: /tmp/driftless.marker
+  state: present
+  register: marker_file
+```
+
+**JSON Format**:
+
+```json
+{
+  "type": "file",
+  "description": "Create marker file",
+  "path": "/tmp/driftless.marker",
+  "state": "present",
+  "register": "marker_file"
+}
+```
+
+**TOML Format**:
+
+```toml
+[[tasks]]
+type = "file"
+description = "Create marker file"
+path = "/tmp/driftless.marker"
+state = "present"
+register = "marker_file"
+```
+
 #### lineinfile
 
 **Description**: Ensure line in file task
@@ -1624,6 +1746,9 @@ group = "root"
 
 - `regexp` (Option<String>):
   Regular expression to match existing line
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 **Examples**:
 
@@ -1772,6 +1897,9 @@ insertafter = "http \{"
 
 - `regexp` (Option<String>):
   Regular expression to match
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 **Examples**:
 
@@ -1959,6 +2087,24 @@ replace_all = true
   Human-readable description of the task's purpose. Used for documentation
   and can be displayed in logs or reports.
 
+- `register` (Option<String>):
+  Optional variable name to register the task result in
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
+
+**Registered Outputs**:
+
+- `checksum` (String): The file checksum (if `checksum` is true)
+- `exists` (bool): Whether the file or directory exists
+- `gid` (u32): The group ID of the owner
+- `is_dir` (bool): Whether the path is a directory
+- `is_file` (bool): Whether the path is a file
+- `mode` (u32): The file mode (permissions)
+- `modified` (u64): Last modification time (epoch seconds)
+- `size` (u64): The size of the file in bytes
+- `uid` (u32): The user ID of the owner
+
 **Examples**:
 
 **Get file statistics**:
@@ -2057,6 +2203,52 @@ path = "/var/log/syslog"
 follow = true
 ```
 
+**Register file status**:
+
+**YAML Format**:
+
+```yaml
+- type: stat
+  description: "Check if nginx config exists"
+  path: /etc/nginx/nginx.conf
+  register: nginx_conf
+- type: debug
+  msg: "Nginx config exists: {{ nginx_conf.exists }}"
+  when: "{{ nginx_conf.exists }}"
+```
+
+**JSON Format**:
+
+```json
+[
+  {
+    "type": "stat",
+    "description": "Check if nginx config exists",
+    "path": "/etc/nginx/nginx.conf",
+    "register": "nginx_conf"
+  },
+  {
+    "type": "debug",
+    "msg": "Nginx config exists: {{ nginx_conf.exists }}",
+    "when": "{{ nginx_conf.exists }}"
+  }
+]
+```
+
+**TOML Format**:
+
+```toml
+[[tasks]]
+type = "stat"
+description = "Check if nginx config exists"
+path = "/etc/nginx/nginx.conf"
+register = "nginx_conf"
+[[tasks]]
+type = "debug"
+msg = "Nginx config exists: {{ nginx_conf.exists }}"
+when = "{{ nginx_conf.exists }}"
+```
+
 **Get directory statistics**:
 
 **YAML Format**:
@@ -2117,6 +2309,9 @@ path = "/home/user"
 
   Human-readable description of the task's purpose. Used for documentation
   and can be displayed in logs or reports.
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 **Examples**:
 
@@ -2306,6 +2501,9 @@ state = "absent"
 
 - `username` (Option<String>):
   Username for basic auth for URL downloads
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 **Examples**:
 
@@ -2507,6 +2705,9 @@ forwarding options, and compression settings.
   If not specified, modifies the main /etc/systemd/journald.conf file.
   This becomes the filename (e.g., "storage" creates /etc/systemd/journald.conf.d/storage.conf).
 
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
+
 **Examples**:
 
 **Configure journald storage and rotation**:
@@ -2607,6 +2808,9 @@ Creates or removes logrotate configuration snippets for log rotation management.
 
   Shell commands to execute after log rotation.
   Commonly used to reload services after log rotation.
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 **Examples**:
 
@@ -2711,6 +2915,9 @@ Creates or removes rsyslog configuration snippets for log processing and forward
 
   Human-readable description of the task's purpose. Used for documentation
   and can be displayed in logs or reports.
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 **Examples**:
 
@@ -2819,6 +3026,9 @@ checksum validation, and file permission management. Similar to Ansible's `get_u
 
 - `username` (Option<String>):
   Username for basic auth
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 **Examples**:
 
@@ -3036,8 +3246,20 @@ return content. Similar to Ansible's `uri` module.
 - `password` (Option<String>):
   Password for basic auth
 
+- `register` (Option<String>):
+  Optional variable name to register the task result in
+
 - `username` (Option<String>):
   Username for basic auth
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
+
+**Registered Outputs**:
+
+- `changed` (bool): Whether the request was successfully made
+- `content` (String): The body of the response (if `return_content` is true)
+- `status` (u16): The HTTP status code of the response
 
 **Examples**:
 
@@ -3166,6 +3388,52 @@ password = "mypassword"
 return_content = true
 ```
 
+**Register URI response**:
+
+**YAML Format**:
+
+```yaml
+- type: uri
+  description: "Get health status"
+  url: https://api.example.com/health
+  register: health_response
+  return_content: true
+- type: debug
+  msg: "The API status code is: {{ health_response.status }}"
+```
+
+**JSON Format**:
+
+```json
+[
+  {
+    "type": "uri",
+    "description": "Get health status",
+    "url": "https://api.example.com/health",
+    "register": "health_response",
+    "return_content": true
+  },
+  {
+    "type": "debug",
+    "msg": "The API status code is: {{ health_response.status }}"
+  }
+]
+```
+
+**TOML Format**:
+
+```toml
+[[tasks]]
+type = "uri"
+description = "Get health status"
+url = "https://api.example.com/health"
+register = "health_response"
+return_content = true
+[[tasks]]
+type = "debug"
+msg = "The API status code is: {{ health_response.status }}"
+```
+
 ### Package Management
 
 #### apt
@@ -3208,6 +3476,9 @@ return_content = true
 
   Human-readable description of the task's purpose. Used for documentation
   and can be displayed in logs or reports.
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 **Examples**:
 
@@ -3386,6 +3657,9 @@ update_cache = true
 - `version` (Option<String>):
   Version specification
 
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
+
 **Examples**:
 
 **Install a gem**:
@@ -3563,6 +3837,9 @@ state = "absent"
 - `version` (Option<String>):
   Version specification
 
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
+
 **Examples**:
 
 **Install an npm package**:
@@ -3722,6 +3999,17 @@ state = "absent"
 - `manager` (Option<String>):
   Package manager to use (auto-detect if not specified)
 
+- `register` (Option<String>):
+  Optional variable name to register the task result in
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
+
+**Registered Outputs**:
+
+- `changed` (bool): Whether any packages were installed or removed
+- `packages` (Vec<String>): List of packages affected
+
 **Examples**:
 
 **Install a package**:
@@ -3754,6 +4042,154 @@ type = "package"
 description = "Install nginx web server"
 name = "nginx"
 state = "present"
+```
+
+**Install with specific package manager**:
+
+**YAML Format**:
+
+```yaml
+- type: package
+  description: "Install curl using apt"
+  name: curl
+  state: present
+  manager: apt
+```
+
+**JSON Format**:
+
+```json
+{
+  "type": "package",
+  "description": "Install curl using apt",
+  "name": "curl",
+  "state": "present",
+  "manager": "apt"
+}
+```
+
+**TOML Format**:
+
+```toml
+[[tasks]]
+type = "package"
+description = "Install curl using apt"
+name = "curl"
+state = "present"
+manager = "apt"
+```
+
+**Update a package to latest version**:
+
+**YAML Format**:
+
+```yaml
+- type: package
+  description: "Update vim to latest version"
+  name: vim
+  state: latest
+```
+
+**JSON Format**:
+
+```json
+{
+  "type": "package",
+  "description": "Update vim to latest version",
+  "name": "vim",
+  "state": "latest"
+}
+```
+
+**TOML Format**:
+
+```toml
+[[tasks]]
+type = "package"
+description = "Update vim to latest version"
+name = "vim"
+state = "latest"
+```
+
+**Remove a package**:
+
+**YAML Format**:
+
+```yaml
+- type: package
+  description: "Remove telnet client"
+  name: telnet
+  state: absent
+```
+
+**JSON Format**:
+
+```json
+{
+  "type": "package",
+  "description": "Remove telnet client",
+  "name": "telnet",
+  "state": "absent"
+}
+```
+
+**TOML Format**:
+
+```toml
+[[tasks]]
+type = "package"
+description = "Remove telnet client"
+name = "telnet"
+state = "absent"
+```
+
+**Register package installation**:
+
+**YAML Format**:
+
+```yaml
+- type: package
+  description: "Install git and check if changed"
+  name: git
+  state: present
+  register: git_install
+- type: debug
+  msg: "Git was newly installed"
+  when: "{{ git_install.changed }}"
+```
+
+**JSON Format**:
+
+```json
+[
+  {
+    "type": "package",
+    "description": "Install git and check if changed",
+    "name": "git",
+    "state": "present",
+    "register": "git_install"
+  },
+  {
+    "type": "debug",
+    "msg": "Git was newly installed",
+    "when": "{{ git_install.changed }}"
+  }
+]
+```
+
+**TOML Format**:
+
+```toml
+[[tasks]]
+type = "package"
+description = "Install git and check if changed"
+name = "git"
+state = "present"
+register = "git_install"
+[[tasks]]
+type = "debug"
+msg = "Git was newly installed"
+when = "{{ git_install.changed }}"
 ```
 
 #### pacman
@@ -3793,6 +4229,9 @@ state = "present"
 
   Human-readable description of the task's purpose. Used for documentation
   and can be displayed in logs or reports.
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 **Examples**:
 
@@ -3967,6 +4406,9 @@ remove_dependencies = true
 
 - `virtualenv` (Option<String>):
   Virtual environment path
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 **Examples**:
 
@@ -4145,6 +4587,9 @@ state = "absent"
   Human-readable description of the task's purpose. Used for documentation
   and can be displayed in logs or reports.
 
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
+
 **Examples**:
 
 **Install a package**:
@@ -4280,6 +4725,9 @@ state = "absent"
 
   Human-readable description of the task's purpose. Used for documentation
   and can be displayed in logs or reports.
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 **Examples**:
 
@@ -4427,6 +4875,9 @@ state = "absent"
 
 - `path` (Option<String>):
   Path to authorized_keys file (defaults to ~/.ssh/authorized_keys)
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 **Examples**:
 
@@ -4610,6 +5061,9 @@ key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7vbqajDhS... olduser@host"
 
 - `service` (Option<String>):
   Service to manage (e.g., "http", "ssh")
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 **Examples**:
 
@@ -4817,6 +5271,9 @@ permanent = true
 
 - `sport` (Option<String>):
   Source port (for tcp/udp)
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 **Examples**:
 
@@ -5043,6 +5500,9 @@ target = "DROP"
 - `target` (Option<String>):
   File/directory to set context on
 
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
+
 **Examples**:
 
 **Enable SELinux boolean**:
@@ -5225,6 +5685,9 @@ recurse = true
 
 - `runas` (Option<String>):
   Run as user (defaults to ALL)
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 **Examples**:
 
@@ -5420,6 +5883,9 @@ name = "olduser"
 
 - `to` (Option<String>):
   Destination IP/network (for to parameter)
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 **Examples**:
 
@@ -5626,10 +6092,22 @@ from = "192.168.1.100"
 
   Specify an optional private key file path to use for the checkout.
 
+- `register` (Option<String>):
+  Optional variable name to register the task result in
+
 - `ssh_opts` (Option<String>):
   SSH options
 
   Options git will pass to ssh when used as protocol.
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
+
+**Registered Outputs**:
+
+- `after` (String): The SHA-1 hash after the task has run
+- `before` (String): The SHA-1 hash before the task has run
+- `changed` (bool): Whether the repository was updated or cloned
 
 **Examples**:
 
@@ -5773,6 +6251,52 @@ dest = "/opt/myapp"
 version = "abc123def456"
 ```
 
+**Register repository state**:
+
+**YAML Format**:
+
+```yaml
+- type: git
+  description: "Clone rust source"
+  repo: https://github.com/rust-lang/rust.git
+  dest: /opt/rust
+  register: rust_repo
+- type: debug
+  msg: "Rust repo is at {{ rust_repo.after }}"
+```
+
+**JSON Format**:
+
+```json
+[
+  {
+    "type": "git",
+    "description": "Clone rust source",
+    "repo": "https://github.com/rust-lang/rust.git",
+    "dest": "/opt/rust",
+    "register": "rust_repo"
+  },
+  {
+    "type": "debug",
+    "msg": "Rust repo is at {{ rust_repo.after }}"
+  }
+]
+```
+
+**TOML Format**:
+
+```toml
+[[tasks]]
+type = "git"
+description = "Clone rust source"
+repo = "https://github.com/rust-lang/rust.git"
+dest = "/opt/rust"
+register = "rust_repo"
+[[tasks]]
+type = "debug"
+msg = "Rust repo is at {{ rust_repo.after }}"
+```
+
 ### System Administration
 
 #### cron
@@ -5818,6 +6342,9 @@ version = "abc123def456"
 
   Human-readable description of the task's purpose. Used for documentation
   and can be displayed in logs or reports.
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 **Examples**:
 
@@ -6047,6 +6574,9 @@ comment = "Business hours service monitoring"
 - `fstype` (Option<String>):
   Filesystem type (ext4, xfs, btrfs, etc.)
 
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
+
 **Examples**:
 
 **Create an ext4 filesystem**:
@@ -6221,6 +6751,9 @@ force = true
 - `gid` (Option<u32>):
   Group ID
 
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
+
 **Examples**:
 
 **Create a group**:
@@ -6344,6 +6877,9 @@ state = "absent"
 
   Human-readable description of the task's purpose. Used for documentation
   and can be displayed in logs or reports.
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 **Examples**:
 
@@ -6477,6 +7013,9 @@ persist = true
 
 - `fstype` (Option<String>):
   Filesystem type
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 **Examples**:
 
@@ -6658,6 +7197,9 @@ fstab = true
 - `msg` (Option<String>):
   Message to display before reboot
 
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
+
 **Examples**:
 
 **Reboot system with delay**:
@@ -6791,6 +7333,9 @@ test = true
 - `manager` (Option<String>):
   Service manager to use (auto-detect if not specified)
 
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
+
 **Examples**:
 
 **Start and enable a service**:
@@ -6853,6 +7398,9 @@ enabled = true
 
 - `msg` (Option<String>):
   Message to display before shutdown
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 **Examples**:
 
@@ -6989,6 +7537,9 @@ test = true
 
   Human-readable description of the task's purpose. Used for documentation
   and can be displayed in logs or reports.
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 **Examples**:
 
@@ -7155,6 +7706,9 @@ state = "absent"
   Human-readable description of the task's purpose. Used for documentation
   and can be displayed in logs or reports.
 
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
+
 **Examples**:
 
 **Set system timezone to UTC**:
@@ -7284,6 +7838,9 @@ name = "America/Los_Angeles"
 
 - `uid` (Option<u32>):
   User ID
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 **Examples**:
 
@@ -7449,6 +8006,9 @@ state = "absent"
 
   Message to display when assertion passes.
 
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
+
 #### debug
 
 **Description**: Debug task for displaying information
@@ -7478,6 +8038,9 @@ state = "absent"
 
   Variable name to display value of. Alternative to msg.
 
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
+
 #### fail
 
 **Description**: Fail task for forcing execution failure
@@ -7498,9 +8061,7 @@ state = "absent"
   and can be displayed in logs or reports.
 
 - `when` (Option<String>):
-  When condition
-
-  Only fail when this condition is true.
+  Optional condition to determine if the task should run
 
 #### includerole
 
@@ -7532,9 +8093,7 @@ state = "absent"
   and can be displayed in logs or reports.
 
 - `when` (Option<String>):
-  Apply condition
-
-  Only include role when this condition is true.
+  Optional condition to determine if the task should run
 
 #### includetasks
 
@@ -7561,9 +8120,7 @@ state = "absent"
   and can be displayed in logs or reports.
 
 - `when` (Option<String>):
-  Apply condition
-
-  Only include tasks when this condition is true.
+  Optional condition to determine if the task should run
 
 #### pause
 
@@ -7594,6 +8151,9 @@ state = "absent"
   Human-readable description of the task's purpose. Used for documentation
   and can be displayed in logs or reports.
 
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
+
 #### setfact
 
 **Description**: Set fact task for variable management
@@ -7622,6 +8182,9 @@ state = "absent"
 
   Human-readable description of the task's purpose. Used for documentation
   and can be displayed in logs or reports.
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 #### waitfor
 
@@ -7671,6 +8234,9 @@ state = "absent"
   Port to check
 
   Port number to check for connectivity.
+
+- `when` (Option<String>):
+  Optional condition to determine if the task should run
 
 ## Facts Collectors (`facts`)
 

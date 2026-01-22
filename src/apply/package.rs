@@ -49,6 +49,27 @@
 //!   manager: apt
 //! ```
 //!
+//! **JSON Format:**
+//! ```json
+//! {
+//!   "type": "package",
+//!   "description": "Install curl using apt",
+//!   "name": "curl",
+//!   "state": "present",
+//!   "manager": "apt"
+//! }
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[tasks]]
+//! type = "package"
+//! description = "Install curl using apt"
+//! name = "curl"
+//! state = "present"
+//! manager = "apt"
+//! ```
+//!
 //! ## Update a package to latest version
 //!
 //! This example ensures a package is updated to the latest available version.
@@ -61,6 +82,25 @@
 //!   state: latest
 //! ```
 //!
+//! **JSON Format:**
+//! ```json
+//! {
+//!   "type": "package",
+//!   "description": "Update vim to latest version",
+//!   "name": "vim",
+//!   "state": "latest"
+//! }
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[tasks]]
+//! type = "package"
+//! description = "Update vim to latest version"
+//! name = "vim"
+//! state = "latest"
+//! ```
+//!
 //! ## Remove a package
 //!
 //! This example ensures a package is not installed.
@@ -71,6 +111,75 @@
 //!   description: "Remove telnet client"
 //!   name: telnet
 //!   state: absent
+//! ```
+//!
+//! **JSON Format:**
+//! ```json
+//! {
+//!   "type": "package",
+//!   "description": "Remove telnet client",
+//!   "name": "telnet",
+//!   "state": "absent"
+//! }
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[tasks]]
+//! type = "package"
+//! description = "Remove telnet client"
+//! name = "telnet"
+//! state = "absent"
+//! ```
+//!
+//! ## Register package installation
+//!
+//! This example installs a package and registers the result to check for changes.
+//!
+//! **YAML Format:**
+//! ```yaml
+//! - type: package
+//!   description: "Install git and check if changed"
+//!   name: git
+//!   state: present
+//!   register: git_install
+//!
+//! - type: debug
+//!   msg: "Git was newly installed"
+//!   when: "{{ git_install.changed }}"
+//! ```
+//!
+//! **JSON Format:**
+//! ```json
+//! [
+//!   {
+//!     "type": "package",
+//!     "description": "Install git and check if changed",
+//!     "name": "git",
+//!     "state": "present",
+//!     "register": "git_install"
+//!   },
+//!   {
+//!     "type": "debug",
+//!     "msg": "Git was newly installed",
+//!     "when": "{{ git_install.changed }}"
+//!   }
+//! ]
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[tasks]]
+//! type = "package"
+//! description = "Install git and check if changed"
+//! name = "git"
+//! state = "present"
+//! register = "git_install"
+//!
+//! [[tasks]]
+//! type = "debug"
+//! msg = "Git was newly installed"
+//! when = "{{ git_install.changed }}"
 //! ```
 
 /// Package state enumeration
@@ -86,6 +195,10 @@ pub enum PackageState {
 }
 
 /// Package management task
+///
+/// # Registered Outputs
+/// - `changed` (bool): Whether any packages were installed or removed
+/// - `packages` (`Vec<String>`): List of packages affected
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct PackageTask {
     /// Optional description of what this task does
@@ -108,16 +221,30 @@ use anyhow::{Context, Result};
 use std::process::Command;
 
 /// Execute a package task
-pub async fn execute_package_task(task: &PackageTask, dry_run: bool) -> Result<()> {
+pub async fn execute_package_task(task: &PackageTask, dry_run: bool) -> Result<serde_yaml::Value> {
     let manager = detect_package_manager()
         .or_else(|| task.manager.as_ref().cloned())
         .ok_or_else(|| anyhow::anyhow!("Could not detect package manager"))?;
 
-    match task.state {
-        PackageState::Present => ensure_package_present(&task.name, &manager, dry_run).await,
-        PackageState::Absent => ensure_package_absent(&task.name, &manager, dry_run).await,
-        PackageState::Latest => ensure_package_latest(&task.name, &manager, dry_run).await,
-    }
+    let changed = match task.state {
+        PackageState::Present => ensure_package_present(&task.name, &manager, dry_run).await?,
+        PackageState::Absent => ensure_package_absent(&task.name, &manager, dry_run).await?,
+        PackageState::Latest => ensure_package_latest(&task.name, &manager, dry_run).await?,
+    };
+
+    let mut result = serde_yaml::Mapping::new();
+    result.insert(
+        serde_yaml::Value::from("changed"),
+        serde_yaml::Value::from(changed),
+    );
+
+    let packages = vec![serde_yaml::Value::from(task.name.clone())];
+    result.insert(
+        serde_yaml::Value::from("packages"),
+        serde_yaml::Value::from(packages),
+    );
+
+    Ok(serde_yaml::Value::Mapping(result))
 }
 
 /// Detect the package manager available on the system
@@ -145,11 +272,11 @@ fn detect_package_manager() -> Option<String> {
     None
 }
 
-/// Ensure a package is installed
-async fn ensure_package_present(package: &str, manager: &str, dry_run: bool) -> Result<()> {
+/// Ensure a package is present
+async fn ensure_package_present(package: &str, manager: &str, dry_run: bool) -> Result<bool> {
     if is_package_installed(package, manager)? {
         println!("Package {} is already installed", package);
-        return Ok(());
+        return Ok(false);
     }
 
     let install_cmd = get_install_command(package, manager);
@@ -162,14 +289,14 @@ async fn ensure_package_present(package: &str, manager: &str, dry_run: bool) -> 
         println!("Installed package: {}", package);
     }
 
-    Ok(())
+    Ok(true)
 }
 
 /// Ensure a package is not installed
-async fn ensure_package_absent(package: &str, manager: &str, dry_run: bool) -> Result<()> {
+async fn ensure_package_absent(package: &str, manager: &str, dry_run: bool) -> Result<bool> {
     if !is_package_installed(package, manager)? {
         println!("Package {} is not installed", package);
-        return Ok(());
+        return Ok(false);
     }
 
     let remove_cmd = get_remove_command(package, manager);
@@ -182,22 +309,22 @@ async fn ensure_package_absent(package: &str, manager: &str, dry_run: bool) -> R
         println!("Removed package: {}", package);
     }
 
-    Ok(())
+    Ok(true)
 }
 
 /// Ensure a package is at the latest version
-async fn ensure_package_latest(package: &str, manager: &str, dry_run: bool) -> Result<()> {
+async fn ensure_package_latest(package: &str, manager: &str, dry_run: bool) -> Result<bool> {
     let upgrade_cmd = get_upgrade_command(package, manager);
 
     if dry_run {
         println!("Would run: {}", upgrade_cmd.join(" "));
+        Ok(true)
     } else {
         run_command(&upgrade_cmd)
             .with_context(|| format!("Failed to upgrade package {}", package))?;
         println!("Upgraded package: {}", package);
+        Ok(true)
     }
-
-    Ok(())
 }
 
 /// Check if a package is installed

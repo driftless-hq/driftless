@@ -59,7 +59,6 @@
 - Plugin registry and download manager
 
 ## TODO
-- The `register` field was recently added as an output field of some task types. The documentation generator needs to be updated to document the output of the `register` field.
 - Review the usage of the template language and ensure it fully supports jinja2 with all filters, variable substitutions, and other functionality. Also ensure that all tasks using template language are using it properly.
 - Review the codebase for usage of Rust best-practices and guidelines
 - Review the codebase for safety, security, and production-readiness

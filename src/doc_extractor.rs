@@ -16,6 +16,8 @@ pub struct TaskDocumentation {
     pub fields: HashMap<String, FieldDocumentation>,
     /// Examples from the implementation file
     pub examples: Vec<TaskExample>,
+    /// Registered output documentation
+    pub register_outputs: HashMap<String, RegisterOutputDocumentation>,
 }
 
 /// Documentation for a task field
@@ -27,6 +29,17 @@ pub struct FieldDocumentation {
     pub field_type: String,
     /// Whether the field is required
     pub required: bool,
+    /// Human-readable description
+    pub description: String,
+}
+
+/// Documentation for a registered output
+#[derive(Debug, Clone)]
+pub struct RegisterOutputDocumentation {
+    /// Output name
+    pub name: String,
+    /// Output type description
+    pub output_type: String,
     /// Human-readable description
     pub description: String,
 }
@@ -63,7 +76,40 @@ pub fn extract_all_task_docs() -> Result<HashMap<String, TaskDocumentation>> {
     // Extract examples from implementation files
     extract_examples_from_files(&mut docs)?;
 
+    // Add common fields to all tasks
+    add_common_task_fields(&mut docs);
+
     Ok(docs)
+}
+
+/// Add common fields (register, when) to all task documentation
+fn add_common_task_fields(docs: &mut HashMap<String, TaskDocumentation>) {
+    for task_doc in docs.values_mut() {
+        // Always add 'when' field documentation
+        task_doc.fields.insert(
+            "when".to_string(),
+            FieldDocumentation {
+                name: "when".to_string(),
+                field_type: "Option<String>".to_string(),
+                required: false,
+                description: "Optional condition to determine if the task should run".to_string(),
+            },
+        );
+
+        // Only add 'register' field documentation if the task has outputs to register
+        if !task_doc.register_outputs.is_empty() {
+            task_doc.fields.insert(
+                "register".to_string(),
+                FieldDocumentation {
+                    name: "register".to_string(),
+                    field_type: "Option<String>".to_string(),
+                    required: false,
+                    description: "Optional variable name to register the task result in"
+                        .to_string(),
+                },
+            );
+        }
+    }
 }
 
 /// Extract documentation for all facts collectors
@@ -106,6 +152,7 @@ fn extract_task_struct_docs(
                         description: String::new(),
                         fields: HashMap::new(),
                         examples: Vec::new(),
+                        register_outputs: HashMap::new(),
                     };
 
                     // Extract struct documentation (go backwards to find doc comments)
@@ -116,18 +163,62 @@ fn extract_task_struct_docs(
                         let line = lines[j].trim();
                         if line.starts_with("///") {
                             let content = line.trim_start_matches("///").trim();
-                            // Stop extracting when we hit any markdown heading (like # Examples)
-                            if content.starts_with("#") {
-                                break;
-                            }
-                            doc_lines.insert(0, content);
-                        } else if !line.is_empty() && !line.starts_with("//") {
+                            doc_lines.insert(0, content.to_string());
+                        } else if !line.is_empty()
+                            && !line.starts_with("//")
+                            && !line.starts_with("#[")
+                        {
                             break;
                         }
                     }
 
                     if !doc_lines.is_empty() {
-                        task_doc.description = doc_lines.join("\n");
+                        // Separate description from register outputs
+                        let mut description_lines = Vec::new();
+                        let mut in_outputs_section = false;
+
+                        for line in doc_lines {
+                            let trimmed = line.trim();
+                            if trimmed == "# Registered Outputs" {
+                                in_outputs_section = true;
+                                continue;
+                            }
+
+                            if in_outputs_section {
+                                if trimmed.starts_with("- `") {
+                                    if let Some(type_start) = trimmed.find("` (") {
+                                        if let Some(type_end) = trimmed.find("): ") {
+                                            let name = trimmed[3..type_start].to_string();
+                                            let output_type =
+                                                trimmed[type_start + 3..type_end].to_string();
+                                            let desc = trimmed[type_end + 3..].to_string();
+                                            task_doc.register_outputs.insert(
+                                                name.clone(),
+                                                RegisterOutputDocumentation {
+                                                    name,
+                                                    output_type,
+                                                    description: desc,
+                                                },
+                                            );
+                                        }
+                                    } else if let Some(pos) = trimmed.find("`: ") {
+                                        let name = trimmed[3..pos].to_string();
+                                        let desc = trimmed[pos + 3..].to_string();
+                                        task_doc.register_outputs.insert(
+                                            name.clone(),
+                                            RegisterOutputDocumentation {
+                                                name,
+                                                output_type: "Unknown".to_string(),
+                                                description: desc,
+                                            },
+                                        );
+                                    }
+                                }
+                            } else {
+                                description_lines.push(line);
+                            }
+                        }
+                        task_doc.description = description_lines.join("\n").trim().to_string();
                     }
 
                     // Extract field documentation
@@ -320,13 +411,16 @@ fn extract_examples_from_file(content: &str) -> Option<Vec<TaskExample>> {
         }
 
         if found_example {
-            // Skip description lines until we find **YAML Format:**
-            while i < lines.len() && !lines[i].contains("**YAML Format:**") {
+            // Skip description lines until we find **YAML Format:** or another header
+            while i < lines.len()
+                && !lines[i].contains("**YAML Format:**")
+                && !lines[i].contains("## ")
+            {
                 i += 1;
             }
 
-            if i >= lines.len() {
-                break;
+            if i >= lines.len() || lines[i].contains("## ") {
+                continue;
             }
 
             i += 1; // Skip the **YAML Format:** line
@@ -372,13 +466,16 @@ fn extract_examples_from_file(content: &str) -> Option<Vec<TaskExample>> {
             }
             i += 1; // Skip the closing ```
 
-            // Skip to **JSON Format:**
-            while i < lines.len() && !lines[i].contains("**JSON Format:**") {
+            // Skip to **JSON Format:** or another header
+            while i < lines.len()
+                && !lines[i].contains("**JSON Format:**")
+                && !lines[i].contains("## ")
+            {
                 i += 1;
             }
 
-            if i >= lines.len() {
-                break;
+            if i >= lines.len() || lines[i].contains("## ") {
+                continue;
             }
 
             i += 1; // Skip the **JSON Format:** line
@@ -424,13 +521,16 @@ fn extract_examples_from_file(content: &str) -> Option<Vec<TaskExample>> {
             }
             i += 1; // Skip the closing ```
 
-            // Skip to **TOML Format:**
-            while i < lines.len() && !lines[i].contains("**TOML Format:**") {
+            // Skip to **TOML Format:** or another header
+            while i < lines.len()
+                && !lines[i].contains("**TOML Format:**")
+                && !lines[i].contains("## ")
+            {
                 i += 1;
             }
 
-            if i >= lines.len() {
-                break;
+            if i >= lines.len() || lines[i].contains("## ") {
+                continue;
             }
 
             i += 1; // Skip the **TOML Format:** line

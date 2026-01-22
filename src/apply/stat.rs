@@ -97,6 +97,53 @@
 //! follow = true
 //! ```
 //!
+//! ## Register file status
+//!
+//! This example checks if a file exists and registers its status for use in subsequent tasks.
+//!
+//! **YAML Format:**
+//! ```yaml
+//! - type: stat
+//!   description: "Check if nginx config exists"
+//!   path: /etc/nginx/nginx.conf
+//!   register: nginx_conf
+//!
+//! - type: debug
+//!   msg: "Nginx config exists: {{ nginx_conf.exists }}"
+//!   when: "{{ nginx_conf.exists }}"
+//! ```
+//!
+//! **JSON Format:**
+//! ```json
+//! [
+//!   {
+//!     "type": "stat",
+//!     "description": "Check if nginx config exists",
+//!     "path": "/etc/nginx/nginx.conf",
+//!     "register": "nginx_conf"
+//!   },
+//!   {
+//!     "type": "debug",
+//!     "msg": "Nginx config exists: {{ nginx_conf.exists }}",
+//!     "when": "{{ nginx_conf.exists }}"
+//!   }
+//! ]
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[tasks]]
+//! type = "stat"
+//! description = "Check if nginx config exists"
+//! path = "/etc/nginx/nginx.conf"
+//! register = "nginx_conf"
+//!
+//! [[tasks]]
+//! type = "debug"
+//! msg = "Nginx config exists: {{ nginx_conf.exists }}"
+//! when = "{{ nginx_conf.exists }}"
+//! ```
+//!
 //! ## Get directory statistics
 //!
 //! This example displays statistics for a directory.
@@ -141,6 +188,17 @@ pub enum ChecksumAlgorithm {
 }
 
 /// File/directory statistics task
+///
+/// # Registered Outputs
+/// - `exists` (bool): Whether the file or directory exists
+/// - `is_file` (bool): Whether the path is a file
+/// - `is_dir` (bool): Whether the path is a directory
+/// - `size` (u64): The size of the file in bytes
+/// - `mode` (u32): The file mode (permissions)
+/// - `uid` (u32): The user ID of the owner
+/// - `gid` (u32): The group ID of the owner
+/// - `modified` (u64): Last modification time (epoch seconds)
+/// - `checksum` (String): The file checksum (if `checksum` is true)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StatTask {
     /// Optional description of what this task does
@@ -171,27 +229,67 @@ use std::path::Path;
 use std::time::UNIX_EPOCH;
 
 /// Execute a stat task
-pub async fn execute_stat_task(task: &StatTask, dry_run: bool) -> Result<()> {
+pub async fn execute_stat_task(task: &StatTask, dry_run: bool) -> Result<serde_yaml::Value> {
+    let mut result = serde_yaml::Mapping::new();
+
     if dry_run {
         println!("Would get statistics for: {}", task.path);
-        return Ok(());
+        result.insert(
+            serde_yaml::Value::String("exists".to_string()),
+            serde_yaml::Value::Bool(false),
+        );
+        return Ok(serde_yaml::Value::Mapping(result));
     }
 
     let path = Path::new(&task.path);
-    let metadata =
-        fs::metadata(path).with_context(|| format!("Failed to get metadata for {}", task.path))?;
+    let metadata_res = fs::metadata(path);
+
+    if let Err(e) = &metadata_res {
+        result.insert(
+            serde_yaml::Value::String("exists".to_string()),
+            serde_yaml::Value::Bool(false),
+        );
+        println!("File does not exist: {} ({})", task.path, e);
+        return Ok(serde_yaml::Value::Mapping(result));
+    }
+
+    let metadata = metadata_res.unwrap();
+    result.insert(
+        serde_yaml::Value::String("exists".to_string()),
+        serde_yaml::Value::Bool(true),
+    );
 
     // Display basic file information
     println!("File: {}", task.path);
     println!("Size: {} bytes", metadata.len());
+    result.insert(
+        serde_yaml::Value::String("size".to_string()),
+        serde_yaml::Value::Number(metadata.len().into()),
+    );
     println!("Mode: {:o}", metadata.mode());
+    result.insert(
+        serde_yaml::Value::String("mode".to_string()),
+        serde_yaml::Value::Number(metadata.mode().into()),
+    );
     println!("Uid: {}", metadata.uid());
+    result.insert(
+        serde_yaml::Value::String("uid".to_string()),
+        serde_yaml::Value::Number(metadata.uid().into()),
+    );
     println!("Gid: {}", metadata.gid());
+    result.insert(
+        serde_yaml::Value::String("gid".to_string()),
+        serde_yaml::Value::Number(metadata.gid().into()),
+    );
 
     // Display timestamps
     if let Ok(modified) = metadata.modified() {
         if let Ok(duration) = modified.duration_since(UNIX_EPOCH) {
             println!("Modified: {}", duration.as_secs());
+            result.insert(
+                serde_yaml::Value::String("modified".to_string()),
+                serde_yaml::Value::Number(duration.as_secs().into()),
+            );
         }
     }
     if let Ok(accessed) = metadata.accessed() {
@@ -206,6 +304,15 @@ pub async fn execute_stat_task(task: &StatTask, dry_run: bool) -> Result<()> {
     }
 
     // Display file type
+    result.insert(
+        serde_yaml::Value::String("is_file".to_string()),
+        serde_yaml::Value::Bool(metadata.is_file()),
+    );
+    result.insert(
+        serde_yaml::Value::String("is_dir".to_string()),
+        serde_yaml::Value::Bool(metadata.is_dir()),
+    );
+
     let file_type = if metadata.is_file() {
         "regular file"
     } else if metadata.is_dir() {
@@ -226,6 +333,10 @@ pub async fn execute_stat_task(task: &StatTask, dry_run: bool) -> Result<()> {
                     format!("{:?}", task.checksum_algorithm).to_lowercase(),
                     checksum
                 );
+                result.insert(
+                    serde_yaml::Value::String("checksum".to_string()),
+                    serde_yaml::Value::String(checksum),
+                );
             }
             Err(e) => {
                 println!("Failed to calculate checksum: {}", e);
@@ -233,7 +344,7 @@ pub async fn execute_stat_task(task: &StatTask, dry_run: bool) -> Result<()> {
         }
     }
 
-    Ok(())
+    Ok(serde_yaml::Value::Mapping(result))
 }
 
 /// Calculate file checksum

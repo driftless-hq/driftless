@@ -94,6 +94,50 @@
 //! user = "root"
 //! ```
 //!
+//! ## Register command output
+//!
+//! This example runs a command and registers its output for use in subsequent tasks.
+//!
+//! **YAML Format:**
+//! ```yaml
+//! - type: command
+//!   description: "Check system uptime"
+//!   command: uptime
+//!   register: uptime_result
+//!
+//! - type: debug
+//!   msg: "The system uptime is: {{ uptime_result.stdout }}"
+//! ```
+//!
+//! **JSON Format:**
+//! ```json
+//! [
+//!   {
+//!     "type": "command",
+//!     "description": "Check system uptime",
+//!     "command": "uptime",
+//!     "register": "uptime_result"
+//!   },
+//!   {
+//!     "type": "debug",
+//!     "msg": "The system uptime is: {{ uptime_result.stdout }}"
+//!   }
+//! ]
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[tasks]]
+//! type = "command"
+//! description = "Check system uptime"
+//! command = "uptime"
+//! register = "uptime_result"
+//!
+//! [[tasks]]
+//! type = "debug"
+//! msg = "The system uptime is: {{ uptime_result.stdout }}"
+//! ```
+//!
 //! ## Idempotent command
 //!
 //! This example runs a command only if it hasn't been run before.
@@ -129,6 +173,12 @@
 //! ```
 
 /// Command execution task
+///
+/// # Registered Outputs
+/// - `stdout` (String): The standard output of the command
+/// - `stderr` (String): The standard error of the command
+/// - `rc` (i32): The exit code of the command
+/// - `changed` (bool): Whether the command was actually run
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct CommandTask {
     /// Optional description of what this task does

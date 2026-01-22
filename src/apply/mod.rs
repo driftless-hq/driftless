@@ -190,9 +190,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let TaskAction::Package(pkg_task) = &task.action {
-                        crate::apply::package::execute_package_task(pkg_task, executor.dry_run())
-                            .await?;
-                        Ok(serde_yaml::Value::Null)
+                        crate::apply::package::execute_package_task(pkg_task, executor.dry_run()).await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for package executor"))
                     }
@@ -1215,8 +1213,7 @@ impl TaskRegistry {
                 Box::pin(async move {
                     if let TaskAction::Stat(stat_task) = &task.action {
                         crate::apply::stat::execute_stat_task(stat_task, executor.dry_run())
-                            .await?;
-                        Ok(serde_yaml::Value::Null)
+                            .await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for stat executor"))
                     }
@@ -1678,8 +1675,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let TaskAction::Git(git_task) = &task.action {
-                        crate::apply::git::execute_git_task(git_task, executor.dry_run()).await?;
-                        Ok(serde_yaml::Value::Null)
+                        crate::apply::git::execute_git_task(git_task, executor.dry_run()).await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for git executor"))
                     }
