@@ -45,55 +45,8 @@ pub fn generate_task_documentation() -> Result<String> {
 }
 
 /// Categorize a task type into a documentation category
-fn categorize_task_type(task_type: &str) -> &'static str {
-    // Convert registry task type to documentation key (add underscores where needed)
-    let doc_key = match task_type {
-        "geturl" => "get_url",
-        "waitfor" => "wait_for",
-        "setfact" => "set_fact",
-        "includetasks" => "include_tasks",
-        "includerole" => "include_role",
-        "authorizedkey" => "authorized_key",
-        "lineinfile" => "lineinfile",
-        "blockinfile" => "blockinfile",
-        _ => task_type,
-    };
-
-    match doc_key {
-        // File Operations
-        "file" | "directory" | "copy" | "template" | "lineinfile" | "blockinfile" | "replace"
-        | "fetch" | "unarchive" | "archive" | "stat" => "File Operations",
-
-        // Package Management
-        "package" | "apt" | "yum" | "pacman" | "zypper" | "pip" | "npm" | "gem" => {
-            "Package Management"
-        }
-
-        // System Administration
-        "user" | "group" | "service" | "cron" | "mount" | "filesystem" | "sysctl" | "hostname"
-        | "timezone" | "reboot" | "shutdown" => "System Administration",
-
-        // Command Execution
-        "command" | "script" | "raw" => "Command Execution",
-
-        // Network Operations
-        "uri" | "get_url" => "Network Operations",
-
-        // Security & Access
-        "authorized_key" | "sudoers" | "firewalld" | "ufw" | "iptables" | "selinux" => {
-            "Security & Access"
-        }
-
-        // Source Control
-        "git" => "Source Control",
-
-        // Utility/Control
-        "debug" | "assert" | "fail" | "wait_for" | "pause" | "set_fact" | "include_tasks"
-        | "include_role" => "Utility/Control",
-
-        // Default category for unknown task types
-        _ => "Other",
-    }
+fn categorize_task_type(task_type: &str) -> String {
+    crate::apply::TaskRegistry::get_task_category(task_type)
 }
 
 /// Generate detailed documentation for all apply task types
@@ -124,25 +77,14 @@ fn generate_apply_section(
 
     // Sort categories and tasks within categories
     let mut sorted_categories: Vec<_> = categories.into_iter().collect();
-    sorted_categories.sort_by(|a, b| a.0.cmp(b.0));
+    sorted_categories.sort_by(|a, b| a.0.cmp(&b.0));
 
     for (category_name, mut task_types) in sorted_categories {
         task_types.sort();
         section.push_str(&format!("### {}\n\n", category_name));
 
         for task_type in task_types {
-            // Convert registry task type to documentation key
-            let doc_key = match task_type.as_str() {
-                "geturl" => "get_url",
-                "waitfor" => "wait_for",
-                "setfact" => "set_fact",
-                "includetasks" => "include_tasks",
-                "includerole" => "include_role",
-                "authorizedkey" => "authorized_key",
-                _ => &task_type,
-            };
-
-            if let Some(task_doc) = task_docs.get(doc_key) {
+            if let Some(task_doc) = task_docs.get(&task_type) {
                 section.push_str(&format!("#### {}\n\n", task_type));
                 section.push_str(&format!("**Description**: {}\n\n", task_doc.description));
 
@@ -515,58 +457,15 @@ fn generate_task_schema() -> serde_json::Map<String, serde_json::Value> {
         "description".to_string(),
         serde_json::Value::String("The type of configuration operation".to_string()),
     );
-    let enum_values = vec![
-        serde_json::Value::String("file".to_string()),
-        serde_json::Value::String("package".to_string()),
-        serde_json::Value::String("service".to_string()),
-        serde_json::Value::String("user".to_string()),
-        serde_json::Value::String("command".to_string()),
-        serde_json::Value::String("directory".to_string()),
-        serde_json::Value::String("group".to_string()),
-        serde_json::Value::String("cron".to_string()),
-        serde_json::Value::String("mount".to_string()),
-        serde_json::Value::String("filesystem".to_string()),
-        serde_json::Value::String("sysctl".to_string()),
-        serde_json::Value::String("hostname".to_string()),
-        serde_json::Value::String("timezone".to_string()),
-        serde_json::Value::String("reboot".to_string()),
-        serde_json::Value::String("shutdown".to_string()),
-        serde_json::Value::String("copy".to_string()),
-        serde_json::Value::String("template".to_string()),
-        serde_json::Value::String("lineinfile".to_string()),
-        serde_json::Value::String("blockinfile".to_string()),
-        serde_json::Value::String("replace".to_string()),
-        serde_json::Value::String("fetch".to_string()),
-        serde_json::Value::String("uri".to_string()),
-        serde_json::Value::String("get_url".to_string()),
-        serde_json::Value::String("unarchive".to_string()),
-        serde_json::Value::String("archive".to_string()),
-        serde_json::Value::String("stat".to_string()),
-        serde_json::Value::String("apt".to_string()),
-        serde_json::Value::String("yum".to_string()),
-        serde_json::Value::String("pacman".to_string()),
-        serde_json::Value::String("zypper".to_string()),
-        serde_json::Value::String("pip".to_string()),
-        serde_json::Value::String("npm".to_string()),
-        serde_json::Value::String("gem".to_string()),
-        serde_json::Value::String("script".to_string()),
-        serde_json::Value::String("raw".to_string()),
-        serde_json::Value::String("debug".to_string()),
-        serde_json::Value::String("assert".to_string()),
-        serde_json::Value::String("fail".to_string()),
-        serde_json::Value::String("wait_for".to_string()),
-        serde_json::Value::String("pause".to_string()),
-        serde_json::Value::String("set_fact".to_string()),
-        serde_json::Value::String("include_tasks".to_string()),
-        serde_json::Value::String("include_role".to_string()),
-        serde_json::Value::String("authorized_key".to_string()),
-        serde_json::Value::String("sudoers".to_string()),
-        serde_json::Value::String("firewalld".to_string()),
-        serde_json::Value::String("ufw".to_string()),
-        serde_json::Value::String("iptables".to_string()),
-        serde_json::Value::String("selinux".to_string()),
-        serde_json::Value::String("git".to_string()),
-    ];
+
+    let mut registered_task_types = crate::apply::TaskRegistry::get_registered_task_types();
+    registered_task_types.sort();
+
+    let enum_values = registered_task_types
+        .into_iter()
+        .map(serde_json::Value::String)
+        .collect();
+
     type_schema.insert("enum".to_string(), serde_json::Value::Array(enum_values));
     properties.insert("type".to_string(), serde_json::Value::Object(type_schema));
 

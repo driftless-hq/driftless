@@ -51,16 +51,12 @@ pub fn extract_all_task_docs() -> Result<HashMap<String, TaskDocumentation>> {
     // Get all registered task types from the registry
     let registered_task_types = crate::apply::TaskRegistry::get_registered_task_types();
 
-    // Generate file paths from task types using the filename mapping
-    let task_files: Vec<String> = registered_task_types
-        .iter()
-        .map(|task_type| format!("src/apply/{}.rs", crate::apply::Task::task_filename(task_type)))
-        .collect();
-
     // Extract from each task file
-    for file_path in task_files {
+    for task_type in registered_task_types {
+        let filename = crate::apply::Task::task_filename(&task_type);
+        let file_path = format!("src/apply/{}.rs", filename);
         if let Ok(content) = fs::read_to_string(&file_path) {
-            extract_task_struct_docs(&content, &mut docs)?;
+            extract_task_struct_docs(&content, &mut docs, &task_type)?;
         }
     }
 
@@ -94,6 +90,7 @@ pub fn extract_all_logs_docs() -> Result<HashMap<String, TaskDocumentation>> {
 fn extract_task_struct_docs(
     content: &str,
     docs: &mut HashMap<String, TaskDocumentation>,
+    task_type: &str,
 ) -> Result<()> {
     let lines: Vec<&str> = content.lines().collect();
     let mut i = 0;
@@ -103,7 +100,8 @@ fn extract_task_struct_docs(
         if lines[i].contains("#[derive") && lines[i + 1].contains("pub struct") {
             let struct_line = lines[i + 1];
             if let Some(struct_name) = extract_struct_name(struct_line) {
-                if let Some(task_type) = struct_name_to_task_type(&struct_name) {
+                // If it ends with Task, assume it's the main task struct for this file
+                if struct_name.ends_with("Task") {
                     let mut task_doc = TaskDocumentation {
                         description: String::new(),
                         fields: HashMap::new(),
@@ -144,7 +142,7 @@ fn extract_task_struct_docs(
                         }
                     }
 
-                    docs.insert(task_type, task_doc);
+                    docs.insert(task_type.to_string(), task_doc);
                 }
             }
         }
@@ -161,63 +159,6 @@ fn extract_struct_name(line: &str) -> Option<String> {
         Some(parts[2].to_string())
     } else {
         None
-    }
-}
-
-/// Convert struct name to task type
-fn struct_name_to_task_type(struct_name: &str) -> Option<String> {
-    match struct_name {
-        "FileTask" => Some("file".to_string()),
-        "PackageTask" => Some("package".to_string()),
-        "ServiceTask" => Some("service".to_string()),
-        "UserTask" => Some("user".to_string()),
-        "CommandTask" => Some("command".to_string()),
-        "DirectoryTask" => Some("directory".to_string()),
-        "GroupTask" => Some("group".to_string()),
-        "CronTask" => Some("cron".to_string()),
-        "MountTask" => Some("mount".to_string()),
-        "FilesystemTask" => Some("filesystem".to_string()),
-        "SysctlTask" => Some("sysctl".to_string()),
-        "HostnameTask" => Some("hostname".to_string()),
-        "TimezoneTask" => Some("timezone".to_string()),
-        "RebootTask" => Some("reboot".to_string()),
-        "ShutdownTask" => Some("shutdown".to_string()),
-        "CopyTask" => Some("copy".to_string()),
-        "TemplateTask" => Some("template".to_string()),
-        "LineInFileTask" => Some("lineinfile".to_string()),
-        "BlockInFileTask" => Some("blockinfile".to_string()),
-        "ReplaceTask" => Some("replace".to_string()),
-        "FetchTask" => Some("fetch".to_string()),
-        "UriTask" => Some("uri".to_string()),
-        "GetUrlTask" => Some("get_url".to_string()),
-        "UnarchiveTask" => Some("unarchive".to_string()),
-        "ArchiveTask" => Some("archive".to_string()),
-        "StatTask" => Some("stat".to_string()),
-        "AptTask" => Some("apt".to_string()),
-        "YumTask" => Some("yum".to_string()),
-        "PacmanTask" => Some("pacman".to_string()),
-        "ZypperTask" => Some("zypper".to_string()),
-        "PipTask" => Some("pip".to_string()),
-        "NpmTask" => Some("npm".to_string()),
-        "GemTask" => Some("gem".to_string()),
-        "ScriptTask" => Some("script".to_string()),
-        "RawTask" => Some("raw".to_string()),
-        "DebugTask" => Some("debug".to_string()),
-        "AssertTask" => Some("assert".to_string()),
-        "FailTask" => Some("fail".to_string()),
-        "WaitForTask" => Some("wait_for".to_string()),
-        "PauseTask" => Some("pause".to_string()),
-        "SetFactTask" => Some("set_fact".to_string()),
-        "IncludeTasksTask" => Some("include_tasks".to_string()),
-        "IncludeRoleTask" => Some("include_role".to_string()),
-        "AuthorizedKeyTask" => Some("authorized_key".to_string()),
-        "SudoersTask" => Some("sudoers".to_string()),
-        "FirewalldTask" => Some("firewalld".to_string()),
-        "UfwTask" => Some("ufw".to_string()),
-        "SelinuxTask" => Some("selinux".to_string()),
-        "IptablesTask" => Some("iptables".to_string()),
-        "GitTask" => Some("git".to_string()),
-        _ => None,
     }
 }
 
@@ -351,18 +292,7 @@ fn extract_examples_from_files(docs: &mut HashMap<String, TaskDocumentation>) ->
     for (task_type, file_path) in task_files {
         if let Ok(content) = fs::read_to_string(&file_path) {
             if let Some(examples) = extract_examples_from_file(&content) {
-                // Convert registry task type to documentation key for lookup
-                let doc_key = match task_type.as_str() {
-                    "geturl" => "get_url",
-                    "waitfor" => "wait_for",
-                    "setfact" => "set_fact",
-                    "includetasks" => "include_tasks",
-                    "includerole" => "include_role",
-                    "authorizedkey" => "authorized_key",
-                    _ => &task_type,
-                };
-
-                if let Some(task_doc) = docs.get_mut(doc_key) {
+                if let Some(task_doc) = docs.get_mut(&task_type) {
                     task_doc.examples = examples;
                 }
             }

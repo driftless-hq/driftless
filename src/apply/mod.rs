@@ -22,9 +22,11 @@ type TaskValidatorFn = Arc<dyn Fn(&Task, usize) -> Result<()> + Send + Sync>;
 
 // Task registry entry containing both executor and validator
 #[derive(Clone)]
-struct TaskRegistryEntry {
+pub(crate) struct TaskRegistryEntry {
     executor: TaskExecutorFn,
     validator: Option<TaskValidatorFn>,
+    category: String,
+    filename: String,
 }
 
 // Global task registry for extensible task execution
@@ -45,11 +47,15 @@ impl TaskRegistry {
     pub fn register(
         registry: &mut HashMap<String, TaskRegistryEntry>,
         task_type: &str,
+        category: &str,
+        filename: &str,
         executor: TaskExecutorFn,
     ) {
         let entry = TaskRegistryEntry {
             executor,
             validator: None,
+            category: category.to_string(),
+            filename: filename.to_string(),
         };
         registry.insert(task_type.to_string(), entry);
     }
@@ -58,12 +64,16 @@ impl TaskRegistry {
     pub fn register_with_validator(
         registry: &mut HashMap<String, TaskRegistryEntry>,
         task_type: &str,
+        category: &str,
+        filename: &str,
         executor: TaskExecutorFn,
         validator: TaskValidatorFn,
     ) {
         let entry = TaskRegistryEntry {
             executor,
             validator: Some(validator),
+            category: category.to_string(),
+            filename: filename.to_string(),
         };
         registry.insert(task_type.to_string(), entry);
     }
@@ -73,6 +83,8 @@ impl TaskRegistry {
         // File operations
         TaskRegistry::register_with_validator(
             registry,
+            "file",
+            "File Operations",
             "file",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
@@ -98,6 +110,8 @@ impl TaskRegistry {
 
         TaskRegistry::register_with_validator(
             registry,
+            "directory",
+            "File Operations",
             "directory",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
@@ -127,6 +141,8 @@ impl TaskRegistry {
 
         TaskRegistry::register_with_validator(
             registry,
+            "copy",
+            "File Operations",
             "copy",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
@@ -160,6 +176,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "package",
+            "Package Management",
+            "package",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Package(pkg_task) = task {
@@ -186,6 +204,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "apt",
+            "Package Management",
+            "apt",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Apt(apt_task) = task {
@@ -211,6 +231,8 @@ impl TaskRegistry {
         // Service management
         TaskRegistry::register_with_validator(
             registry,
+            "service",
+            "System Administration",
             "service",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
@@ -242,6 +264,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "user",
+            "System Administration",
+            "user",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::User(user_task) = task {
@@ -266,6 +290,8 @@ impl TaskRegistry {
 
         TaskRegistry::register_with_validator(
             registry,
+            "group",
+            "System Administration",
             "group",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
@@ -294,6 +320,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "command",
+            "Command Execution",
+            "command",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Command(cmd_task) = task {
@@ -319,6 +347,8 @@ impl TaskRegistry {
 
         TaskRegistry::register_with_validator(
             registry,
+            "script",
+            "Command Execution",
             "script",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
@@ -346,6 +376,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "raw",
+            "Command Execution",
+            "raw",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Raw(raw_task) = task {
@@ -371,6 +403,8 @@ impl TaskRegistry {
         // Control flow tasks
         TaskRegistry::register_with_validator(
             registry,
+            "debug",
+            "Utility/Control",
             "debug",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
@@ -402,6 +436,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "assert",
+            "Utility/Control",
+            "assert",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Assert(assert_task) = task {
@@ -431,6 +467,8 @@ impl TaskRegistry {
 
         TaskRegistry::register_with_validator(
             registry,
+            "fail",
+            "Utility/Control",
             "fail",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
@@ -462,6 +500,8 @@ impl TaskRegistry {
         TaskRegistry::register(
             registry,
             "pause",
+            "Utility/Control",
+            "pause",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Pause(pause_task) = task {
@@ -477,6 +517,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "setfact",
+            "Utility/Control",
+            "set_fact",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::SetFact(set_fact_task) = task {
@@ -509,6 +551,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "includetasks",
+            "Utility/Control",
+            "include_tasks",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::IncludeTasks(include_tasks_task) = task {
@@ -542,6 +586,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "includerole",
+            "Utility/Control",
+            "include_role",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::IncludeRole(include_role_task) = task {
@@ -576,6 +622,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "cron",
+            "System Administration",
+            "cron",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Cron(cron_task) = task {
@@ -600,6 +648,8 @@ impl TaskRegistry {
 
         TaskRegistry::register_with_validator(
             registry,
+            "mount",
+            "System Administration",
             "mount",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
@@ -633,6 +683,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "filesystem",
+            "System Administration",
+            "filesystem",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Filesystem(fs_task) = task {
@@ -662,6 +714,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "sysctl",
+            "System Administration",
+            "sysctl",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Sysctl(sysctl_task) = task {
@@ -687,6 +741,8 @@ impl TaskRegistry {
 
         TaskRegistry::register_with_validator(
             registry,
+            "hostname",
+            "System Administration",
             "hostname",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
@@ -717,6 +773,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "timezone",
+            "System Administration",
+            "timezone",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Timezone(timezone_task) = task {
@@ -746,6 +804,8 @@ impl TaskRegistry {
         TaskRegistry::register(
             registry,
             "reboot",
+            "System Administration",
+            "reboot",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Reboot(reboot_task) = task {
@@ -760,6 +820,8 @@ impl TaskRegistry {
 
         TaskRegistry::register(
             registry,
+            "shutdown",
+            "System Administration",
             "shutdown",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
@@ -779,6 +841,8 @@ impl TaskRegistry {
         // File operations
         TaskRegistry::register_with_validator(
             registry,
+            "template",
+            "File Operations",
             "template",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
@@ -815,6 +879,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "lineinfile",
+            "File Operations",
+            "lineinfile",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::LineInFile(line_task) = task {
@@ -849,6 +915,8 @@ impl TaskRegistry {
 
         TaskRegistry::register_with_validator(
             registry,
+            "blockinfile",
+            "File Operations",
             "blockinfile",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
@@ -887,6 +955,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "replace",
+            "File Operations",
+            "replace",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Replace(replace_task) = task {
@@ -924,6 +994,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "fetch",
+            "File Operations",
+            "fetch",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Fetch(fetch_task) = task {
@@ -956,6 +1028,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "uri",
+            "Network Operations",
+            "uri",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Uri(uri_task) = task {
@@ -981,6 +1055,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "geturl",
+            "Network Operations",
+            "get_url",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::GetUrl(get_url_task) = task {
@@ -1017,6 +1093,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "unarchive",
+            "File Operations",
+            "unarchive",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Unarchive(unarchive_task) = task {
@@ -1051,6 +1129,8 @@ impl TaskRegistry {
 
         TaskRegistry::register_with_validator(
             registry,
+            "archive",
+            "File Operations",
             "archive",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
@@ -1088,6 +1168,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "stat",
+            "File Operations",
+            "stat",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Stat(stat_task) = task {
@@ -1114,6 +1196,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "yum",
+            "Package Management",
+            "yum",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Yum(yum_task) = task {
@@ -1138,6 +1222,8 @@ impl TaskRegistry {
 
         TaskRegistry::register_with_validator(
             registry,
+            "pacman",
+            "Package Management",
             "pacman",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
@@ -1164,6 +1250,8 @@ impl TaskRegistry {
 
         TaskRegistry::register_with_validator(
             registry,
+            "zypper",
+            "Package Management",
             "zypper",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
@@ -1192,6 +1280,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "pip",
+            "Package Management",
+            "pip",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Pip(pip_task) = task {
@@ -1217,6 +1307,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "npm",
+            "Package Management",
+            "npm",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Npm(npm_task) = task {
@@ -1241,6 +1333,8 @@ impl TaskRegistry {
 
         TaskRegistry::register_with_validator(
             registry,
+            "gem",
+            "Package Management",
             "gem",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
@@ -1268,6 +1362,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "waitfor",
+            "Utility/Control",
+            "wait_for",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::WaitFor(wait_for_task) = task {
@@ -1298,6 +1394,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "authorizedkey",
+            "Security & Access",
+            "authorized_key",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::AuthorizedKey(authorized_key_task) = task {
@@ -1329,6 +1427,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "sudoers",
+            "Security & Access",
+            "sudoers",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Sudoers(sudoers_task) = task {
@@ -1358,6 +1458,8 @@ impl TaskRegistry {
         // Firewalls
         TaskRegistry::register_with_validator(
             registry,
+            "firewalld",
+            "Security & Access",
             "firewalld",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
@@ -1397,6 +1499,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "ufw",
+            "Security & Access",
+            "ufw",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Ufw(ufw_task) = task {
@@ -1434,6 +1538,8 @@ impl TaskRegistry {
 
         TaskRegistry::register_with_validator(
             registry,
+            "selinux",
+            "Security & Access",
             "selinux",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
@@ -1479,6 +1585,8 @@ impl TaskRegistry {
         TaskRegistry::register_with_validator(
             registry,
             "iptables",
+            "Security & Access",
+            "iptables",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let Task::Iptables(iptables_task) = task {
@@ -1508,6 +1616,8 @@ impl TaskRegistry {
         // Version control
         TaskRegistry::register_with_validator(
             registry,
+            "git",
+            "Source Control",
             "git",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
@@ -1596,6 +1706,24 @@ impl TaskRegistry {
     pub fn get_registered_task_types() -> Vec<String> {
         let registry = TASK_REGISTRY.read().unwrap();
         registry.keys().cloned().collect()
+    }
+
+    /// Get the category for a task type
+    pub fn get_task_category(task_type: &str) -> String {
+        let registry = TASK_REGISTRY.read().unwrap();
+        registry
+            .get(task_type)
+            .map(|e| e.category.clone())
+            .unwrap_or_else(|| "Other".to_string())
+    }
+
+    /// Get the filename for a task type
+    pub fn get_task_filename(task_type: &str) -> String {
+        let registry = TASK_REGISTRY.read().unwrap();
+        registry
+            .get(task_type)
+            .map(|e| e.filename.clone())
+            .unwrap_or_else(|| task_type.to_string())
     }
 }
 
@@ -1897,58 +2025,6 @@ impl Task {
 
     /// Get the filename for this task type
     pub fn task_filename(task_type: &str) -> String {
-        match task_type {
-            "file" => "file".to_string(),
-            "package" => "package".to_string(),
-            "service" => "service".to_string(),
-            "user" => "user".to_string(),
-            "command" => "command".to_string(),
-            "directory" => "directory".to_string(),
-            "group" => "group".to_string(),
-            "cron" => "cron".to_string(),
-            "mount" => "mount".to_string(),
-            "filesystem" => "filesystem".to_string(),
-            "sysctl" => "sysctl".to_string(),
-            "hostname" => "hostname".to_string(),
-            "timezone" => "timezone".to_string(),
-            "reboot" => "reboot".to_string(),
-            "shutdown" => "shutdown".to_string(),
-            "copy" => "copy".to_string(),
-            "template" => "template".to_string(),
-            "lineinfile" => "lineinfile".to_string(),
-            "blockinfile" => "blockinfile".to_string(),
-            "replace" => "replace".to_string(),
-            "fetch" => "fetch".to_string(),
-            "uri" => "uri".to_string(),
-            "geturl" => "get_url".to_string(),
-            "unarchive" => "unarchive".to_string(),
-            "archive" => "archive".to_string(),
-            "stat" => "stat".to_string(),
-            "apt" => "apt".to_string(),
-            "yum" => "yum".to_string(),
-            "pacman" => "pacman".to_string(),
-            "zypper" => "zypper".to_string(),
-            "pip" => "pip".to_string(),
-            "npm" => "npm".to_string(),
-            "gem" => "gem".to_string(),
-            "script" => "script".to_string(),
-            "raw" => "raw".to_string(),
-            "debug" => "debug".to_string(),
-            "assert" => "assert".to_string(),
-            "fail" => "fail".to_string(),
-            "waitfor" => "wait_for".to_string(),
-            "pause" => "pause".to_string(),
-            "setfact" => "set_fact".to_string(),
-            "includetasks" => "include_tasks".to_string(),
-            "includerole" => "include_role".to_string(),
-            "authorizedkey" => "authorized_key".to_string(),
-            "sudoers" => "sudoers".to_string(),
-            "firewalld" => "firewalld".to_string(),
-            "ufw" => "ufw".to_string(),
-            "selinux" => "selinux".to_string(),
-            "iptables" => "iptables".to_string(),
-            "git" => "git".to_string(),
-            _ => task_type.to_string(),
-        }
+        TaskRegistry::get_task_filename(task_type)
     }
 }
