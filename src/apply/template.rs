@@ -284,7 +284,7 @@ fn render_template(template: &str, vars: &HashMap<String, serde_json::Value>) ->
     let context = minijinja::Value::from_serialize(vars);
 
     templating::render_with_context(template, context)
-        .with_context(|| format!("Failed to render template"))
+        .with_context(|| "Failed to render template".to_string())
 }
 
 #[cfg(test)]
