@@ -3,9 +3,9 @@
 //! Provides storage and templating for variables used throughout task execution.
 //! Supports Jinja2-style templating with filters and built-in functions.
 
-use std::collections::HashMap;
-use std::path::Path;
+use crate::apply::templating;
 use serde_yaml::Mapping;
+use std::collections::HashMap;
 
 /// Variable storage for task execution context
 #[derive(Debug, Clone, Default)]
@@ -26,10 +26,22 @@ impl VariableContext {
     /// Initialize built-in facts and functions
     fn initialize_builtin_facts(&mut self) {
         // System facts
-        self.facts.insert("driftless_version".to_string(), serde_yaml::Value::String(env!("CARGO_PKG_VERSION").to_string()));
-        self.facts.insert("driftless_distribution".to_string(), serde_yaml::Value::String("Linux".to_string())); // Placeholder
-        self.facts.insert("driftless_os_family".to_string(), serde_yaml::Value::String("Linux".to_string()));
-        self.facts.insert("driftless_architecture".to_string(), serde_yaml::Value::String(std::env::consts::ARCH.to_string()));
+        self.facts.insert(
+            "driftless_version".to_string(),
+            serde_yaml::Value::String(env!("CARGO_PKG_VERSION").to_string()),
+        );
+        self.facts.insert(
+            "driftless_distribution".to_string(),
+            serde_yaml::Value::String("Linux".to_string()),
+        ); // Placeholder
+        self.facts.insert(
+            "driftless_os_family".to_string(),
+            serde_yaml::Value::String("Linux".to_string()),
+        );
+        self.facts.insert(
+            "driftless_architecture".to_string(),
+            serde_yaml::Value::String(std::env::consts::ARCH.to_string()),
+        );
 
         // Load environment variables into driftless_env
         self.load_environment_variables();
@@ -39,16 +51,23 @@ impl VariableContext {
     fn load_environment_variables(&mut self) {
         let mut env_vars = Mapping::new();
         for (key, value) in std::env::vars() {
-            env_vars.insert(serde_yaml::Value::String(key), serde_yaml::Value::String(value));
+            env_vars.insert(
+                serde_yaml::Value::String(key),
+                serde_yaml::Value::String(value),
+            );
         }
-        self.facts.insert("env".to_string(), serde_yaml::Value::Mapping(env_vars));
+        self.facts
+            .insert("env".to_string(), serde_yaml::Value::Mapping(env_vars));
     }
 
     /// Load variables from env file
     ///
     /// Supports .env format: KEY=value
     /// Variables are added to the 'env' fact for template access
-    pub fn load_env_file(&mut self, path: &std::path::Path) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn load_env_file(
+        &mut self,
+        path: &std::path::Path,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         if !path.exists() {
             return Ok(()); // Silently ignore missing env files
         }
@@ -57,7 +76,10 @@ impl VariableContext {
 
         // Ensure we have an env mapping
         if !self.facts.contains_key("env") {
-            self.facts.insert("env".to_string(), serde_yaml::Value::Mapping(Mapping::new()));
+            self.facts.insert(
+                "env".to_string(),
+                serde_yaml::Value::Mapping(Mapping::new()),
+            );
         }
 
         if let Some(serde_yaml::Value::Mapping(ref mut env_map)) = self.facts.get_mut("env") {
@@ -72,16 +94,17 @@ impl VariableContext {
                     let value = line[eq_pos + 1..].trim();
 
                     // Remove surrounding quotes if present
-                    let value = if (value.starts_with('"') && value.ends_with('"')) ||
-                                (value.starts_with('\'') && value.ends_with('\'')) {
-                        &value[1..value.len()-1]
+                    let value = if (value.starts_with('"') && value.ends_with('"'))
+                        || (value.starts_with('\'') && value.ends_with('\''))
+                    {
+                        &value[1..value.len() - 1]
                     } else {
                         value
                     };
 
                     env_map.insert(
                         serde_yaml::Value::String(key.to_string()),
-                        serde_yaml::Value::String(value.to_string())
+                        serde_yaml::Value::String(value.to_string()),
                     );
                 }
             }
@@ -105,198 +128,64 @@ impl VariableContext {
         self.variables.contains_key(key)
     }
 
+    /// Create a minijinja context with all variables and facts
+    fn create_jinja_context(&self) -> minijinja::Value {
+        let mut context = serde_json::Map::new();
+
+        // Add variables
+        for (key, value) in &self.variables {
+            context.insert(key.clone(), self.yaml_to_json(value));
+        }
+
+        // Add facts
+        for (key, value) in &self.facts {
+            context.insert(key.clone(), self.yaml_to_json(value));
+        }
+
+        minijinja::Value::from_serialize(&context)
+    }
+
+    /// Convert serde_yaml::Value to serde_json::Value for minijinja
+    fn yaml_to_json(&self, value: &serde_yaml::Value) -> serde_json::Value {
+        match value {
+            serde_yaml::Value::Null => serde_json::Value::Null,
+            serde_yaml::Value::Bool(b) => serde_json::Value::Bool(*b),
+            serde_yaml::Value::Number(n) => {
+                if let Some(i) = n.as_i64() {
+                    serde_json::Value::Number(serde_json::Number::from(i))
+                } else if let Some(f) = n.as_f64() {
+                    serde_json::Number::from_f64(f)
+                        .map(serde_json::Value::Number)
+                        .unwrap_or(serde_json::Value::Null)
+                } else {
+                    serde_json::Value::Null
+                }
+            }
+            serde_yaml::Value::String(s) => serde_json::Value::String(s.clone()),
+            serde_yaml::Value::Sequence(seq) => {
+                let json_seq: Vec<serde_json::Value> =
+                    seq.iter().map(|v| self.yaml_to_json(v)).collect();
+                serde_json::Value::Array(json_seq)
+            }
+            serde_yaml::Value::Mapping(map) => {
+                let mut json_map = serde_json::Map::new();
+                for (k, v) in map {
+                    if let serde_yaml::Value::String(key) = k {
+                        json_map.insert(key.clone(), self.yaml_to_json(v));
+                    }
+                }
+                serde_json::Value::Object(json_map)
+            }
+            serde_yaml::Value::Tagged(_) => serde_json::Value::Null, // Not supported
+        }
+    }
 
     /// Render a template string with variable substitution
     ///
     /// Supports Jinja2-style templating with filters and expressions
     pub fn render_template(&self, template: &str) -> String {
-        let mut result = template.to_string();
-
-        // Process {{ expressions }}
-        result = self.process_expressions(&result);
-
-        result
-    }
-
-    /// Process {{ expressions }} in template
-    fn process_expressions(&self, template: &str) -> String {
-        let mut result = template.to_string();
-        let mut start = 0;
-
-        while let Some(expr_start) = result[start..].find("{{") {
-            let expr_start = start + expr_start;
-            if let Some(expr_end) = result[expr_start + 2..].find("}}") {
-                let expr_end = expr_start + 2 + expr_end + 2;
-                let expression = result[expr_start + 2..expr_end - 2].trim();
-
-                if let Some(replacement) = self.evaluate_expression(expression) {
-                    result.replace_range(expr_start..expr_end, &replacement);
-                    // Reset search position to handle nested expressions
-                    start = expr_start;
-                } else {
-                    start = expr_end;
-                }
-            } else {
-                break;
-            }
-        }
-
-        result
-    }
-
-    /// Evaluate a template expression
-    fn evaluate_expression(&self, expression: &str) -> Option<String> {
-        // Handle filters: value | filter
-        if let Some(pipe_pos) = expression.find('|') {
-            let value_part = expression[..pipe_pos].trim();
-            let filter_part = expression[pipe_pos + 1..].trim();
-
-            if let Some(value) = self.evaluate_simple_expression(value_part) {
-                return self.apply_filter(&value, filter_part);
-            }
-            return None;
-        }
-
-        // Handle function calls: function(arg)
-        if let Some(open_paren) = expression.find('(') {
-            if let Some(close_paren) = expression.rfind(')') {
-                let func_name = expression[..open_paren].trim();
-                let args_str = expression[open_paren + 1..close_paren].trim();
-                return self.call_function(func_name, args_str);
-            }
-        }
-
-        // Handle simple variable access
-        self.evaluate_simple_expression(expression)
-    }
-
-    /// Evaluate simple expressions (variables, literals)
-    fn evaluate_simple_expression(&self, expr: &str) -> Option<String> {
-        let trimmed = expr.trim();
-
-        // Handle string literals
-        if trimmed.starts_with('"') && trimmed.ends_with('"') {
-            return Some(trimmed[1..trimmed.len()-1].to_string());
-        }
-        if trimmed.starts_with('\'') && trimmed.ends_with('\'') {
-            return Some(trimmed[1..trimmed.len()-1].to_string());
-        }
-
-        // Handle numeric literals
-        if trimmed.parse::<f64>().is_ok() {
-            return Some(trimmed.to_string());
-        }
-
-        // Handle boolean literals
-        match trimmed.to_lowercase().as_str() {
-            "true" => return Some("true".to_string()),
-            "false" => return Some("false".to_string()),
-            _ => {}
-        }
-
-        // Handle dot notation for nested access (e.g., env.USER)
-        if let Some(dot_pos) = trimmed.find('.') {
-            let base = &trimmed[..dot_pos];
-            let key = &trimmed[dot_pos + 1..];
-
-            // Check if base is a variable or fact with nested structure
-            let base_value = self.variables.get(base).or_else(|| self.facts.get(base));
-            if let Some(serde_yaml::Value::Mapping(map)) = base_value {
-                if let Some(value) = map.get(serde_yaml::Value::String(key.to_string())) {
-                    match value {
-                        serde_yaml::Value::String(s) => return Some(s.clone()),
-                        serde_yaml::Value::Number(n) => return Some(n.to_string()),
-                        serde_yaml::Value::Bool(b) => return Some(b.to_string()),
-                        _ => return Some(format!("{:?}", value)),
-                    }
-                }
-            }
-        }
-
-        // Handle variable access
-        if let Some(value) = self.get(trimmed) {
-            match value {
-                serde_yaml::Value::String(s) => Some(s.clone()),
-                serde_yaml::Value::Number(n) => Some(n.to_string()),
-                serde_yaml::Value::Bool(b) => Some(b.to_string()),
-                serde_yaml::Value::Sequence(seq) => Some(format!("{:?}", seq)),
-                serde_yaml::Value::Mapping(map) => Some(format!("{:?}", map)),
-                _ => Some(format!("{:?}", value)),
-            }
-        } else if let Some(fact) = self.facts.get(trimmed) {
-            match fact {
-                serde_yaml::Value::String(s) => Some(s.clone()),
-                serde_yaml::Value::Number(n) => Some(n.to_string()),
-                serde_yaml::Value::Bool(b) => Some(b.to_string()),
-                _ => Some(format!("{:?}", fact)),
-            }
-        } else {
-            None
-        }
-    }
-
-    /// Apply a Jinja2-style filter
-    fn apply_filter(&self, value: &str, filter: &str) -> Option<String> {
-        match filter {
-            "length" | "len" => Some(value.len().to_string()),
-            "upper" => Some(value.to_uppercase()),
-            "lower" => Some(value.to_lowercase()),
-            "basename" => Some(Path::new(value).file_name()?.to_str()?.to_string()),
-            "dirname" => Some(Path::new(value).parent()?.to_str()?.to_string()),
-            "abs" => value.parse::<f64>().ok().map(|n| n.abs().to_string()),
-            "int" => value.parse::<f64>().ok().map(|n| n.trunc().to_string()),
-            _ => Some(value.to_string()), // Unknown filter, return original value
-        }
-    }
-
-    /// Call a built-in function
-    fn call_function(&self, name: &str, args: &str) -> Option<String> {
-        match name {
-            "length" | "len" => self
-                .evaluate_simple_expression(args)
-                .map(|value| value.len().to_string()),
-            "basename" => {
-                if let Some(value) = self.evaluate_simple_expression(args) {
-                    Some(Path::new(&value).file_name()?.to_str()?.to_string())
-                } else {
-                    None
-                }
-            }
-            "dirname" => {
-                if let Some(value) = self.evaluate_simple_expression(args) {
-                    Some(Path::new(&value).parent()?.to_str()?.to_string())
-                } else {
-                    None
-                }
-            }
-            "abs" => {
-                if let Some(value) = self.evaluate_simple_expression(args) {
-                    value.parse::<f64>().ok().map(|n| n.abs().to_string())
-                } else {
-                    None
-                }
-            }
-            "lookup" => {
-                self.call_lookup_function(args)
-            }
-            _ => None,
-        }
-    }
-
-    /// Call lookup function (Driftless-style)
-    fn call_lookup_function(&self, args: &str) -> Option<String> {
-        // Parse lookup('type', 'arg1', 'arg2', ...)
-        let args = args.trim();
-
-        // Handle the format: "'env', 'VAR_NAME'"
-        if let Some(var_start) = args.find("'env', '") {
-            if let Some(var_end) = args[var_start + 8..].find("'") {
-                let var_name = &args[var_start + 8..var_start + 8 + var_end];
-                return std::env::var(var_name).ok();
-            }
-        }
-
-        None
+        let context = self.create_jinja_context();
+        templating::render_with_context(template, context).unwrap_or_else(|_| template.to_string())
     }
 
     /// Evaluate a boolean expression
@@ -336,14 +225,16 @@ impl VariableContext {
         if let Some(and_pos) = expr.find(" and ") {
             let left = &expr[..and_pos];
             let right = &expr[and_pos + 5..];
-            return self.evaluate_boolean_expression(left) && self.evaluate_boolean_expression(right);
+            return self.evaluate_boolean_expression(left)
+                && self.evaluate_boolean_expression(right);
         }
 
         // Handle logical OR
         if let Some(or_pos) = expr.find(" or ") {
             let left = &expr[..or_pos];
             let right = &expr[or_pos + 4..];
-            return self.evaluate_boolean_expression(left) || self.evaluate_boolean_expression(right);
+            return self.evaluate_boolean_expression(left)
+                || self.evaluate_boolean_expression(right);
         }
 
         // Handle comparisons
@@ -399,14 +290,12 @@ impl VariableContext {
             "false" | "no" => false,
             _ => {
                 // Check if it's a variable that evaluates to a boolean
-                if let Some(value) = self.evaluate_simple_expression(expr) {
-                    match value.to_lowercase().as_str() {
-                        "true" | "yes" | "1" => true,
-                        "false" | "no" | "0" => false,
-                        _ => false,
-                    }
-                } else {
-                    false
+                // Since expr is already rendered, check if it's a truthy string
+                match expr.to_lowercase().as_str() {
+                    "true" | "yes" | "1" => true,
+                    "false" | "no" | "0" => false,
+                    "" => false,
+                    _ => !expr.is_empty(), // Non-empty strings are truthy
                 }
             }
         }
@@ -445,8 +334,9 @@ impl VariableContext {
 
         // Handle YAML sequence syntax like ["a", "b"]
         if container.starts_with('[') && container.ends_with(']') {
-            let items_str = &container[1..container.len()-1];
-            let items: Vec<&str> = items_str.split(',')
+            let items_str = &container[1..container.len() - 1];
+            let items: Vec<&str> = items_str
+                .split(',')
                 .map(|s| s.trim().trim_matches('"').trim_matches('\''))
                 .collect();
             return items.contains(&item);
@@ -474,10 +364,16 @@ mod tests {
         let mut ctx = VariableContext::new();
 
         // Test setting and getting variables
-        ctx.set("name".to_string(), serde_yaml::Value::String("alice".to_string()));
+        ctx.set(
+            "name".to_string(),
+            serde_yaml::Value::String("alice".to_string()),
+        );
         ctx.set("age".to_string(), serde_yaml::Value::Number(30.into()));
 
-        assert_eq!(ctx.get("name"), Some(&serde_yaml::Value::String("alice".to_string())));
+        assert_eq!(
+            ctx.get("name"),
+            Some(&serde_yaml::Value::String("alice".to_string()))
+        );
         assert_eq!(ctx.get("age"), Some(&serde_yaml::Value::Number(30.into())));
         assert_eq!(ctx.get("missing"), None);
     }
@@ -485,9 +381,15 @@ mod tests {
     #[test]
     fn test_template_rendering() {
         let mut ctx = VariableContext::new();
-        ctx.set("user".to_string(), serde_yaml::Value::String("bob".to_string()));
+        ctx.set(
+            "user".to_string(),
+            serde_yaml::Value::String("bob".to_string()),
+        );
         ctx.set("count".to_string(), serde_yaml::Value::Number(42.into()));
-        ctx.set("path".to_string(), serde_yaml::Value::String("/home/user/file.txt".to_string()));
+        ctx.set(
+            "path".to_string(),
+            serde_yaml::Value::String("/home/user/file.txt".to_string()),
+        );
 
         // Basic variable substitution
         assert_eq!(ctx.render_template("Hello {{ user }}!"), "Hello bob!");
@@ -497,6 +399,28 @@ mod tests {
         assert_eq!(ctx.render_template("{{ user | upper }}"), "BOB");
         assert_eq!(ctx.render_template("{{ path | basename }}"), "file.txt");
         assert_eq!(ctx.render_template("{{ path | dirname }}"), "/home/user");
+        assert_eq!(ctx.render_template("{{ user | capitalize }}"), "Bob");
+        assert_eq!(
+            ctx.render_template("{{ 'hello world' | capitalize }}"),
+            "Hello world"
+        );
+        assert_eq!(
+            ctx.render_template("{{ 'HELLO WORLD' | capitalize }}"),
+            "Hello world"
+        );
+        assert_eq!(ctx.render_template("{{ user | truncate(3) }}"), "bob");
+        assert_eq!(
+            ctx.render_template("{{ 'hello world' | truncate(8) }}"),
+            "hello..."
+        );
+        assert_eq!(
+            ctx.render_template("{{ 'hello world' | truncate(8, true) }}"),
+            "hello..."
+        );
+        assert_eq!(
+            ctx.render_template("{{ 'hello world' | truncate(8, false, '***') }}"),
+            "hello***"
+        );
 
         // Functions
         assert_eq!(ctx.render_template("{{ length(user) }}"), "3");
@@ -509,13 +433,19 @@ mod tests {
     #[test]
     fn test_condition_evaluation() {
         let mut ctx = VariableContext::new();
-        ctx.set("status".to_string(), serde_yaml::Value::String("ready".to_string()));
+        ctx.set(
+            "status".to_string(),
+            serde_yaml::Value::String("ready".to_string()),
+        );
         ctx.set("enabled".to_string(), serde_yaml::Value::Bool(true));
         ctx.set("count".to_string(), serde_yaml::Value::Number(42.into()));
-        ctx.set("items".to_string(), serde_yaml::Value::Sequence(vec![
-            serde_yaml::Value::String("a".to_string()),
-            serde_yaml::Value::String("b".to_string()),
-        ]));
+        ctx.set(
+            "items".to_string(),
+            serde_yaml::Value::Sequence(vec![
+                serde_yaml::Value::String("a".to_string()),
+                serde_yaml::Value::String("b".to_string()),
+            ]),
+        );
 
         // Basic boolean literals
         assert!(ctx.evaluate_condition("true"));

@@ -171,6 +171,7 @@ pub struct TemplateTask {
     pub force: bool,
 }
 
+use crate::apply::templating;
 use anyhow::{Context, Result};
 use std::collections::HashMap;
 use std::fs;
@@ -279,54 +280,11 @@ async fn ensure_template_not_rendered(task: &TemplateTask, dry_run: bool) -> Res
 
 /// Render template with variable substitution
 fn render_template(template: &str, vars: &HashMap<String, serde_json::Value>) -> Result<String> {
-    let mut result = template.to_string();
+    // Convert vars to JinjaValue
+    let context = minijinja::Value::from_serialize(vars);
 
-    // Simple variable substitution: {{variable_name}}
-    for (key, value) in vars {
-        let placeholder = format!("{{{{{}}}}}", key);
-        let replacement = match value {
-            serde_json::Value::String(s) => s.clone(),
-            serde_json::Value::Number(n) => n.to_string(),
-            serde_json::Value::Bool(b) => b.to_string(),
-            _ => value.to_string(),
-        };
-        result = result.replace(&placeholder, &replacement);
-    }
-
-    // Also support {{variable_name | default_value}} syntax
-    // This is a very basic implementation - a real template engine would be more sophisticated
-    result = render_defaults(&result, vars)?;
-
-    Ok(result)
-}
-
-/// Handle default values in template variables
-fn render_defaults(template: &str, vars: &HashMap<String, serde_json::Value>) -> Result<String> {
-    use regex::Regex;
-
-    let re = Regex::new(r"\{\{\s*([^|\s}]+)\s*\|\s*([^}\s]*)\s*\}\}").unwrap();
-    let mut result = template.to_string();
-
-    for cap in re.captures_iter(template) {
-        let full_match = &cap[0];
-        let var_name = &cap[1];
-        let default_value = &cap[2];
-
-        let replacement = if let Some(value) = vars.get(var_name) {
-            match value {
-                serde_json::Value::String(s) if !s.is_empty() => s.clone(),
-                serde_json::Value::Number(n) => n.to_string(),
-                serde_json::Value::Bool(b) => b.to_string(),
-                _ => default_value.to_string(),
-            }
-        } else {
-            default_value.to_string()
-        };
-
-        result = result.replace(full_match, &replacement);
-    }
-
-    Ok(result)
+    templating::render_with_context(template, context)
+        .with_context(|| format!("Failed to render template"))
 }
 
 #[cfg(test)]
@@ -423,7 +381,7 @@ mod tests {
 
     #[test]
     fn test_template_default_values() {
-        let template = "DB: {{db_host | localhost}}, Port: {{db_port | 5432}}";
+        let template = "DB: {{db_host | default('localhost')}}, Port: {{db_port | default(5432)}}";
         let mut vars = HashMap::new();
         vars.insert(
             "db_host".to_string(),
@@ -436,12 +394,32 @@ mod tests {
     }
 
     #[test]
-    fn test_template_empty_defaults() {
-        let template = "Name: {{name | Anonymous}}, Title: {{title | }}";
-        let vars = HashMap::new(); // No variables provided
+    fn test_template_capitalize_and_truncate_filters() {
+        let mut vars = HashMap::new();
+        vars.insert(
+            "text".to_string(),
+            serde_json::Value::String("hello world".to_string()),
+        );
 
+        // Test capitalize filter
+        let template = "{{ text | capitalize }}";
         let result = render_template(template, &vars).unwrap();
-        assert_eq!(result, "Name: Anonymous, Title: ");
+        assert_eq!(result, "Hello world");
+
+        // Test truncate filter
+        let template = "{{ text | truncate(8) }}";
+        let result = render_template(template, &vars).unwrap();
+        assert_eq!(result, "hello...");
+
+        // Test truncate with custom end
+        let template = "{{ text | truncate(8, false, '***') }}";
+        let result = render_template(template, &vars).unwrap();
+        assert_eq!(result, "hello***");
+
+        // Test truncate with killwords=true
+        let template = "{{ text | truncate(8, true) }}";
+        let result = render_template(template, &vars).unwrap();
+        assert_eq!(result, "hello...");
     }
 
     #[tokio::test]

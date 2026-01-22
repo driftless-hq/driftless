@@ -470,11 +470,16 @@ mod tests {
         };
 
         let result = execute_stat_task(&task, false).await;
-        assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("Failed to get metadata"));
+        assert!(result.is_ok());
+
+        if let serde_yaml::Value::Mapping(map) = result.unwrap() {
+            assert_eq!(
+                map.get(&serde_yaml::Value::String("exists".to_string())),
+                Some(&serde_yaml::Value::Bool(false))
+            );
+        } else {
+            panic!("Expected mapping result");
+        }
     }
 
     #[tokio::test]

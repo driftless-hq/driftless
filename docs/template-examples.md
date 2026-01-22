@@ -25,6 +25,7 @@ tasks:
 vars:
   app_name: "my-application"
   file_path: "/home/user/data.txt"
+  description: "hello world example"
 
 tasks:
   - type: debug
@@ -38,6 +39,15 @@ tasks:
 
   - type: debug
     msg: "Name length: {{ app_name | length }}"
+
+  - type: debug
+    msg: "Capitalized: {{ description | capitalize }}"
+
+  - type: debug
+    msg: "Truncated: {{ description | truncate(12) }}"
+
+  - type: debug
+    msg: "Truncated with custom end: {{ description | truncate(12, false, '...') }}"
 ```
 
 ## Built-in Functions

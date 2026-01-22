@@ -190,7 +190,8 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let TaskAction::Package(pkg_task) = &task.action {
-                        crate::apply::package::execute_package_task(pkg_task, executor.dry_run()).await
+                        crate::apply::package::execute_package_task(pkg_task, executor.dry_run())
+                            .await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for package executor"))
                     }
@@ -1212,8 +1213,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let TaskAction::Stat(stat_task) = &task.action {
-                        crate::apply::stat::execute_stat_task(stat_task, executor.dry_run())
-                            .await
+                        crate::apply::stat::execute_stat_task(stat_task, executor.dry_run()).await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for stat executor"))
                     }
@@ -1997,6 +1997,7 @@ pub mod stat;
 pub mod sudoers;
 pub mod sysctl;
 pub mod template;
+pub mod templating;
 pub mod timezone;
 pub mod ufw;
 pub mod unarchive;
