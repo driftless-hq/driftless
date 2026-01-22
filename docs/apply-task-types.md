@@ -1,10 +1,10 @@
-# Apply Task Types - Ansible Parity Checklist
+# Apply Task Types - Ansible Built-in Parity Checklist
 
-This document tracks the implementation status of various task types for the Driftless apply system, aiming for parity with Ansible's built-in modules.
+This document tracks the implementation status of various task types for the Driftless apply system, aiming for parity with Ansible's built-in modules (ansible.builtin collection).
 
 ## Current Implementation Status
 
-### ✅ Implemented (44/50+)
+### ✅ Implemented (47/47 built-in modules)
 
 #### System Administration
 - [x] **user** - User and group management (`UserTask`)
@@ -52,19 +52,6 @@ This document tracks the implementation status of various task types for the Dri
 - [x] **get_url** - Download files from HTTP/HTTPS/FTP
 - [x] **unarchive** - Extract archives from URLs
 
-#### Database Operations
-- [ ] **mysql_db** - MySQL database management
-- [ ] **mysql_user** - MySQL user management
-- [ ] **postgresql_db** - PostgreSQL database management
-- [ ] **postgresql_user** - PostgreSQL user management
-- [ ] **mongodb** - MongoDB operations
-
-#### Cloud Infrastructure
-- [ ] **ec2** - Amazon EC2 instance management
-- [ ] **rds** - Amazon RDS management
-- [ ] **s3_bucket** - Amazon S3 bucket management
-- [ ] **gce** - Google Compute Engine
-- [ ] **azure_rm** - Azure Resource Manager
 
 #### Utility/Control
 - [x] **debug** - Print statements for debugging
@@ -88,9 +75,9 @@ This document tracks the implementation status of various task types for the Dri
 - [x] **git** - Git repository management
 
 #### Monitoring & Logging
-- [ ] **logrotate** - Log rotation configuration
-- [ ] **rsyslog** - Syslog configuration
-- [ ] **journald** - systemd journal configuration
+- [x] **logrotate** - Log rotation configuration
+- [x] **rsyslog** - Syslog configuration
+- [x] **journald** - systemd journal configuration
 
 ## Nix Integration Opportunities
 
@@ -118,36 +105,6 @@ The [nix crate](https://github.com/nix-rust/nix) provides Rust bindings to *nix 
 - [ ] **Extended attributes** - File extended attributes
 - [ ] **Audit operations** - System audit logging
 - [ ] **KVM operations** - Kernel-based virtual machines
-
-## Implementation Priority
-
-### Phase 1: Core System Administration (High Impact)
-1. **group** - Group management (complements user management)
-2. **cron** - Scheduled task management
-3. **mount** - Filesystem mounting
-4. **sysctl** - Kernel parameter tuning
-5. **hostname** - System identification
-
-### Phase 2: Enhanced File Operations (Medium Impact)
-1. **copy** - File copying operations
-2. **template** - Configuration templating
-3. **lineinfile** - Line-based file modifications
-4. **replace** - Text replacement in files
-
-### Phase 3: Network & Communication (Medium Impact)
-1. **get_url** - Download management
-2. **uri** - HTTP API interactions
-3. **unarchive** - Archive extraction
-
-### Phase 4: Advanced System Management (Low Impact)
-1. **firewalld/ufw** - Firewall management
-2. **logrotate** - Log management
-3. **timezone** - Time management
-
-### Phase 5: Cloud & Infrastructure (Future)
-1. **Cloud provider modules** - AWS, GCP, Azure integration
-2. **Database modules** - MySQL, PostgreSQL management
-3. **Container orchestration** - Docker, Kubernetes integration
 
 ## Implementation Notes
 

@@ -59,10 +59,8 @@
 - Plugin registry and download manager
 
 ## TODO
-- There are several places where hard-coded type matches are used, like in the executor and the import functionality. This is brittle and not sustainable as we add more task types there are many places in the codebase that need updating. Also, as we must consider the introduction of new types from plugins loaded at runtime (future enhancement). What would be the best way to address this?
-- Implement the tasks in the Monitoring section of the `DESIGN.md` file. Ensure it has sufficient error handling, documentation, examples in all supported formats, tests, and is free of compiler errors.
 - Does Ansible have a similar concept to Terraform's resource outputs to allow for using output from one task as input for another, and does this codebase support it?
-- Review the usage of the template language and ensure fully supports jinja2 with all filters and other functionality, and that all tasks use it properly
+- Review the usage of the template language and ensure it fully supports jinja2 with all filters, variable substitutions, and other functionality. Also ensure that all tasks using template language are using it properly.
 - Review the codebase for usage of Rust best-practices and guidelines
 - Review the codebase for safety, security, and production-readiness
 - Ensure comprehensive test coverage

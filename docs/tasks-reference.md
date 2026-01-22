@@ -2460,6 +2460,302 @@ state = "present"
 format = "zip"
 ```
 
+### Monitoring & Logging
+
+#### journald
+
+**Description**: Journald configuration task
+
+Manages systemd journal configuration. Can modify the main /etc/systemd/journald.conf
+file or create drop-in configuration files in /etc/systemd/journald.conf.d/.
+Supports all journald configuration options like storage settings, size limits,
+forwarding options, and compression settings.
+
+**Required Fields**:
+
+- `config` (HashMap<String, String>):
+  Journald configuration options
+
+  Key-value pairs of journald configuration options. Required when state is present.
+  Common options include:
+  - Storage: volatile|persistent|auto|none
+  - SystemMaxUse: Maximum disk space to use
+  - SystemKeepFree: Disk space to keep free
+  - SystemMaxFileSize: Maximum size of individual journal files
+  - MaxRetentionSec: Maximum time to retain journal entries
+  - ForwardToSyslog: Forward to syslog
+  - Compress: Enable compression
+
+- `state` (JournaldState):
+  Configuration state (present, absent)
+
+  - `present`: Ensure the journald configuration exists
+  - `absent`: Ensure the journald configuration does not exist
+
+**Optional Fields**:
+
+- `description` (Option<String>):
+  Optional description of what this task does
+
+  Human-readable description of the task's purpose. Used for documentation
+  and can be displayed in logs or reports.
+
+- `name` (Option<String>):
+  Configuration name (for drop-in configs)
+
+  Name of the drop-in configuration file to create in /etc/systemd/journald.conf.d/.
+  If not specified, modifies the main /etc/systemd/journald.conf file.
+  This becomes the filename (e.g., "storage" creates /etc/systemd/journald.conf.d/storage.conf).
+
+**Examples**:
+
+**Configure journald storage and rotation**:
+
+**YAML Format**:
+
+```yaml
+- type: journald
+  description: "Configure systemd journal settings"
+  config:
+    Storage: persistent
+    SystemMaxUse: 100M
+    SystemKeepFree: 500M
+    SystemMaxFileSize: 10M
+    MaxRetentionSec: 1week
+  state: present
+```
+
+**JSON Format**:
+
+```json
+{
+  "type": "journald",
+  "description": "Configure systemd journal settings",
+  "config": {
+    "Storage": "persistent",
+    "SystemMaxUse": "100M",
+    "SystemKeepFree": "500M",
+    "SystemMaxFileSize": "10M",
+    "MaxRetentionSec": "1week"
+  },
+  "state": "present"
+}
+```
+
+**TOML Format**:
+
+```toml
+[[tasks]]
+type = "journald"
+description = "Configure systemd journal settings"
+[tasks.config]
+Storage = "persistent"
+SystemMaxUse = "100M"
+SystemKeepFree = "500M"
+SystemMaxFileSize = "10M"
+MaxRetentionSec = "1week"
+state = "present"
+```
+
+#### logrotate
+
+**Description**: Logrotate configuration task
+
+Manages logrotate configuration files in /etc/logrotate.d/.
+Creates or removes logrotate configuration snippets for log rotation management.
+
+**Required Fields**:
+
+- `name` (String):
+  Configuration name
+
+  Name of the logrotate configuration file to create in /etc/logrotate.d/.
+  This becomes the filename (e.g., "nginx" creates /etc/logrotate.d/nginx).
+
+- `options` (Vec<String>):
+  Logrotate options
+
+  List of logrotate configuration options. Common options include:
+  - "daily", "weekly", "monthly", "yearly"
+  - "rotate N" (keep N rotations)
+  - "compress", "delaycompress"
+  - "missingok", "notifempty"
+  - "create MODE OWNER GROUP"
+
+- `state` (LogrotateState):
+  Configuration state (present, absent)
+
+  - `present`: Ensure the logrotate configuration exists
+  - `absent`: Ensure the logrotate configuration does not exist
+
+**Optional Fields**:
+
+- `description` (Option<String>):
+  Optional description of what this task does
+
+  Human-readable description of the task's purpose. Used for documentation
+  and can be displayed in logs or reports.
+
+- `path` (Option<String>):
+  Log file path(s)
+
+  Path or glob pattern for log files to rotate. Required when state is present.
+  Examples: "/var/log/app/*.log", "/var/log/nginx/access.log"
+
+- `postrotate` (Option<String>):
+  Post-rotate script
+
+  Shell commands to execute after log rotation.
+  Commonly used to reload services after log rotation.
+
+**Examples**:
+
+**Create a logrotate configuration for nginx**:
+
+**YAML Format**:
+
+```yaml
+- type: logrotate
+  description: "Configure nginx log rotation"
+  name: nginx
+  path: /var/log/nginx/*.log
+  options:
+    - weekly
+    - rotate 52
+    - compress
+    - delaycompress
+    - missingok
+    - notifempty
+    - create 644 www-data www-data
+  postrotate: |
+    systemctl reload nginx
+  state: present
+```
+
+**JSON Format**:
+
+```json
+{
+  "type": "logrotate",
+  "description": "Configure nginx log rotation",
+  "name": "nginx",
+  "path": "/var/log/nginx/*.log",
+  "options": [
+    "weekly",
+    "rotate 52",
+    "compress",
+    "delaycompress",
+    "missingok",
+    "notifempty",
+    "create 644 www-data www-data"
+  ],
+  "postrotate": "systemctl reload nginx\n",
+  "state": "present"
+}
+```
+
+**TOML Format**:
+
+```toml
+[[tasks]]
+type = "logrotate"
+description = "Configure nginx log rotation"
+name = "nginx"
+path = "/var/log/nginx/*.log"
+options = [
+  "weekly",
+  "rotate 52",
+  "compress",
+  "delaycompress",
+  "missingok",
+  "notifempty",
+  "create 644 www-data www-data"
+]
+postrotate = """
+systemctl reload nginx
+"""
+state = "present"
+```
+
+#### rsyslog
+
+**Description**: Rsyslog configuration task
+
+Manages rsyslog configuration files in /etc/rsyslog.d/.
+Creates or removes rsyslog configuration snippets for log processing and forwarding.
+
+**Required Fields**:
+
+- `name` (String):
+  Configuration name
+
+  Name of the rsyslog configuration file to create in /etc/rsyslog.d/.
+  This becomes the filename (e.g., "remote-logging" creates /etc/rsyslog.d/remote-logging.conf).
+
+- `state` (RsyslogState):
+  Configuration state (present, absent)
+
+  - `present`: Ensure the rsyslog configuration exists
+  - `absent`: Ensure the rsyslog configuration does not exist
+
+**Optional Fields**:
+
+- `config` (Option<String>):
+  Rsyslog configuration content
+
+  The rsyslog configuration directives. Required when state is present.
+  Examples include log forwarding rules, custom log files, filters, etc.
+
+- `description` (Option<String>):
+  Optional description of what this task does
+
+  Human-readable description of the task's purpose. Used for documentation
+  and can be displayed in logs or reports.
+
+**Examples**:
+
+**Create an rsyslog configuration for remote logging**:
+
+**YAML Format**:
+
+```yaml
+- type: rsyslog
+  description: "Configure remote log forwarding"
+  name: remote-logging
+  config: |
+    # Forward all logs to remote server
+    *.* @@logserver.example.com:514
+    # Forward auth logs with TCP
+    auth.* @@logserver.example.com:514
+  state: present
+```
+
+**JSON Format**:
+
+```json
+{
+  "type": "rsyslog",
+  "description": "Configure remote log forwarding",
+  "name": "remote-logging",
+  "config": "*.* @@logserver.example.com:514\n\nauth.* @@logserver.example.com:514\n",
+  "state": "present"
+}
+```
+
+**TOML Format**:
+
+```toml
+[[tasks]]
+type = "rsyslog"
+description = "Configure remote log forwarding"
+name = "remote-logging"
+config = """
+*.* @@logserver.example.com:514
+auth.* @@logserver.example.com:514
+"""
+state = "present"
+```
+
 ### Network Operations
 
 #### geturl

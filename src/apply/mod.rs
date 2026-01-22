@@ -1646,6 +1646,118 @@ impl TaskRegistry {
                 Ok(())
             }),
         );
+
+        // Monitoring & Logging
+        TaskRegistry::register_with_validator(
+            registry,
+            "logrotate",
+            "Monitoring & Logging",
+            "logrotate",
+            Arc::new(|task, executor: &mut TaskExecutor| {
+                Box::pin(async move {
+                    if let Task::Logrotate(logrotate_task) = task {
+                        crate::apply::logrotate::execute_logrotate_task(
+                            logrotate_task,
+                            executor.dry_run(),
+                        )
+                        .await
+                    } else {
+                        Err(anyhow::anyhow!("Invalid task type for logrotate executor"))
+                    }
+                })
+            }),
+            Arc::new(|task, task_index| {
+                if let Task::Logrotate(logrotate_task) = task {
+                    if logrotate_task.name.is_empty() {
+                        return Err(anyhow::anyhow!(
+                            "Task {}: logrotate name cannot be empty",
+                            task_index + 1
+                        ));
+                    }
+                    if logrotate_task.state == crate::apply::logrotate::LogrotateState::Present
+                        && logrotate_task.path.is_none()
+                    {
+                        return Err(anyhow::anyhow!(
+                            "Task {}: logrotate path is required when state is present",
+                            task_index + 1
+                        ));
+                    }
+                }
+                Ok(())
+            }),
+        );
+
+        TaskRegistry::register_with_validator(
+            registry,
+            "rsyslog",
+            "Monitoring & Logging",
+            "rsyslog",
+            Arc::new(|task, executor: &mut TaskExecutor| {
+                Box::pin(async move {
+                    if let Task::Rsyslog(rsyslog_task) = task {
+                        crate::apply::rsyslog::execute_rsyslog_task(
+                            rsyslog_task,
+                            executor.dry_run(),
+                        )
+                        .await
+                    } else {
+                        Err(anyhow::anyhow!("Invalid task type for rsyslog executor"))
+                    }
+                })
+            }),
+            Arc::new(|task, task_index| {
+                if let Task::Rsyslog(rsyslog_task) = task {
+                    if rsyslog_task.name.is_empty() {
+                        return Err(anyhow::anyhow!(
+                            "Task {}: rsyslog name cannot be empty",
+                            task_index + 1
+                        ));
+                    }
+                    if rsyslog_task.state == crate::apply::rsyslog::RsyslogState::Present
+                        && rsyslog_task.config.is_none()
+                    {
+                        return Err(anyhow::anyhow!(
+                            "Task {}: rsyslog config is required when state is present",
+                            task_index + 1
+                        ));
+                    }
+                }
+                Ok(())
+            }),
+        );
+
+        TaskRegistry::register_with_validator(
+            registry,
+            "journald",
+            "Monitoring & Logging",
+            "journald",
+            Arc::new(|task, executor: &mut TaskExecutor| {
+                Box::pin(async move {
+                    if let Task::Journald(journald_task) = task {
+                        crate::apply::journald::execute_journald_task(
+                            journald_task,
+                            executor.dry_run(),
+                        )
+                        .await
+                    } else {
+                        Err(anyhow::anyhow!("Invalid task type for journald executor"))
+                    }
+                })
+            }),
+            Arc::new(|task, task_index| {
+                if let Task::Journald(journald_task) = task {
+                    if journald_task.state == crate::apply::journald::JournaldState::Present
+                        && journald_task.config.is_empty()
+                    {
+                        return Err(anyhow::anyhow!(
+                            "Task {}: journald config is required when state is present",
+                            task_index + 1
+                        ));
+                    }
+                }
+                Ok(())
+            }),
+        );
     }
 
     /// Execute a task using the registry with minimal context (for includes)
@@ -1751,7 +1863,9 @@ pub use hostname::HostnameTask;
 pub use include_role::IncludeRoleTask;
 pub use include_tasks::IncludeTasksTask;
 pub use iptables::IptablesTask;
+pub use journald::JournaldTask;
 pub use lineinfile::LineInFileTask;
+pub use logrotate::LogrotateTask;
 pub use mount::MountTask;
 pub use npm::NpmTask;
 pub use package::{PackageState, PackageTask};
@@ -1761,6 +1875,7 @@ pub use pip::PipTask;
 pub use raw::RawTask;
 pub use reboot::RebootTask;
 pub use replace::ReplaceTask;
+pub use rsyslog::RsyslogTask;
 pub use script::ScriptTask;
 pub use selinux::SelinuxTask;
 pub use service::ServiceTask;
@@ -1804,7 +1919,9 @@ pub mod hostname;
 pub mod include_role;
 pub mod include_tasks;
 pub mod iptables;
+pub mod journald;
 pub mod lineinfile;
+pub mod logrotate;
 pub mod mount;
 pub mod npm;
 pub mod package;
@@ -1814,6 +1931,7 @@ pub mod pip;
 pub mod raw;
 pub mod reboot;
 pub mod replace;
+pub mod rsyslog;
 pub mod script;
 pub mod selinux;
 pub mod service;
@@ -1964,6 +2082,12 @@ pub enum Task {
     Iptables(IptablesTask),
     /// Git repository management
     Git(GitTask),
+    /// Logrotate configuration management
+    Logrotate(LogrotateTask),
+    /// Rsyslog configuration management
+    Rsyslog(RsyslogTask),
+    /// systemd journal configuration management
+    Journald(JournaldTask),
 }
 
 impl Task {
@@ -2020,6 +2144,9 @@ impl Task {
             Task::Selinux(_) => "selinux",
             Task::Iptables(_) => "iptables",
             Task::Git(_) => "git",
+            Task::Logrotate(_) => "logrotate",
+            Task::Rsyslog(_) => "rsyslog",
+            Task::Journald(_) => "journald",
         }
     }
 
