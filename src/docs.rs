@@ -61,15 +61,17 @@ fn categorize_task_type(task_type: &str) -> &'static str {
 
     match doc_key {
         // File Operations
-        "file" | "directory" | "copy" | "template" | "lineinfile" | "blockinfile"
-        | "replace" | "fetch" | "unarchive" | "archive" | "stat" => "File Operations",
+        "file" | "directory" | "copy" | "template" | "lineinfile" | "blockinfile" | "replace"
+        | "fetch" | "unarchive" | "archive" | "stat" => "File Operations",
 
         // Package Management
-        "package" | "apt" | "yum" | "pacman" | "zypper" | "pip" | "npm" | "gem" => "Package Management",
+        "package" | "apt" | "yum" | "pacman" | "zypper" | "pip" | "npm" | "gem" => {
+            "Package Management"
+        }
 
         // System Administration
-        "user" | "group" | "service" | "cron" | "mount" | "filesystem" | "sysctl"
-        | "hostname" | "timezone" | "reboot" | "shutdown" => "System Administration",
+        "user" | "group" | "service" | "cron" | "mount" | "filesystem" | "sysctl" | "hostname"
+        | "timezone" | "reboot" | "shutdown" => "System Administration",
 
         // Command Execution
         "command" | "script" | "raw" => "Command Execution",
@@ -78,14 +80,16 @@ fn categorize_task_type(task_type: &str) -> &'static str {
         "uri" | "get_url" => "Network Operations",
 
         // Security & Access
-        "authorized_key" | "sudoers" | "firewalld" | "ufw" | "iptables" | "selinux" => "Security & Access",
+        "authorized_key" | "sudoers" | "firewalld" | "ufw" | "iptables" | "selinux" => {
+            "Security & Access"
+        }
 
         // Source Control
         "git" => "Source Control",
 
         // Utility/Control
-        "debug" | "assert" | "fail" | "wait_for" | "pause" | "set_fact"
-        | "include_tasks" | "include_role" => "Utility/Control",
+        "debug" | "assert" | "fail" | "wait_for" | "pause" | "set_fact" | "include_tasks"
+        | "include_role" => "Utility/Control",
 
         // Default category for unknown task types
         _ => "Other",
@@ -112,7 +116,10 @@ fn generate_apply_section(
 
     for task_type in &registered_task_types {
         let category = categorize_task_type(task_type);
-        categories.entry(category).or_insert_with(Vec::new).push(task_type.clone());
+        categories
+            .entry(category)
+            .or_insert_with(Vec::new)
+            .push(task_type.clone());
     }
 
     // Sort categories and tasks within categories
