@@ -33,10 +33,4 @@ pub struct FailTask {
     ///
     /// Message to display when failing.
     pub msg: String,
-
-    /// When condition
-    ///
-    /// Only fail when this condition is true.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub when: Option<String>,
 }

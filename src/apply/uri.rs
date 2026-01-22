@@ -231,19 +231,21 @@ pub fn default_uri_timeout() -> u64 {
 use anyhow::{Context, Result};
 
 /// Execute a URI task
-pub async fn execute_uri_task(task: &UriTask, dry_run: bool) -> Result<()> {
+pub async fn execute_uri_task(task: &UriTask, dry_run: bool) -> Result<serde_yaml::Value> {
     match task.state {
         UriState::Present => ensure_uri_request_succeeds(task, dry_run).await,
         UriState::Absent => {
             // For Absent state, we skip the request (idempotent behavior)
             println!("Skipping URI request: {} (absent state)", task.url);
-            Ok(())
+            let mut result = serde_yaml::Mapping::new();
+            result.insert(serde_yaml::Value::String("skipped".to_string()), serde_yaml::Value::Bool(true));
+            Ok(serde_yaml::Value::Mapping(result))
         }
     }
 }
 
 /// Ensure URI request succeeds with expected response
-async fn ensure_uri_request_succeeds(task: &UriTask, dry_run: bool) -> Result<()> {
+async fn ensure_uri_request_succeeds(task: &UriTask, dry_run: bool) -> Result<serde_yaml::Value> {
     if dry_run {
         println!(
             "Would make {} request to {}",
@@ -253,7 +255,9 @@ async fn ensure_uri_request_succeeds(task: &UriTask, dry_run: bool) -> Result<()
         if let Some(body) = &task.body {
             println!("Request body length: {} bytes", body.len());
         }
-        return Ok(());
+        let mut result = serde_yaml::Mapping::new();
+        result.insert(serde_yaml::Value::String("dry_run".to_string()), serde_yaml::Value::Bool(true));
+        return Ok(serde_yaml::Value::Mapping(result));
     }
 
     // Build HTTP client
@@ -313,6 +317,7 @@ async fn ensure_uri_request_succeeds(task: &UriTask, dry_run: bool) -> Result<()
         ));
     }
 
+    let mut response_content = None;
     // Handle response content if requested
     if task.return_content {
         let content = response
@@ -320,6 +325,7 @@ async fn ensure_uri_request_succeeds(task: &UriTask, dry_run: bool) -> Result<()
             .await
             .with_context(|| "Failed to read response content")?;
         println!("Response content length: {} bytes", content.len());
+        response_content = Some(content);
     }
 
     println!(
@@ -328,7 +334,15 @@ async fn ensure_uri_request_succeeds(task: &UriTask, dry_run: bool) -> Result<()
         task.url,
         status_code
     );
-    Ok(())
+
+    let mut result = serde_yaml::Mapping::new();
+    result.insert(serde_yaml::Value::String("status".to_string()), serde_yaml::Value::Number(status_code.into()));
+    result.insert(serde_yaml::Value::String("changed".to_string()), serde_yaml::Value::Bool(true));
+    if let Some(content) = response_content {
+        result.insert(serde_yaml::Value::String("content".to_string()), serde_yaml::Value::String(content));
+    }
+
+    Ok(serde_yaml::Value::Mapping(result))
 }
 
 /// Build HTTP client with appropriate configuration

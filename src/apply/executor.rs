@@ -91,7 +91,24 @@ impl TaskExecutor {
     }
 
     /// Execute a single task
-    pub async fn execute_single_task(&mut self, task: &Task) -> Result<()> {
+    pub async fn execute_single_task(&mut self, task: &Task) -> Result<serde_yaml::Value> {
+        // Check condition if present
+        if let Some(condition) = &task.when {
+            if !self.variables().evaluate_condition(condition) {
+                println!("Skipping task: condition '{}' not met", condition);
+                let mut skipped_result = serde_yaml::Mapping::new();
+                skipped_result.insert(
+                    serde_yaml::Value::String("skipped".to_string()),
+                    serde_yaml::Value::Bool(true),
+                );
+                skipped_result.insert(
+                    serde_yaml::Value::String("changed".to_string()),
+                    serde_yaml::Value::Bool(false),
+                );
+                return Ok(serde_yaml::Value::Mapping(skipped_result));
+            }
+        }
+
         crate::apply::TaskRegistry::execute_task_minimal(
             task,
             &self.variables,
@@ -112,7 +129,13 @@ impl TaskExecutor {
         for (i, task) in config.tasks.iter().enumerate() {
             println!("Executing task {} of {}", i + 1, config.tasks.len());
 
-            self.execute_single_task(task).await?;
+            let result = self.execute_single_task(task).await?;
+
+            // Register result if requested
+            if let Some(register_name) = &task.register {
+                self.variables_mut()
+                    .set(register_name.clone(), result);
+            }
         }
 
         println!(
@@ -132,252 +155,6 @@ impl TaskExecutor {
 
         println!("All tasks validated successfully");
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::apply::cron::CronState;
-    use crate::apply::file::FileState;
-    use crate::apply::filesystem::FilesystemState;
-    use crate::apply::group::GroupState;
-    use crate::apply::mount::MountState;
-    use crate::apply::sysctl::SysctlState;
-    use crate::apply::{
-        ApplyConfig, CronTask, FileTask, FilesystemTask, GroupTask, HostnameTask, MountTask,
-        SysctlTask, Task, TimezoneTask,
-    };
-
-    #[tokio::test]
-    async fn test_task_validation() {
-        let config = ApplyConfig {
-            vars: std::collections::HashMap::new(),
-            tasks: vec![
-                Task::File(FileTask {
-                    description: None,
-                    path: "/etc/hostname".to_string(),
-                    state: FileState::Present,
-                    content: Some("test-host".to_string()),
-                    mode: Some("0644".to_string()),
-                    owner: Some("root".to_string()),
-                    group: Some("root".to_string()),
-                    source: None,
-                }),
-                Task::File(FileTask {
-                    description: None,
-                    path: "".to_string(), // Invalid: empty path
-                    state: FileState::Present,
-                    content: None,
-                    mode: None,
-                    owner: None,
-                    group: None,
-                    source: None,
-                }),
-            ],
-        };
-
-        let executor = TaskExecutor::new(true);
-        let result = executor.validate(&config);
-        assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("file path cannot be empty"));
-    }
-
-    #[tokio::test]
-    async fn test_group_validation() {
-        let config = ApplyConfig {
-            vars: std::collections::HashMap::new(),
-            tasks: vec![Task::Group(GroupTask {
-                description: None,
-                name: "".to_string(), // Invalid: empty name
-                state: GroupState::Present,
-                gid: None,
-                system: false,
-            })],
-        };
-
-        let executor = TaskExecutor::new(true);
-        let result = executor.validate(&config);
-        assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("group name cannot be empty"));
-    }
-
-    #[tokio::test]
-    async fn test_cron_validation() {
-        let config = ApplyConfig {
-            vars: std::collections::HashMap::new(),
-            tasks: vec![Task::Cron(CronTask {
-                description: None,
-                name: "".to_string(), // Invalid: empty name
-                state: CronState::Present,
-                user: "root".to_string(),
-                minute: "*".to_string(),
-                hour: "*".to_string(),
-                day: "*".to_string(),
-                month: "*".to_string(),
-                weekday: "*".to_string(),
-                job: "".to_string(), // Invalid: empty job
-                comment: None,
-            })],
-        };
-
-        let executor = TaskExecutor::new(true);
-        let result = executor.validate(&config);
-        assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("cron job command cannot be empty"));
-    }
-
-    #[tokio::test]
-    async fn test_mount_validation() {
-        let config = ApplyConfig {
-            vars: std::collections::HashMap::new(),
-            tasks: vec![
-                Task::Mount(MountTask {
-                    description: None,
-                    path: "".to_string(), // Invalid: empty path
-                    state: MountState::Mounted,
-                    src: "/dev/sda1".to_string(),
-                    fstype: None,
-                    opts: vec![],
-                    fstab: false,
-                    recursive: false,
-                }),
-                Task::Mount(MountTask {
-                    description: None,
-                    path: "/mnt/test".to_string(),
-                    state: MountState::Mounted,
-                    src: "".to_string(), // Invalid: empty source
-                    fstype: None,
-                    opts: vec![],
-                    fstab: false,
-                    recursive: false,
-                }),
-            ],
-        };
-
-        let executor = TaskExecutor::new(true);
-        let result = executor.validate(&config);
-        assert!(result.is_err());
-        let error_msg = result.unwrap_err().to_string();
-        assert!(
-            error_msg.contains("mount path cannot be empty")
-                || error_msg.contains("mount source cannot be empty")
-        );
-    }
-
-    #[tokio::test]
-    async fn test_filesystem_validation() {
-        let config = ApplyConfig {
-            vars: std::collections::HashMap::new(),
-            tasks: vec![Task::Filesystem(FilesystemTask {
-                description: None,
-                dev: "".to_string(), // Invalid: empty device
-                state: FilesystemState::Present,
-                fstype: Some("ext4".to_string()),
-                force: false,
-                opts: vec![],
-            })],
-        };
-
-        let executor = TaskExecutor::new(true);
-        let result = executor.validate(&config);
-        assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("filesystem device cannot be empty"));
-    }
-
-    #[tokio::test]
-    async fn test_sysctl_validation() {
-        let config = ApplyConfig {
-            vars: std::collections::HashMap::new(),
-            tasks: vec![Task::Sysctl(SysctlTask {
-                description: None,
-                name: "".to_string(), // Invalid: empty name
-                state: SysctlState::Present,
-                value: "1".to_string(),
-                persist: false,
-                reload: false,
-            })],
-        };
-
-        let executor = TaskExecutor::new(true);
-        let result = executor.validate(&config);
-        assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("sysctl parameter name cannot be empty"));
-    }
-
-    #[tokio::test]
-    async fn test_hostname_validation() {
-        let config = ApplyConfig {
-            vars: std::collections::HashMap::new(),
-            tasks: vec![Task::Hostname(HostnameTask {
-                description: None,
-                name: "".to_string(), // Invalid: empty hostname
-                persist: false,
-            })],
-        };
-
-        let executor = TaskExecutor::new(true);
-        let result = executor.validate(&config);
-        assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("hostname cannot be empty"));
-    }
-
-    #[tokio::test]
-    async fn test_timezone_validation() {
-        let config = ApplyConfig {
-            vars: std::collections::HashMap::new(),
-            tasks: vec![Task::Timezone(TimezoneTask {
-                description: None,
-                name: "".to_string(), // Invalid: empty timezone
-            })],
-        };
-
-        let executor = TaskExecutor::new(true);
-        let result = executor.validate(&config);
-        assert!(result.is_err());
-        assert!(result
-            .unwrap_err()
-            .to_string()
-            .contains("timezone cannot be empty"));
-    }
-
-    #[tokio::test]
-    async fn test_dry_run_execution() {
-        let config = ApplyConfig {
-            vars: std::collections::HashMap::new(),
-            tasks: vec![Task::File(FileTask {
-                description: None,
-                path: "/tmp/test.txt".to_string(),
-                state: FileState::Present,
-                content: Some("test content".to_string()),
-                mode: None,
-                owner: None,
-                group: None,
-                source: None,
-            })],
-        };
-
-        let mut executor = TaskExecutor::new(true);
-        let result = executor.execute(&config).await;
-        assert!(result.is_ok());
     }
 }
 
@@ -447,14 +224,6 @@ pub async fn execute_fail_task(
     variables: &VariableContext,
     _dry_run: bool,
 ) -> Result<()> {
-    if let Some(when_condition) = &task.when {
-        // Evaluate the when condition using variable context
-        let should_fail = variables.evaluate_condition(when_condition);
-        if !should_fail {
-            return Ok(());
-        }
-    }
-
     let msg = variables.render_template(&task.msg);
     Err(anyhow::anyhow!("{}", msg))
 }
@@ -597,6 +366,7 @@ pub async fn execute_pause_task(task: &crate::apply::PauseTask, dry_run: bool) -
     Ok(())
 }
 
+
 /// Execute set_fact task
 pub async fn execute_set_fact_task(
     task: &crate::apply::SetFactTask,
@@ -626,18 +396,6 @@ pub async fn execute_include_tasks_task(
     dry_run: bool,
     config_dir: &std::path::Path,
 ) -> Result<()> {
-    // Check conditional inclusion
-    if let Some(when_condition) = &task.when {
-        let should_include = variables.evaluate_condition(when_condition);
-        if !should_include {
-            println!(
-                "Skipping task inclusion '{}' due to condition: {}",
-                task.file, when_condition
-            );
-            return Ok(());
-        }
-    }
-
     println!("Including tasks from file: {}", task.file);
 
     // Resolve the file path relative to the config directory
@@ -714,18 +472,6 @@ pub async fn execute_include_role_task(
     dry_run: bool,
     config_dir: &std::path::Path,
 ) -> Result<()> {
-    // Check conditional inclusion
-    if let Some(when_condition) = &task.when {
-        let should_include = variables.evaluate_condition(when_condition);
-        if !should_include {
-            println!(
-                "Skipping role inclusion '{}' due to condition: {}",
-                task.name, when_condition
-            );
-            return Ok(());
-        }
-    }
-
     println!("Including role: {}", task.name);
 
     // Look for role in roles/ directory relative to config directory
@@ -803,4 +549,340 @@ pub async fn execute_include_role_task(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::apply::cron::CronState;
+    use crate::apply::file::FileState;
+    use crate::apply::filesystem::FilesystemState;
+    use crate::apply::group::GroupState;
+    use crate::apply::mount::MountState;
+    use crate::apply::sysctl::SysctlState;
+    use crate::apply::{TaskAction, 
+        ApplyConfig, CronTask, FileTask, FilesystemTask, GroupTask, HostnameTask, MountTask,
+        SysctlTask, Task, TimezoneTask,
+    };
+
+    #[tokio::test]
+    async fn test_register_variable() {
+        use crate::apply::{CommandTask, DebugTask, debug::DebugVerbosity};
+        let mut executor = TaskExecutor::new(false);
+        let config = ApplyConfig {
+            vars: std::collections::HashMap::new(),
+            tasks: vec![
+                Task::new(TaskAction::Command(CommandTask {
+                    description: Some("Run command".to_string()),
+                    command: "echo 'hello driftless'".to_string(),
+                    cwd: None,
+                    env: std::collections::HashMap::new(),
+                    idempotent: false,
+                    exit_code: 0,
+                    user: None,
+                    group: None,
+                })).with_register("cmd_output"),
+                Task::new(TaskAction::Debug(DebugTask {
+                    description: None,
+                    msg: "Output was: {{ cmd_output.stdout }}".to_string(),
+                    var: None,
+                    verbosity: DebugVerbosity::Normal,
+                })),
+            ],
+        };
+
+        executor.execute(&config).await.unwrap();
+        
+        // Verify variable was registered
+        let registered = executor.variables().get("cmd_output").expect("Variable 'cmd_output' not found");
+        assert!(registered.is_mapping(), "Registered variable is not a mapping: {:?}", registered);
+        let map = registered.as_mapping().unwrap();
+        assert_eq!(map.get("stdout").unwrap().as_str().unwrap(), "hello driftless");
+    }
+
+    #[tokio::test]
+    async fn test_register_with_when() {
+        use crate::apply::{CommandTask, DebugTask, debug::DebugVerbosity};
+        let mut executor = TaskExecutor::new(false);
+        let config = ApplyConfig {
+            vars: std::collections::HashMap::new(),
+            tasks: vec![
+                Task::new(TaskAction::Command(CommandTask {
+                    description: Some("Success command".to_string()),
+                    command: "true".to_string(),
+                    cwd: None,
+                    env: std::collections::HashMap::new(),
+                    idempotent: false,
+                    exit_code: 0,
+                    user: None,
+                    group: None,
+                })).with_register("cmd_success"),
+                Task::new(TaskAction::Command(CommandTask {
+                    description: Some("Fail command".to_string()),
+                    command: "false".to_string(),
+                    cwd: None,
+                    env: std::collections::HashMap::new(),
+                    idempotent: false,
+                    exit_code: 1,
+                    user: None,
+                    group: None,
+                })).with_register("cmd_fail"),
+                Task::new(TaskAction::Debug(DebugTask {
+                    description: Some("Should run".to_string()),
+                    msg: "Success task ran".to_string(),
+                    var: None,
+                    verbosity: DebugVerbosity::Normal,
+                })).with_when("{{ cmd_success.rc }} == 0"),
+                Task::new(TaskAction::Debug(DebugTask {
+                    description: Some("Should also run".to_string()),
+                    msg: "Fail task ran".to_string(),
+                    var: None,
+                    verbosity: DebugVerbosity::Normal,
+                })).with_when("{{ cmd_fail.rc }} == 1"),
+                Task::new(TaskAction::Debug(DebugTask {
+                    description: Some("Should NOT run".to_string()),
+                    msg: "I should be skipped".to_string(),
+                    var: None,
+                    verbosity: DebugVerbosity::Normal,
+                })).with_when("{{ cmd_success.rc }} != 0").with_register("skipped_task"),
+            ],
+        };
+
+        executor.execute(&config).await.unwrap();
+        
+        // Verify skipped_task was registered as skipped
+        let skipped = executor.variables().get("skipped_task").expect("Variable 'skipped_task' not found");
+        assert!(skipped.as_mapping().unwrap().get("skipped").unwrap().as_bool().unwrap());
+    }
+
+    #[tokio::test]
+    async fn test_task_validation() {
+        let config = ApplyConfig {
+            vars: std::collections::HashMap::new(),
+            tasks: vec![
+                Task::new(TaskAction::File(FileTask {
+                    description: None,
+                    path: "/etc/hostname".to_string(),
+                    state: FileState::Present,
+                    content: Some("test-host".to_string()),
+                    mode: Some("0644".to_string()),
+                    owner: Some("root".to_string()),
+                    group: Some("root".to_string()),
+                    source: None,
+                })),
+                Task::new(TaskAction::File(FileTask {
+                    description: None,
+                    path: "".to_string(), // Invalid: empty path
+                    state: FileState::Present,
+                    content: None,
+                    mode: None,
+                    owner: None,
+                    group: None,
+                    source: None,
+                })),
+            ],
+        };
+
+        let executor = TaskExecutor::new(true);
+        let result = executor.validate(&config);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("file path cannot be empty"));
+    }
+
+    #[tokio::test]
+    async fn test_group_validation() {
+        let config = ApplyConfig {
+            vars: std::collections::HashMap::new(),
+            tasks: vec![Task::new(TaskAction::Group(GroupTask {
+                description: None,
+                name: "".to_string(), // Invalid: empty name
+                state: GroupState::Present,
+                gid: None,
+                system: false,
+            }))],
+        };
+
+        let executor = TaskExecutor::new(true);
+        let result = executor.validate(&config);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("group name cannot be empty"));
+    }
+
+    #[tokio::test]
+    async fn test_cron_validation() {
+        let config = ApplyConfig {
+            vars: std::collections::HashMap::new(),
+            tasks: vec![Task::new(TaskAction::Cron(CronTask {
+                description: None,
+                name: "".to_string(), // Invalid: empty name
+                state: CronState::Present,
+                user: "root".to_string(),
+                minute: "*".to_string(),
+                hour: "*".to_string(),
+                day: "*".to_string(),
+                month: "*".to_string(),
+                weekday: "*".to_string(),
+                job: "".to_string(), // Invalid: empty job
+                comment: None,
+            }))],
+        };
+
+        let executor = TaskExecutor::new(true);
+        let result = executor.validate(&config);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("cron job command cannot be empty"));
+    }
+
+    #[tokio::test]
+    async fn test_mount_validation() {
+        let config = ApplyConfig {
+            vars: std::collections::HashMap::new(),
+            tasks: vec![
+                Task::new(TaskAction::Mount(MountTask {
+                    description: None,
+                    path: "".to_string(), // Invalid: empty path
+                    state: MountState::Mounted,
+                    src: "/dev/sda1".to_string(),
+                    fstype: None,
+                    opts: vec![],
+                    fstab: false,
+                    recursive: false,
+                })),
+                Task::new(TaskAction::Mount(MountTask {
+                    description: None,
+                    path: "/mnt/test".to_string(),
+                    state: MountState::Mounted,
+                    src: "".to_string(), // Invalid: empty source
+                    fstype: None,
+                    opts: vec![],
+                    fstab: false,
+                    recursive: false,
+                })),
+            ],
+        };
+
+        let executor = TaskExecutor::new(true);
+        let result = executor.validate(&config);
+        assert!(result.is_err());
+        let error_msg = result.unwrap_err().to_string();
+        assert!(
+            error_msg.contains("mount path cannot be empty")
+                || error_msg.contains("mount source cannot be empty")
+        );
+    }
+
+    #[tokio::test]
+    async fn test_filesystem_validation() {
+        let config = ApplyConfig {
+            vars: std::collections::HashMap::new(),
+            tasks: vec![Task::new(TaskAction::Filesystem(FilesystemTask {
+                description: None,
+                dev: "".to_string(), // Invalid: empty device
+                state: FilesystemState::Present,
+                fstype: Some("ext4".to_string()),
+                force: false,
+                opts: vec![],
+            }))],
+        };
+
+        let executor = TaskExecutor::new(true);
+        let result = executor.validate(&config);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("filesystem device cannot be empty"));
+    }
+
+    #[tokio::test]
+    async fn test_sysctl_validation() {
+        let config = ApplyConfig {
+            vars: std::collections::HashMap::new(),
+            tasks: vec![Task::new(TaskAction::Sysctl(SysctlTask {
+                description: None,
+                name: "".to_string(), // Invalid: empty name
+                state: SysctlState::Present,
+                value: "1".to_string(),
+                persist: false,
+                reload: false,
+            }))],
+        };
+
+        let executor = TaskExecutor::new(true);
+        let result = executor.validate(&config);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("sysctl parameter name cannot be empty"));
+    }
+
+    #[tokio::test]
+    async fn test_hostname_validation() {
+        let config = ApplyConfig {
+            vars: std::collections::HashMap::new(),
+            tasks: vec![Task::new(TaskAction::Hostname(HostnameTask {
+                description: None,
+                name: "".to_string(), // Invalid: empty hostname
+                persist: false,
+            }))],
+        };
+
+        let executor = TaskExecutor::new(true);
+        let result = executor.validate(&config);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("hostname cannot be empty"));
+    }
+
+    #[tokio::test]
+    async fn test_timezone_validation() {
+        let config = ApplyConfig {
+            vars: std::collections::HashMap::new(),
+            tasks: vec![Task::new(TaskAction::Timezone(TimezoneTask {
+                description: None,
+                name: "".to_string(), // Invalid: empty timezone
+            }))],
+        };
+
+        let executor = TaskExecutor::new(true);
+        let result = executor.validate(&config);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("timezone cannot be empty"));
+    }
+
+    #[tokio::test]
+    async fn test_dry_run_execution() {
+        let config = ApplyConfig {
+            vars: std::collections::HashMap::new(),
+            tasks: vec![Task::new(TaskAction::File(FileTask {
+                description: None,
+                path: "/tmp/test.txt".to_string(),
+                state: FileState::Present,
+                content: Some("test content".to_string()),
+                mode: None,
+                owner: None,
+                group: None,
+                source: None,
+            }))],
+        };
+
+        let mut executor = TaskExecutor::new(true);
+        let result = executor.execute(&config).await;
+        assert!(result.is_ok());
+    }
 }

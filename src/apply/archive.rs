@@ -464,13 +464,13 @@ mod tests {
 
     #[tokio::test]
     async fn test_archive_empty_sources() {
-        use crate::apply::{ApplyConfig, Task};
+        use crate::apply::{ApplyConfig, Task, TaskAction};
 
         let archive_path = "/tmp/empty_archive.tar.gz".to_string();
 
         let config = ApplyConfig {
             vars: std::collections::HashMap::new(),
-            tasks: vec![Task::Archive(ArchiveTask {
+            tasks: vec![Task::new(TaskAction::Archive(ArchiveTask {
                 description: None,
                 path: archive_path,
                 state: ArchiveState::Present,
@@ -479,7 +479,7 @@ mod tests {
                 dest: None,
                 compression: 6,
                 extra_opts: vec![],
-            })],
+            }))],
         };
 
         let executor = crate::apply::executor::TaskExecutor::new(true);

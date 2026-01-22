@@ -59,7 +59,6 @@
 - Plugin registry and download manager
 
 ## TODO
-- Does Ansible have a similar concept to Terraform's resource outputs to allow for using output from one task as input for another, and does this codebase support it?
 - Review the usage of the template language and ensure it fully supports jinja2 with all filters, variable substitutions, and other functionality. Also ensure that all tasks using template language are using it properly.
 - Review the codebase for usage of Rust best-practices and guidelines
 - Review the codebase for safety, security, and production-readiness

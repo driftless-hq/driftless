@@ -1,19 +1,24 @@
 //! Tests for apply task functionality
 
 #[cfg(test)]
-mod tests {
-    use crate::apply::debug::DebugVerbosity;
-    use crate::apply::executor::TaskExecutor;
-    use crate::apply::variables::VariableContext;
-    use crate::apply::wait_for::ConnectionState;
-    use crate::apply::{
-        AssertTask, DebugTask, FailTask, IncludeRoleTask, IncludeTasksTask, PauseTask, SetFactTask,
-        Task, WaitForTask,
-    };
-    use serde_json;
-    use serde_yaml::Value;
+use crate::apply::debug::DebugVerbosity;
+#[cfg(test)]
+use crate::apply::executor::TaskExecutor;
+#[cfg(test)]
+use crate::apply::variables::VariableContext;
+#[cfg(test)]
+use crate::apply::wait_for::ConnectionState;
+#[cfg(test)]
+use crate::apply::{TaskAction, 
+    AssertTask, DebugTask, FailTask, IncludeRoleTask, IncludeTasksTask, PauseTask, SetFactTask,
+    Task, WaitForTask,
+};
+#[cfg(test)]
+use serde_json;
+#[cfg(test)]
+use serde_yaml::Value;
 
-    #[test]
+#[test]
     fn test_variable_context_basic() {
         let mut ctx = VariableContext::new();
 
@@ -89,14 +94,9 @@ mod tests {
         let fail_task = FailTask {
             description: Some("Test failure".to_string()),
             msg: "This should fail".to_string(),
-            when: Some("{{ should_fail }} == true".to_string()),
         };
 
         assert_eq!(fail_task.msg, "This should fail");
-        assert_eq!(
-            fail_task.when,
-            Some("{{ should_fail }} == true".to_string())
-        );
     }
 
     #[test]
@@ -150,15 +150,10 @@ mod tests {
         let include_tasks = IncludeTasksTask {
             description: Some("Include database tasks".to_string()),
             file: "tasks/database.yml".to_string(),
-            when: Some("{{ setup_database }} == true".to_string()),
             vars: std::collections::HashMap::new(),
         };
 
         assert_eq!(include_tasks.file, "tasks/database.yml");
-        assert_eq!(
-            include_tasks.when,
-            Some("{{ setup_database }} == true".to_string())
-        );
     }
 
     #[test]
@@ -166,16 +161,11 @@ mod tests {
         let include_role = IncludeRoleTask {
             description: Some("Include webserver role".to_string()),
             name: "webserver".to_string(),
-            when: Some("{{ install_webserver }} == true".to_string()),
             vars: std::collections::HashMap::new(),
             defaults: std::collections::HashMap::new(),
         };
 
         assert_eq!(include_role.name, "webserver");
-        assert_eq!(
-            include_role.when,
-            Some("{{ install_webserver }} == true".to_string())
-        );
     }
 
     #[tokio::test]
@@ -212,13 +202,13 @@ mod tests {
         let include_task = IncludeTasksTask {
             description: Some("Test include".to_string()),
             file: "tasks/common.yml".to_string(),
-            when: None,
+
             vars: std::collections::HashMap::new(),
         };
 
         // Execute the include task
-        let result: Result<(), anyhow::Error> = executor
-            .execute_single_task(&Task::IncludeTasks(include_task))
+        let result = executor
+            .execute_single_task(&Task::new(TaskAction::IncludeTasks(include_task)))
             .await;
         assert!(result.is_ok());
     }
@@ -256,13 +246,12 @@ mod tests {
         let include_task = IncludeTasksTask {
             description: Some("Conditional include".to_string()),
             file: "tasks/conditional.yml".to_string(),
-            when: Some("{{ should_include }} == true".to_string()),
             vars: std::collections::HashMap::new(),
         };
 
         // Execute the include task
-        let result: Result<(), anyhow::Error> = executor
-            .execute_single_task(&Task::IncludeTasks(include_task))
+        let result = executor
+            .execute_single_task(&Task::new(TaskAction::IncludeTasks(include_task)).with_when("{{ should_include }} == true"))
             .await;
         assert!(result.is_ok());
     }
@@ -300,13 +289,12 @@ mod tests {
         let include_task = IncludeTasksTask {
             description: Some("Skipped include".to_string()),
             file: "tasks/skipped.yml".to_string(),
-            when: Some("{{ should_include }} == true".to_string()),
             vars: std::collections::HashMap::new(),
         };
 
         // Execute the include task - should succeed but not execute included tasks
-        let result: Result<(), anyhow::Error> = executor
-            .execute_single_task(&Task::IncludeTasks(include_task))
+        let result = executor
+            .execute_single_task(&Task::new(TaskAction::IncludeTasks(include_task)).with_when("{{ should_include }} == true"))
             .await;
         assert!(result.is_ok());
     }
@@ -330,13 +318,12 @@ mod tests {
         let include_task = IncludeTasksTask {
             description: Some("Missing file test".to_string()),
             file: "tasks/missing.yml".to_string(),
-            when: None,
             vars: std::collections::HashMap::new(),
         };
 
         // Execute the include task - should fail
-        let result: Result<(), anyhow::Error> = executor
-            .execute_single_task(&Task::IncludeTasks(include_task))
+        let result = executor
+            .execute_single_task(&Task::new(TaskAction::IncludeTasks(include_task)))
             .await;
         assert!(result.is_err());
         assert!(result
@@ -391,14 +378,14 @@ role_var: "default_value"
         let include_role = IncludeRoleTask {
             description: Some("Test role".to_string()),
             name: "webserver".to_string(),
-            when: None,
+
             vars: std::collections::HashMap::new(),
             defaults: std::collections::HashMap::new(),
         };
 
         // Execute the include role task
-        let result: Result<(), anyhow::Error> = executor
-            .execute_single_task(&Task::IncludeRole(include_role))
+        let result = executor
+            .execute_single_task(&Task::new(TaskAction::IncludeRole(include_role)))
             .await;
         assert!(result.is_ok());
     }
@@ -422,14 +409,13 @@ role_var: "default_value"
         let include_role = IncludeRoleTask {
             description: Some("Missing role test".to_string()),
             name: "nonexistent".to_string(),
-            when: None,
             vars: std::collections::HashMap::new(),
             defaults: std::collections::HashMap::new(),
         };
 
         // Execute the include role task - should fail
-        let result: Result<(), anyhow::Error> = executor
-            .execute_single_task(&Task::IncludeRole(include_role))
+        let result = executor
+            .execute_single_task(&Task::new(TaskAction::IncludeRole(include_role)))
             .await;
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("not found"));
@@ -463,14 +449,14 @@ role_var: "default_value"
         let include_role = IncludeRoleTask {
             description: Some("Missing tasks test".to_string()),
             name: "webserver".to_string(),
-            when: None,
+
             vars: std::collections::HashMap::new(),
             defaults: std::collections::HashMap::new(),
         };
 
         // Execute the include role task - should fail
-        let result: Result<(), anyhow::Error> = executor
-            .execute_single_task(&Task::IncludeRole(include_role))
+        let result = executor
+            .execute_single_task(&Task::new(TaskAction::IncludeRole(include_role)))
             .await;
         assert!(result.is_err());
         assert!(result
@@ -523,14 +509,12 @@ role_var: "default_value"
         let include_task = IncludeTasksTask {
             description: Some("Variable passing test".to_string()),
             file: "tasks/vars.yml".to_string(),
-            when: None,
             vars: include_vars,
         };
 
         // Execute the include task
-        let result: Result<(), anyhow::Error> = executor
-            .execute_single_task(&Task::IncludeTasks(include_task))
+        let result = executor
+            .execute_single_task(&Task::new(TaskAction::IncludeTasks(include_task)))
             .await;
         assert!(result.is_ok());
     }
-}

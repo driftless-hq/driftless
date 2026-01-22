@@ -53,7 +53,7 @@ pub fn extract_all_task_docs() -> Result<HashMap<String, TaskDocumentation>> {
 
     // Extract from each task file
     for task_type in registered_task_types {
-        let filename = crate::apply::Task::task_filename(&task_type);
+        let filename = crate::apply::TaskAction::task_filename(&task_type);
         let file_path = format!("src/apply/{}.rs", filename);
         if let Ok(content) = fs::read_to_string(&file_path) {
             extract_task_struct_docs(&content, &mut docs, &task_type)?;
@@ -283,7 +283,7 @@ fn extract_examples_from_files(docs: &mut HashMap<String, TaskDocumentation>) ->
     let task_files: Vec<(String, String)> = registered_task_types
         .iter()
         .map(|task_type| {
-            let filename = crate::apply::Task::task_filename(task_type);
+            let filename = crate::apply::TaskAction::task_filename(task_type);
             let file_path = format!("src/apply/{}.rs", filename);
             (task_type.clone(), file_path)
         })

@@ -164,11 +164,20 @@ use anyhow::{Context, Result};
 use std::process::{Command, Stdio};
 
 /// Execute a command task
-pub async fn execute_command_task(task: &CommandTask, dry_run: bool) -> Result<()> {
+pub async fn execute_command_task(task: &CommandTask, dry_run: bool) -> Result<serde_yaml::Value> {
     // Check if command should be run idempotently
     if task.idempotent && is_command_already_run(task)? {
         println!("Command already executed (idempotent): {}", task.command);
-        return Ok(());
+        let mut result = serde_yaml::Mapping::new();
+        result.insert(
+            serde_yaml::Value::String("changed".to_string()),
+            serde_yaml::Value::Bool(false),
+        );
+        result.insert(
+            serde_yaml::Value::String("skipped".to_string()),
+            serde_yaml::Value::Bool(true),
+        );
+        return Ok(serde_yaml::Value::Mapping(result));
     }
 
     if dry_run {
@@ -182,21 +191,31 @@ pub async fn execute_command_task(task: &CommandTask, dry_run: bool) -> Result<(
         if task.user.is_some() || task.group.is_some() {
             println!("  as user: {:?}, group: {:?}", task.user, task.group);
         }
+        let mut result = serde_yaml::Mapping::new();
+        result.insert(
+            serde_yaml::Value::String("changed".to_string()),
+            serde_yaml::Value::Bool(false),
+        );
+        result.insert(
+            serde_yaml::Value::String("dry_run".to_string()),
+            serde_yaml::Value::Bool(true),
+        );
+        Ok(serde_yaml::Value::Mapping(result))
     } else {
-        run_command(task).await?;
+        let output = run_command(task).await?;
         println!("Executed command: {}", task.command);
 
         // Mark command as run for idempotency
         if task.idempotent {
             mark_command_as_run(task)?;
         }
-    }
 
-    Ok(())
+        Ok(output)
+    }
 }
 
 /// Run the actual command
-async fn run_command(task: &CommandTask) -> Result<()> {
+async fn run_command(task: &CommandTask) -> Result<serde_yaml::Value> {
     // Parse the command string into program and arguments
     let (program, args) = parse_command(&task.command)?;
 
@@ -223,18 +242,17 @@ async fn run_command(task: &CommandTask) -> Result<()> {
         );
     }
 
-    // Set up I/O - inherit stdin/stdout/stderr for interactive commands
-    cmd.stdin(Stdio::inherit())
-        .stdout(Stdio::inherit())
-        .stderr(Stdio::inherit());
+    // Set up I/O - capture for registration while still allowing output to be seen if needed
+    // In a real implementation we might want to stream this
+    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
 
     // Execute the command
-    let status = cmd
-        .status()
+    let output = cmd
+        .output()
         .with_context(|| format!("Failed to execute command: {}", task.command))?;
 
     // Check exit code
-    let exit_code = status.code().unwrap_or(-1);
+    let exit_code = output.status.code().unwrap_or(-1);
     if exit_code != task.exit_code {
         return Err(anyhow::anyhow!(
             "Command exited with code {} (expected {}): {}",
@@ -244,7 +262,29 @@ async fn run_command(task: &CommandTask) -> Result<()> {
         ));
     }
 
-    Ok(())
+    // Prepare result
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
+
+    let mut result = serde_yaml::Mapping::new();
+    result.insert(
+        serde_yaml::Value::String("stdout".to_string()),
+        serde_yaml::Value::String(stdout),
+    );
+    result.insert(
+        serde_yaml::Value::String("stderr".to_string()),
+        serde_yaml::Value::String(stderr),
+    );
+    result.insert(
+        serde_yaml::Value::String("rc".to_string()),
+        serde_yaml::Value::Number(exit_code.into()),
+    );
+    result.insert(
+        serde_yaml::Value::String("changed".to_string()),
+        serde_yaml::Value::Bool(true),
+    );
+
+    Ok(serde_yaml::Value::Mapping(result))
 }
 
 /// Parse a command string into program and arguments

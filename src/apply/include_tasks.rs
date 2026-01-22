@@ -38,12 +38,6 @@ pub struct IncludeTasksTask {
     /// Path to the task file to include.
     pub file: String,
 
-    /// Apply condition
-    ///
-    /// Only include tasks when this condition is true.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub when: Option<String>,
-
     /// Variable overrides
     ///
     /// Variables to pass to the included tasks.

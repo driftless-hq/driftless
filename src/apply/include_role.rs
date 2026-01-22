@@ -40,12 +40,6 @@ pub struct IncludeRoleTask {
     /// Name of the role to include.
     pub name: String,
 
-    /// Apply condition
-    ///
-    /// Only include role when this condition is true.
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub when: Option<String>,
-
     /// Variable overrides
     ///
     /// Variables to pass to the role.

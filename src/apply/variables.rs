@@ -199,8 +199,9 @@ impl VariableContext {
             let base = &trimmed[..dot_pos];
             let key = &trimmed[dot_pos + 1..];
 
-            // Check if base is a fact with nested structure
-            if let Some(serde_yaml::Value::Mapping(map)) = self.facts.get(base) {
+            // Check if base is a variable or fact with nested structure
+            let base_value = self.variables.get(base).or_else(|| self.facts.get(base));
+            if let Some(serde_yaml::Value::Mapping(map)) = base_value {
                 if let Some(value) = map.get(serde_yaml::Value::String(key.to_string())) {
                     match value {
                         serde_yaml::Value::String(s) => return Some(s.clone()),

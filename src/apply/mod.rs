@@ -12,7 +12,11 @@ type TaskExecutorFn = Arc<
             &'a Task,
             &'a mut crate::apply::executor::TaskExecutor,
         ) -> std::pin::Pin<
-            Box<dyn std::future::Future<Output = Result<(), anyhow::Error>> + Send + 'a>,
+            Box<
+                dyn std::future::Future<Output = Result<serde_yaml::Value, anyhow::Error>>
+                    + Send
+                    + 'a,
+            >,
         > + Send
         + Sync,
 >;
@@ -88,15 +92,17 @@ impl TaskRegistry {
             "file",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::File(file_task) = task {
-                        crate::apply::file::execute_file_task(file_task, executor.dry_run()).await
+                    if let TaskAction::File(file_task) = &task.action {
+                        crate::apply::file::execute_file_task(file_task, executor.dry_run())
+                            .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for file executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::File(file_task) = task {
+                if let TaskAction::File(file_task) = &task.action {
                     if file_task.path.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: file path cannot be empty",
@@ -115,19 +121,20 @@ impl TaskRegistry {
             "directory",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Directory(dir_task) = task {
+                    if let TaskAction::Directory(dir_task) = &task.action {
                         crate::apply::directory::execute_directory_task(
                             dir_task,
                             executor.dry_run(),
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for directory executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Directory(dir_task) = task {
+                if let TaskAction::Directory(dir_task) = &task.action {
                     if dir_task.path.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: directory path cannot be empty",
@@ -146,15 +153,17 @@ impl TaskRegistry {
             "copy",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Copy(copy_task) = task {
-                        crate::apply::copy::execute_copy_task(copy_task, executor.dry_run()).await
+                    if let TaskAction::Copy(copy_task) = &task.action {
+                        crate::apply::copy::execute_copy_task(copy_task, executor.dry_run())
+                            .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for copy executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Copy(copy_task) = task {
+                if let TaskAction::Copy(copy_task) = &task.action {
                     if copy_task.src.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: copy source cannot be empty",
@@ -180,16 +189,17 @@ impl TaskRegistry {
             "package",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Package(pkg_task) = task {
+                    if let TaskAction::Package(pkg_task) = &task.action {
                         crate::apply::package::execute_package_task(pkg_task, executor.dry_run())
-                            .await
+                            .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for package executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Package(pkg_task) = task {
+                if let TaskAction::Package(pkg_task) = &task.action {
                     if pkg_task.name.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: package name cannot be empty",
@@ -208,15 +218,16 @@ impl TaskRegistry {
             "apt",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Apt(apt_task) = task {
-                        crate::apply::apt::execute_apt_task(apt_task, executor.dry_run()).await
+                    if let TaskAction::Apt(apt_task) = &task.action {
+                        crate::apply::apt::execute_apt_task(apt_task, executor.dry_run()).await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for apt executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Apt(apt_task) = task {
+                if let TaskAction::Apt(apt_task) = &task.action {
                     if apt_task.name.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: apt package name cannot be empty",
@@ -236,19 +247,20 @@ impl TaskRegistry {
             "service",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Service(service_task) = task {
+                    if let TaskAction::Service(service_task) = &task.action {
                         crate::apply::service::execute_service_task(
                             service_task,
                             executor.dry_run(),
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for service executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Service(service_task) = task {
+                if let TaskAction::Service(service_task) = &task.action {
                     if service_task.name.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: service name cannot be empty",
@@ -268,15 +280,17 @@ impl TaskRegistry {
             "user",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::User(user_task) = task {
-                        crate::apply::user::execute_user_task(user_task, executor.dry_run()).await
+                    if let TaskAction::User(user_task) = &task.action {
+                        crate::apply::user::execute_user_task(user_task, executor.dry_run())
+                            .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for user executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::User(user_task) = task {
+                if let TaskAction::User(user_task) = &task.action {
                     if user_task.name.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: user name cannot be empty",
@@ -295,16 +309,17 @@ impl TaskRegistry {
             "group",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Group(group_task) = task {
+                    if let TaskAction::Group(group_task) = &task.action {
                         crate::apply::group::execute_group_task(group_task, executor.dry_run())
-                            .await
+                            .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for group executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Group(group_task) = task {
+                if let TaskAction::Group(group_task) = &task.action {
                     if group_task.name.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: group name cannot be empty",
@@ -324,7 +339,7 @@ impl TaskRegistry {
             "command",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Command(cmd_task) = task {
+                    if let TaskAction::Command(cmd_task) = &task.action {
                         crate::apply::command::execute_command_task(cmd_task, executor.dry_run())
                             .await
                     } else {
@@ -333,7 +348,7 @@ impl TaskRegistry {
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Command(cmd_task) = task {
+                if let TaskAction::Command(cmd_task) = &task.action {
                     if cmd_task.command.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: command cannot be empty",
@@ -352,16 +367,17 @@ impl TaskRegistry {
             "script",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Script(script_task) = task {
+                    if let TaskAction::Script(script_task) = &task.action {
                         crate::apply::script::execute_script_task(script_task, executor.dry_run())
-                            .await
+                            .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for script executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Script(script_task) = task {
+                if let TaskAction::Script(script_task) = &task.action {
                     if script_task.path.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: script path cannot be empty",
@@ -380,15 +396,16 @@ impl TaskRegistry {
             "raw",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Raw(raw_task) = task {
-                        crate::apply::raw::execute_raw_task(raw_task, executor.dry_run()).await
+                    if let TaskAction::Raw(raw_task) = &task.action {
+                        crate::apply::raw::execute_raw_task(raw_task, executor.dry_run()).await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for raw executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Raw(raw_task) = task {
+                if let TaskAction::Raw(raw_task) = &task.action {
                     if raw_task.executable.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: raw executable cannot be empty",
@@ -408,20 +425,21 @@ impl TaskRegistry {
             "debug",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Debug(debug_task) = task {
+                    if let TaskAction::Debug(debug_task) = &task.action {
                         crate::apply::executor::execute_debug_task(
                             debug_task,
                             executor.variables(),
                             executor.dry_run(),
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for debug executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Debug(debug_task) = task {
+                if let TaskAction::Debug(debug_task) = &task.action {
                     if debug_task.msg.is_empty() && debug_task.var.is_none() {
                         return Err(anyhow::anyhow!(
                             "Task {}: debug task must have either msg or var",
@@ -440,20 +458,21 @@ impl TaskRegistry {
             "assert",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Assert(assert_task) = task {
+                    if let TaskAction::Assert(assert_task) = &task.action {
                         crate::apply::executor::execute_assert_task(
                             assert_task,
                             executor.variables(),
                             executor.dry_run(),
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for assert executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Assert(assert_task) = task {
+                if let TaskAction::Assert(assert_task) = &task.action {
                     if assert_task.that.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: assert that condition cannot be empty",
@@ -472,20 +491,21 @@ impl TaskRegistry {
             "fail",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Fail(fail_task) = task {
+                    if let TaskAction::Fail(fail_task) = &task.action {
                         crate::apply::executor::execute_fail_task(
                             fail_task,
                             executor.variables(),
                             executor.dry_run(),
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for fail executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Fail(fail_task) = task {
+                if let TaskAction::Fail(fail_task) = &task.action {
                     if fail_task.msg.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: fail message cannot be empty",
@@ -504,9 +524,10 @@ impl TaskRegistry {
             "pause",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Pause(pause_task) = task {
+                    if let TaskAction::Pause(pause_task) = &task.action {
                         crate::apply::executor::execute_pause_task(pause_task, executor.dry_run())
-                            .await
+                            .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for pause executor"))
                     }
@@ -521,21 +542,22 @@ impl TaskRegistry {
             "set_fact",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::SetFact(set_fact_task) = task {
+                    if let TaskAction::SetFact(set_fact_task) = &task.action {
                         let dry_run = executor.dry_run();
                         crate::apply::executor::execute_set_fact_task(
                             set_fact_task,
                             executor.variables_mut(),
                             dry_run,
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for setfact executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::SetFact(set_fact_task) = task {
+                if let TaskAction::SetFact(set_fact_task) = &task.action {
                     if set_fact_task.key.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: set_fact key cannot be empty",
@@ -555,14 +577,15 @@ impl TaskRegistry {
             "include_tasks",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::IncludeTasks(include_tasks_task) = task {
+                    if let TaskAction::IncludeTasks(include_tasks_task) = &task.action {
                         crate::apply::executor::execute_include_tasks_task(
                             include_tasks_task,
                             executor.variables(),
                             executor.dry_run(),
                             executor.config_dir(),
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!(
                             "Invalid task type for includetasks executor"
@@ -571,7 +594,7 @@ impl TaskRegistry {
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::IncludeTasks(include_tasks_task) = task {
+                if let TaskAction::IncludeTasks(include_tasks_task) = &task.action {
                     if include_tasks_task.file.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: include_tasks file cannot be empty",
@@ -590,14 +613,15 @@ impl TaskRegistry {
             "include_role",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::IncludeRole(include_role_task) = task {
+                    if let TaskAction::IncludeRole(include_role_task) = &task.action {
                         crate::apply::executor::execute_include_role_task(
                             include_role_task,
                             executor.variables(),
                             executor.dry_run(),
                             executor.config_dir(),
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!(
                             "Invalid task type for includerole executor"
@@ -606,7 +630,7 @@ impl TaskRegistry {
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::IncludeRole(include_role_task) = task {
+                if let TaskAction::IncludeRole(include_role_task) = &task.action {
                     if include_role_task.name.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: include_role name cannot be empty",
@@ -626,15 +650,17 @@ impl TaskRegistry {
             "cron",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Cron(cron_task) = task {
-                        crate::apply::cron::execute_cron_task(cron_task, executor.dry_run()).await
+                    if let TaskAction::Cron(cron_task) = &task.action {
+                        crate::apply::cron::execute_cron_task(cron_task, executor.dry_run())
+                            .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for cron executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Cron(cron_task) = task {
+                if let TaskAction::Cron(cron_task) = &task.action {
                     if cron_task.job.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: cron job command cannot be empty",
@@ -653,16 +679,17 @@ impl TaskRegistry {
             "mount",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Mount(mount_task) = task {
+                    if let TaskAction::Mount(mount_task) = &task.action {
                         crate::apply::mount::execute_mount_task(mount_task, executor.dry_run())
-                            .await
+                            .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for mount executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Mount(mount_task) = task {
+                if let TaskAction::Mount(mount_task) = &task.action {
                     if mount_task.path.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: mount path cannot be empty",
@@ -687,19 +714,20 @@ impl TaskRegistry {
             "filesystem",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Filesystem(fs_task) = task {
+                    if let TaskAction::Filesystem(fs_task) = &task.action {
                         crate::apply::filesystem::execute_filesystem_task(
                             fs_task,
                             executor.dry_run(),
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for filesystem executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Filesystem(fs_task) = task {
+                if let TaskAction::Filesystem(fs_task) = &task.action {
                     if fs_task.dev.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: filesystem device cannot be empty",
@@ -718,16 +746,17 @@ impl TaskRegistry {
             "sysctl",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Sysctl(sysctl_task) = task {
+                    if let TaskAction::Sysctl(sysctl_task) = &task.action {
                         crate::apply::sysctl::execute_sysctl_task(sysctl_task, executor.dry_run())
-                            .await
+                            .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for sysctl executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Sysctl(sysctl_task) = task {
+                if let TaskAction::Sysctl(sysctl_task) = &task.action {
                     if sysctl_task.name.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: sysctl parameter name cannot be empty",
@@ -746,19 +775,20 @@ impl TaskRegistry {
             "hostname",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Hostname(hostname_task) = task {
+                    if let TaskAction::Hostname(hostname_task) = &task.action {
                         crate::apply::hostname::execute_hostname_task(
                             hostname_task,
                             executor.dry_run(),
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for hostname executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Hostname(hostname_task) = task {
+                if let TaskAction::Hostname(hostname_task) = &task.action {
                     if hostname_task.name.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: hostname cannot be empty",
@@ -777,19 +807,20 @@ impl TaskRegistry {
             "timezone",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Timezone(timezone_task) = task {
+                    if let TaskAction::Timezone(timezone_task) = &task.action {
                         crate::apply::timezone::execute_timezone_task(
                             timezone_task,
                             executor.dry_run(),
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for timezone executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Timezone(timezone_task) = task {
+                if let TaskAction::Timezone(timezone_task) = &task.action {
                     if timezone_task.name.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: timezone cannot be empty",
@@ -808,9 +839,10 @@ impl TaskRegistry {
             "reboot",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Reboot(reboot_task) = task {
+                    if let TaskAction::Reboot(reboot_task) = &task.action {
                         crate::apply::reboot::execute_reboot_task(reboot_task, executor.dry_run())
-                            .await
+                            .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for reboot executor"))
                     }
@@ -825,12 +857,13 @@ impl TaskRegistry {
             "shutdown",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Shutdown(shutdown_task) = task {
+                    if let TaskAction::Shutdown(shutdown_task) = &task.action {
                         crate::apply::shutdown::execute_shutdown_task(
                             shutdown_task,
                             executor.dry_run(),
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for shutdown executor"))
                     }
@@ -846,19 +879,20 @@ impl TaskRegistry {
             "template",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Template(template_task) = task {
+                    if let TaskAction::Template(template_task) = &task.action {
                         crate::apply::template::execute_template_task(
                             template_task,
                             executor.dry_run(),
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for template executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Template(template_task) = task {
+                if let TaskAction::Template(template_task) = &task.action {
                     if template_task.src.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: template source cannot be empty",
@@ -883,19 +917,20 @@ impl TaskRegistry {
             "lineinfile",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::LineInFile(line_task) = task {
+                    if let TaskAction::LineInFile(line_task) = &task.action {
                         crate::apply::lineinfile::execute_lineinfile_task(
                             line_task,
                             executor.dry_run(),
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for lineinfile executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::LineInFile(line_task) = task {
+                if let TaskAction::LineInFile(line_task) = &task.action {
                     if line_task.path.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: lineinfile path cannot be empty",
@@ -920,12 +955,13 @@ impl TaskRegistry {
             "blockinfile",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::BlockInFile(block_task) = task {
+                    if let TaskAction::BlockInFile(block_task) = &task.action {
                         crate::apply::blockinfile::execute_blockinfile_task(
                             block_task,
                             executor.dry_run(),
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!(
                             "Invalid task type for blockinfile executor"
@@ -934,7 +970,7 @@ impl TaskRegistry {
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::BlockInFile(block_task) = task {
+                if let TaskAction::BlockInFile(block_task) = &task.action {
                     if block_task.path.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: blockinfile path cannot be empty",
@@ -959,19 +995,20 @@ impl TaskRegistry {
             "replace",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Replace(replace_task) = task {
+                    if let TaskAction::Replace(replace_task) = &task.action {
                         crate::apply::replace::execute_replace_task(
                             replace_task,
                             executor.dry_run(),
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for replace executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Replace(replace_task) = task {
+                if let TaskAction::Replace(replace_task) = &task.action {
                     if replace_task.path.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: replace path cannot be empty",
@@ -998,16 +1035,17 @@ impl TaskRegistry {
             "fetch",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Fetch(fetch_task) = task {
+                    if let TaskAction::Fetch(fetch_task) = &task.action {
                         crate::apply::fetch::execute_fetch_task(fetch_task, executor.dry_run())
-                            .await
+                            .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for fetch executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Fetch(fetch_task) = task {
+                if let TaskAction::Fetch(fetch_task) = &task.action {
                     if fetch_task.url.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: fetch url cannot be empty",
@@ -1032,7 +1070,7 @@ impl TaskRegistry {
             "uri",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Uri(uri_task) = task {
+                    if let TaskAction::Uri(uri_task) = &task.action {
                         crate::apply::uri::execute_uri_task(uri_task, executor.dry_run()).await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for uri executor"))
@@ -1040,7 +1078,7 @@ impl TaskRegistry {
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Uri(uri_task) = task {
+                if let TaskAction::Uri(uri_task) = &task.action {
                     if uri_task.url.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: uri url cannot be empty",
@@ -1059,19 +1097,20 @@ impl TaskRegistry {
             "get_url",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::GetUrl(get_url_task) = task {
+                    if let TaskAction::GetUrl(get_url_task) = &task.action {
                         crate::apply::get_url::execute_get_url_task(
                             get_url_task,
                             executor.dry_run(),
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for geturl executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::GetUrl(get_url_task) = task {
+                if let TaskAction::GetUrl(get_url_task) = &task.action {
                     if get_url_task.url.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: get_url url cannot be empty",
@@ -1097,19 +1136,20 @@ impl TaskRegistry {
             "unarchive",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Unarchive(unarchive_task) = task {
+                    if let TaskAction::Unarchive(unarchive_task) = &task.action {
                         crate::apply::unarchive::execute_unarchive_task(
                             unarchive_task,
                             executor.dry_run(),
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for unarchive executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Unarchive(unarchive_task) = task {
+                if let TaskAction::Unarchive(unarchive_task) = &task.action {
                     if unarchive_task.src.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: unarchive source cannot be empty",
@@ -1134,19 +1174,20 @@ impl TaskRegistry {
             "archive",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Archive(archive_task) = task {
+                    if let TaskAction::Archive(archive_task) = &task.action {
                         crate::apply::archive::execute_archive_task(
                             archive_task,
                             executor.dry_run(),
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for archive executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Archive(archive_task) = task {
+                if let TaskAction::Archive(archive_task) = &task.action {
                     if archive_task.path.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: archive path cannot be empty",
@@ -1172,15 +1213,17 @@ impl TaskRegistry {
             "stat",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Stat(stat_task) = task {
-                        crate::apply::stat::execute_stat_task(stat_task, executor.dry_run()).await
+                    if let TaskAction::Stat(stat_task) = &task.action {
+                        crate::apply::stat::execute_stat_task(stat_task, executor.dry_run())
+                            .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for stat executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Stat(stat_task) = task {
+                if let TaskAction::Stat(stat_task) = &task.action {
                     if stat_task.path.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: stat path cannot be empty",
@@ -1200,15 +1243,16 @@ impl TaskRegistry {
             "yum",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Yum(yum_task) = task {
-                        crate::apply::yum::execute_yum_task(yum_task, executor.dry_run()).await
+                    if let TaskAction::Yum(yum_task) = &task.action {
+                        crate::apply::yum::execute_yum_task(yum_task, executor.dry_run()).await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for yum executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Yum(yum_task) = task {
+                if let TaskAction::Yum(yum_task) = &task.action {
                     if yum_task.name.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: yum package name cannot be empty",
@@ -1227,16 +1271,17 @@ impl TaskRegistry {
             "pacman",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Pacman(pacman_task) = task {
+                    if let TaskAction::Pacman(pacman_task) = &task.action {
                         crate::apply::pacman::execute_pacman_task(pacman_task, executor.dry_run())
-                            .await
+                            .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for pacman executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Pacman(pacman_task) = task {
+                if let TaskAction::Pacman(pacman_task) = &task.action {
                     if pacman_task.name.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: pacman package name cannot be empty",
@@ -1255,16 +1300,17 @@ impl TaskRegistry {
             "zypper",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Zypper(zypper_task) = task {
+                    if let TaskAction::Zypper(zypper_task) = &task.action {
                         crate::apply::zypper::execute_zypper_task(zypper_task, executor.dry_run())
-                            .await
+                            .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for zypper executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Zypper(zypper_task) = task {
+                if let TaskAction::Zypper(zypper_task) = &task.action {
                     if zypper_task.name.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: zypper package name cannot be empty",
@@ -1284,15 +1330,16 @@ impl TaskRegistry {
             "pip",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Pip(pip_task) = task {
-                        crate::apply::pip::execute_pip_task(pip_task, executor.dry_run()).await
+                    if let TaskAction::Pip(pip_task) = &task.action {
+                        crate::apply::pip::execute_pip_task(pip_task, executor.dry_run()).await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for pip executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Pip(pip_task) = task {
+                if let TaskAction::Pip(pip_task) = &task.action {
                     if pip_task.name.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: pip package name cannot be empty",
@@ -1311,15 +1358,16 @@ impl TaskRegistry {
             "npm",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Npm(npm_task) = task {
-                        crate::apply::npm::execute_npm_task(npm_task, executor.dry_run()).await
+                    if let TaskAction::Npm(npm_task) = &task.action {
+                        crate::apply::npm::execute_npm_task(npm_task, executor.dry_run()).await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for npm executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Npm(npm_task) = task {
+                if let TaskAction::Npm(npm_task) = &task.action {
                     if npm_task.name.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: npm package name cannot be empty",
@@ -1338,15 +1386,16 @@ impl TaskRegistry {
             "gem",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Gem(gem_task) = task {
-                        crate::apply::gem::execute_gem_task(gem_task, executor.dry_run()).await
+                    if let TaskAction::Gem(gem_task) = &task.action {
+                        crate::apply::gem::execute_gem_task(gem_task, executor.dry_run()).await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for gem executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Gem(gem_task) = task {
+                if let TaskAction::Gem(gem_task) = &task.action {
                     if gem_task.name.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: gem package name cannot be empty",
@@ -1366,19 +1415,20 @@ impl TaskRegistry {
             "wait_for",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::WaitFor(wait_for_task) = task {
+                    if let TaskAction::WaitFor(wait_for_task) = &task.action {
                         crate::apply::executor::execute_wait_for_task(
                             wait_for_task,
                             executor.dry_run(),
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for waitfor executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::WaitFor(wait_for_task) = task {
+                if let TaskAction::WaitFor(wait_for_task) = &task.action {
                     if wait_for_task.host.is_none() || wait_for_task.port.is_none() {
                         return Err(anyhow::anyhow!(
                             "Task {}: wait_for requires both host and port",
@@ -1398,12 +1448,13 @@ impl TaskRegistry {
             "authorized_key",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::AuthorizedKey(authorized_key_task) = task {
+                    if let TaskAction::AuthorizedKey(authorized_key_task) = &task.action {
                         crate::apply::authorized_key::execute_authorized_key_task(
                             authorized_key_task,
                             executor.dry_run(),
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!(
                             "Invalid task type for authorizedkey executor"
@@ -1412,7 +1463,7 @@ impl TaskRegistry {
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::AuthorizedKey(authorized_key_task) = task {
+                if let TaskAction::AuthorizedKey(authorized_key_task) = &task.action {
                     if authorized_key_task.user.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: authorized_key user cannot be empty",
@@ -1431,19 +1482,20 @@ impl TaskRegistry {
             "sudoers",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Sudoers(sudoers_task) = task {
+                    if let TaskAction::Sudoers(sudoers_task) = &task.action {
                         crate::apply::sudoers::execute_sudoers_task(
                             sudoers_task,
                             executor.dry_run(),
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for sudoers executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Sudoers(sudoers_task) = task {
+                if let TaskAction::Sudoers(sudoers_task) = &task.action {
                     if sudoers_task.name.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: sudoers name cannot be empty",
@@ -1463,19 +1515,20 @@ impl TaskRegistry {
             "firewalld",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Firewalld(firewalld_task) = task {
+                    if let TaskAction::Firewalld(firewalld_task) = &task.action {
                         crate::apply::firewalld::execute_firewalld_task(
                             firewalld_task,
                             executor.dry_run(),
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for firewalld executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Firewalld(firewalld_task) = task {
+                if let TaskAction::Firewalld(firewalld_task) = &task.action {
                     if firewalld_task.zone.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: firewalld zone cannot be empty",
@@ -1503,15 +1556,16 @@ impl TaskRegistry {
             "ufw",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Ufw(ufw_task) = task {
-                        crate::apply::ufw::execute_ufw_task(ufw_task, executor.dry_run()).await
+                    if let TaskAction::Ufw(ufw_task) = &task.action {
+                        crate::apply::ufw::execute_ufw_task(ufw_task, executor.dry_run()).await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for ufw executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Ufw(ufw_task) = task {
+                if let TaskAction::Ufw(ufw_task) = &task.action {
                     match ufw_task.state {
                         crate::apply::ufw::UfwState::Logging => {
                             if ufw_task.logging.is_none() {
@@ -1543,19 +1597,20 @@ impl TaskRegistry {
             "selinux",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Selinux(selinux_task) = task {
+                    if let TaskAction::Selinux(selinux_task) = &task.action {
                         crate::apply::selinux::execute_selinux_task(
                             selinux_task,
                             executor.dry_run(),
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for selinux executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Selinux(selinux_task) = task {
+                if let TaskAction::Selinux(selinux_task) = &task.action {
                     match selinux_task.state {
                         crate::apply::selinux::SelinuxState::On
                         | crate::apply::selinux::SelinuxState::Off => {
@@ -1589,19 +1644,20 @@ impl TaskRegistry {
             "iptables",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Iptables(iptables_task) = task {
+                    if let TaskAction::Iptables(iptables_task) = &task.action {
                         crate::apply::iptables::execute_iptables_task(
                             iptables_task,
                             executor.dry_run(),
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for iptables executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Iptables(iptables_task) = task {
+                if let TaskAction::Iptables(iptables_task) = &task.action {
                     if iptables_task.target.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: iptables target cannot be empty",
@@ -1621,15 +1677,16 @@ impl TaskRegistry {
             "git",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Git(git_task) = task {
-                        crate::apply::git::execute_git_task(git_task, executor.dry_run()).await
+                    if let TaskAction::Git(git_task) = &task.action {
+                        crate::apply::git::execute_git_task(git_task, executor.dry_run()).await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for git executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Git(git_task) = task {
+                if let TaskAction::Git(git_task) = &task.action {
                     if git_task.repo.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: git repo cannot be empty",
@@ -1655,19 +1712,20 @@ impl TaskRegistry {
             "logrotate",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Logrotate(logrotate_task) = task {
+                    if let TaskAction::Logrotate(logrotate_task) = &task.action {
                         crate::apply::logrotate::execute_logrotate_task(
                             logrotate_task,
                             executor.dry_run(),
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for logrotate executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Logrotate(logrotate_task) = task {
+                if let TaskAction::Logrotate(logrotate_task) = &task.action {
                     if logrotate_task.name.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: logrotate name cannot be empty",
@@ -1694,19 +1752,20 @@ impl TaskRegistry {
             "rsyslog",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Rsyslog(rsyslog_task) = task {
+                    if let TaskAction::Rsyslog(rsyslog_task) = &task.action {
                         crate::apply::rsyslog::execute_rsyslog_task(
                             rsyslog_task,
                             executor.dry_run(),
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for rsyslog executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Rsyslog(rsyslog_task) = task {
+                if let TaskAction::Rsyslog(rsyslog_task) = &task.action {
                     if rsyslog_task.name.is_empty() {
                         return Err(anyhow::anyhow!(
                             "Task {}: rsyslog name cannot be empty",
@@ -1733,19 +1792,20 @@ impl TaskRegistry {
             "journald",
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
-                    if let Task::Journald(journald_task) = task {
+                    if let TaskAction::Journald(journald_task) = &task.action {
                         crate::apply::journald::execute_journald_task(
                             journald_task,
                             executor.dry_run(),
                         )
-                        .await
+                        .await?;
+                        Ok(serde_yaml::Value::Null)
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for journald executor"))
                     }
                 })
             }),
             Arc::new(|task, task_index| {
-                if let Task::Journald(journald_task) = task {
+                if let TaskAction::Journald(journald_task) = &task.action {
                     if journald_task.state == crate::apply::journald::JournaldState::Present
                         && journald_task.config.is_empty()
                     {
@@ -1766,7 +1826,7 @@ impl TaskRegistry {
         variables: &crate::apply::variables::VariableContext,
         dry_run: bool,
         config_dir: &std::path::Path,
-    ) -> Result<()> {
+    ) -> Result<serde_yaml::Value> {
         let task_type = task.task_type();
 
         let entry = {
@@ -1971,6 +2031,53 @@ pub struct ApplyConfig {
     pub tasks: Vec<Task>,
 }
 
+/// Generic task wrapper that includes common fields
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Task {
+    /// The specific task to execute
+    #[serde(flatten)]
+    pub action: TaskAction,
+
+    /// Optional variable name to register the task result in
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub register: Option<String>,
+
+    /// Optional condition to determine if the task should run
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub when: Option<String>,
+}
+
+impl Task {
+    /// Create a new task with the given action
+    #[allow(dead_code)]
+    pub fn new(action: TaskAction) -> Self {
+        Self {
+            action,
+            register: None,
+            when: None,
+        }
+    }
+
+    /// Set the register field
+    #[allow(dead_code)]
+    pub fn with_register(mut self, register: &str) -> Self {
+        self.register = Some(register.to_string());
+        self
+    }
+
+    /// Set the condition field
+    #[allow(dead_code)]
+    pub fn with_when(mut self, when: &str) -> Self {
+        self.when = Some(when.to_string());
+        self
+    }
+
+    /// Get the string representation of the task type
+    pub fn task_type(&self) -> &'static str {
+        self.action.task_type()
+    }
+}
+
 /// Types of configuration operations
 ///
 /// These operations define desired system state and are executed idempotently.
@@ -1981,7 +2088,7 @@ pub struct ApplyConfig {
 /// - **Log sources/outputs**: Handle log collection and forwarding
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
-pub enum Task {
+pub enum TaskAction {
     /// File system operations (create, modify, delete files/directories)
     File(FileTask),
     /// Software package management (install, remove, update packages)
@@ -2090,63 +2197,63 @@ pub enum Task {
     Journald(JournaldTask),
 }
 
-impl Task {
+impl TaskAction {
     /// Get the string representation of the task type
     pub fn task_type(&self) -> &'static str {
         match self {
-            Task::File(_) => "file",
-            Task::Package(_) => "package",
-            Task::Service(_) => "service",
-            Task::User(_) => "user",
-            Task::Command(_) => "command",
-            Task::Directory(_) => "directory",
-            Task::Group(_) => "group",
-            Task::Cron(_) => "cron",
-            Task::Mount(_) => "mount",
-            Task::Filesystem(_) => "filesystem",
-            Task::Sysctl(_) => "sysctl",
-            Task::Hostname(_) => "hostname",
-            Task::Timezone(_) => "timezone",
-            Task::Reboot(_) => "reboot",
-            Task::Shutdown(_) => "shutdown",
-            Task::Copy(_) => "copy",
-            Task::Template(_) => "template",
-            Task::LineInFile(_) => "lineinfile",
-            Task::BlockInFile(_) => "blockinfile",
-            Task::Replace(_) => "replace",
-            Task::Fetch(_) => "fetch",
-            Task::Uri(_) => "uri",
-            Task::GetUrl(_) => "geturl",
-            Task::Unarchive(_) => "unarchive",
-            Task::Archive(_) => "archive",
-            Task::Stat(_) => "stat",
-            Task::Apt(_) => "apt",
-            Task::Yum(_) => "yum",
-            Task::Pacman(_) => "pacman",
-            Task::Zypper(_) => "zypper",
-            Task::Pip(_) => "pip",
-            Task::Npm(_) => "npm",
-            Task::Gem(_) => "gem",
-            Task::Script(_) => "script",
-            Task::Raw(_) => "raw",
-            Task::Debug(_) => "debug",
-            Task::Assert(_) => "assert",
-            Task::Fail(_) => "fail",
-            Task::WaitFor(_) => "waitfor",
-            Task::Pause(_) => "pause",
-            Task::SetFact(_) => "setfact",
-            Task::IncludeTasks(_) => "includetasks",
-            Task::IncludeRole(_) => "includerole",
-            Task::AuthorizedKey(_) => "authorizedkey",
-            Task::Sudoers(_) => "sudoers",
-            Task::Firewalld(_) => "firewalld",
-            Task::Ufw(_) => "ufw",
-            Task::Selinux(_) => "selinux",
-            Task::Iptables(_) => "iptables",
-            Task::Git(_) => "git",
-            Task::Logrotate(_) => "logrotate",
-            Task::Rsyslog(_) => "rsyslog",
-            Task::Journald(_) => "journald",
+            TaskAction::File(_) => "file",
+            TaskAction::Package(_) => "package",
+            TaskAction::Service(_) => "service",
+            TaskAction::User(_) => "user",
+            TaskAction::Command(_) => "command",
+            TaskAction::Directory(_) => "directory",
+            TaskAction::Group(_) => "group",
+            TaskAction::Cron(_) => "cron",
+            TaskAction::Mount(_) => "mount",
+            TaskAction::Filesystem(_) => "filesystem",
+            TaskAction::Sysctl(_) => "sysctl",
+            TaskAction::Hostname(_) => "hostname",
+            TaskAction::Timezone(_) => "timezone",
+            TaskAction::Reboot(_) => "reboot",
+            TaskAction::Shutdown(_) => "shutdown",
+            TaskAction::Copy(_) => "copy",
+            TaskAction::Template(_) => "template",
+            TaskAction::LineInFile(_) => "lineinfile",
+            TaskAction::BlockInFile(_) => "blockinfile",
+            TaskAction::Replace(_) => "replace",
+            TaskAction::Fetch(_) => "fetch",
+            TaskAction::Uri(_) => "uri",
+            TaskAction::GetUrl(_) => "geturl",
+            TaskAction::Unarchive(_) => "unarchive",
+            TaskAction::Archive(_) => "archive",
+            TaskAction::Stat(_) => "stat",
+            TaskAction::Apt(_) => "apt",
+            TaskAction::Yum(_) => "yum",
+            TaskAction::Pacman(_) => "pacman",
+            TaskAction::Zypper(_) => "zypper",
+            TaskAction::Pip(_) => "pip",
+            TaskAction::Npm(_) => "npm",
+            TaskAction::Gem(_) => "gem",
+            TaskAction::Script(_) => "script",
+            TaskAction::Raw(_) => "raw",
+            TaskAction::Debug(_) => "debug",
+            TaskAction::Assert(_) => "assert",
+            TaskAction::Fail(_) => "fail",
+            TaskAction::WaitFor(_) => "waitfor",
+            TaskAction::Pause(_) => "pause",
+            TaskAction::SetFact(_) => "setfact",
+            TaskAction::IncludeTasks(_) => "includetasks",
+            TaskAction::IncludeRole(_) => "includerole",
+            TaskAction::AuthorizedKey(_) => "authorizedkey",
+            TaskAction::Sudoers(_) => "sudoers",
+            TaskAction::Firewalld(_) => "firewalld",
+            TaskAction::Ufw(_) => "ufw",
+            TaskAction::Selinux(_) => "selinux",
+            TaskAction::Iptables(_) => "iptables",
+            TaskAction::Git(_) => "git",
+            TaskAction::Logrotate(_) => "logrotate",
+            TaskAction::Rsyslog(_) => "rsyslog",
+            TaskAction::Journald(_) => "journald",
         }
     }
 
