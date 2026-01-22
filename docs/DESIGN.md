@@ -59,7 +59,23 @@
 - Plugin registry and download manager
 
 ## TODO
-- Review the usage of the template language and ensure it fully supports jinja2 with all filters, variable substitutions, and other functionality. Also ensure that all tasks using template language are using it properly.
+- Implement the following missing template filters and ensure they are compatible with the Ansible template filters of the same name and include comprehensive tests: center, indent, ljust, rjust
+	- REPEAT until all filters and functions implemented
+- The template filters and functions should follow a similar pattern to global task type registration to allow plugins to add additional template filters and functions
+- We need a documentation generator for the template filters and functions. The generator should use the global [filter and function registry] as its source for implemented filters and functions.
 - Review the codebase for usage of Rust best-practices and guidelines
 - Review the codebase for safety, security, and production-readiness
 - Ensure comprehensive test coverage
+
+### Template Filters That Need Implementing
+- String/List Manipulation: capitalize, center, indent, ljust, rjust, lstrip, rstrip, splitlines, title, truncate, wordcount, batch, first, last, join, reverse, sort, unique.
+- Math/Logic: abs, round, random, bool, ternary.
+- Dict/List Operations: combine, dict2items, items2dict, flatten, map, select, reject, zip.
+- Encoding/Decoding: b64encode, b64decode, to_json, from_json, to_yaml, from_yaml.
+- Path/Filesystem: expanduser, realpath (beyond the current basename/dirname).
+- Other: default (already supported via minijinja), mandatory, regex_replace, regex_search, regex_findall.
+
+### Template Functions That Need Implementing
+- Generators: range, random.
+- Utilities: hash, uuid, timestamp.
+- Ansible-Specific: lookup (for plugins like env, file, etc., though a basic lookup is partially implemented; full plugin support would require extension).
