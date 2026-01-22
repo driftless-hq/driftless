@@ -1,0 +1,63 @@
+# Rust build artifacts
+target/
+Cargo.lock
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+tmp/
+
+# Configuration files that may contain sensitive data
+config.local.*
+secrets.*
+*.key
+*.pem
+*.crt
+*.p12
+*.pfx
+
+# Test coverage and profiling
+*.profraw
+coverage/
+
+# Backup files
+*.bak
+*.backup
+*.orig
+
+# Build artifacts from various tools
+build/
+dist/
+*.deb
+*.rpm
+*.pkg
+
+# Development environment files
+.env
+.env.local
+.env.*.local
+
+# Cache directories
+.cache/
+.cargo/registry/
+.cargo/git/
