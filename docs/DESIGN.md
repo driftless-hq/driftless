@@ -59,7 +59,6 @@
 - Plugin registry and download manager
 
 ## TODO
-- Implement missing string filters such as comment, format, indent, ljust, rjust, lstrip, rstrip, strip, title, wordwrap, and wordcount. Ensure compatibility with Ansible and comprehensive documentation and tests.
 - Implement missing list/dict filters such as dictsort and slice. Ensure compatibility with Ansible and comprehensive documentation and tests.
 - Implement missing math/logic filters such as float, int, log, pow, sqrt, and range. Ensure compatibility with Ansible and comprehensive documentation and tests.
 - Implement missing encoding/other filters such as mandatory, regex_escape, regex_findall, regex_replace, regex_search, to_nice_json, to_nice_yaml, urlencode, and urldecode. Ensure compatibility with Ansible and comprehensive documentation and tests.

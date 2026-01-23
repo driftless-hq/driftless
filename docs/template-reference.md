@@ -395,6 +395,32 @@ Center a string in a field of given width
 ```jinja2
 {{ value | center(width, fillchar) }}
 ```
+#### `comment`
+
+Wrap a string in comment markers
+
+**Arguments**:
+
+- `style` (string): Comment style (optional, default: #)
+
+**Usage**:
+
+```jinja2
+{{ value | comment(style) }}
+```
+#### `format`
+
+Format a string with placeholders
+
+**Arguments**:
+
+- `args` (variadic): Arguments to format into the string
+
+**Usage**:
+
+```jinja2
+{{ value | format(args) }}
+```
 #### `indent`
 
 Indent each line of a string
@@ -477,6 +503,16 @@ Split a string into a list of lines
 {{ value | splitlines }}
 ```
 
+#### `strip`
+
+Remove leading and trailing whitespace from a string
+
+**Usage**:
+
+```jinja2
+{{ value | strip }}
+```
+
 #### `title`
 
 Convert a string to title case
@@ -524,6 +560,19 @@ Count the number of words in a string
 {{ value | wordcount }}
 ```
 
+#### `wordwrap`
+
+Wrap a string to a specified width
+
+**Arguments**:
+
+- `width` (integer): Maximum width of each line (optional, default: 79)
+
+**Usage**:
+
+```jinja2
+{{ value | wordwrap(width) }}
+```
 ### String/List Operations
 
 #### `length`
@@ -579,8 +628,8 @@ Look up values from various sources (env, file, etc.)
 
 **Arguments**:
 
-- `type` (string): The lookup type (currently only 'env' is supported)
-- `key` (string): The key to look up
+- `type` (string): The lookup type (env, file, template, pipe)
+- `key` (string): The key/path/command to look up
 
 **Usage**:
 
@@ -620,6 +669,20 @@ Return the directory name of a path
 ```
 ### Utility Functions
 
+#### `hash`
+
+Return the hash of a string using the specified algorithm
+
+**Arguments**:
+
+- `value` (string): The string to hash
+- `algorithm` (string): The hash algorithm (md5, sha1, sha256, sha384, sha512)
+
+**Usage**:
+
+```jinja2
+{{ hash(value, algorithm) }}
+```
 #### `length`
 
 Return the length of a string, array, or object
@@ -635,6 +698,29 @@ Return the length of a string, array, or object
 {{ length(items) }}
 {{ length(my_object) }}
 ```
+#### `timestamp`
+
+Return the current timestamp
+
+**Arguments**:
+
+- `format` (string): Optional strftime format string (default: ISO 8601)
+
+**Usage**:
+
+```jinja2
+{{ timestamp(format) }}
+```
+#### `uuid`
+
+Generate a random UUID4
+
+**Usage**:
+
+```jinja2
+{{ uuid() }}
+```
+
 ## Examples
 
 ```yaml

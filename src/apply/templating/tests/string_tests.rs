@@ -326,6 +326,35 @@ mod tests {
     }
 
     #[test]
+    fn test_strip_filter() {
+        let env = create_test_env();
+
+        // Test basic strip
+        let template = env
+            .template_from_str("{{ '  hello world  ' | strip }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "hello world");
+
+        // Test strip with no whitespace
+        let template = env
+            .template_from_str("{{ 'hello world' | strip }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "hello world");
+
+        // Test strip with only whitespace
+        let template = env.template_from_str("{{ '   ' | strip }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "");
+
+        // Test strip with empty string
+        let template = env.template_from_str("{{ '' | strip }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "");
+    }
+
+    #[test]
     fn test_title_filter() {
         let env = create_test_env();
 
@@ -424,6 +453,107 @@ mod tests {
         let template = env.template_from_str("{{ 'hello' | wordcount }}").unwrap();
         let result = template.render(minijinja::context!()).unwrap();
         assert_eq!(result, "1");
+    }
+
+    #[test]
+    fn test_comment_filter() {
+        let env = create_test_env();
+
+        // Test basic comment
+        let template = env
+            .template_from_str("{{ 'hello world' | comment }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "# hello world");
+
+        // Test comment with custom style
+        let template = env
+            .template_from_str("{{ 'hello world' | comment('//') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "// hello world");
+
+        // Test comment with multiline
+        let template = env
+            .template_from_str("{{ 'hello\nworld' | comment }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "# hello\n# world");
+
+        // Test comment with empty string
+        let template = env.template_from_str("{{ '' | comment }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "# ");
+    }
+
+    #[test]
+    fn test_format_filter() {
+        let env = create_test_env();
+
+        // Test basic format
+        let template = env
+            .template_from_str("{{ 'Hello {}' | format('world') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "Hello world");
+
+        // Test format with multiple placeholders
+        let template = env
+            .template_from_str("{{ '{} {}' | format('hello', 'world') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "hello world");
+
+        // Test format with no placeholders
+        let template = env
+            .template_from_str("{{ 'hello world' | format }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "hello world");
+
+        // Test format with more args than placeholders
+        let template = env
+            .template_from_str("{{ 'Hello {}' | format('world', 'extra') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "Hello world");
+    }
+
+    #[test]
+    fn test_wordwrap_filter() {
+        let env = create_test_env();
+
+        // Test basic wordwrap
+        let template = env
+            .template_from_str("{{ 'hello world test' | wordwrap(10) }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "hello\nworld test");
+
+        // Test wordwrap with default width
+        let template = env
+            .template_from_str(
+                "{{ 'This is a long sentence that should wrap at the default width.' | wordwrap }}",
+            )
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        // Since default is 79, it should not wrap this short text
+        assert_eq!(
+            result,
+            "This is a long sentence that should wrap at the default width."
+        );
+
+        // Test wordwrap with short width
+        let template = env
+            .template_from_str("{{ 'hello world' | wordwrap(5) }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "hello\nworld");
+
+        // Test wordwrap with empty string
+        let template = env.template_from_str("{{ '' | wordwrap(10) }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "");
     }
 
     #[test]

@@ -327,6 +327,15 @@ pub fn register_string_filters(
         Arc::new(|value, _args| JinjaValue::from(value.as_str().unwrap_or("").trim_end())),
     );
 
+    TemplateRegistry::register_filter(
+        registry,
+        "strip",
+        "Remove leading and trailing whitespace from a string",
+        "String Operations",
+        vec![],
+        Arc::new(|value, _args| JinjaValue::from(value.as_str().unwrap_or("").trim())),
+    );
+
     // String transformation filters
     TemplateRegistry::register_filter(
         registry,
@@ -378,6 +387,94 @@ pub fn register_string_filters(
             let s = value.as_str().unwrap_or("");
             let count = s.split_whitespace().filter(|word| !word.is_empty()).count() as i64;
             JinjaValue::from(count)
+        }),
+    );
+
+    TemplateRegistry::register_filter(
+        registry,
+        "comment",
+        "Wrap a string in comment markers",
+        "String Operations",
+        vec![(
+            "style".to_string(),
+            "string: Comment style (optional, default: #)".to_string(),
+        )],
+        Arc::new(|value, args| {
+            let s = value.as_str().unwrap_or("");
+            let style = args.first().and_then(|v| v.as_str()).unwrap_or("#");
+            let lines: Vec<&str> = s.lines().collect();
+            if lines.is_empty() {
+                JinjaValue::from(format!("{} ", style))
+            } else {
+                let commented: Vec<String> = lines
+                    .iter()
+                    .map(|line| format!("{} {}", style, line))
+                    .collect();
+                JinjaValue::from(commented.join("\n"))
+            }
+        }),
+    );
+
+    TemplateRegistry::register_filter(
+        registry,
+        "format",
+        "Format a string with placeholders",
+        "String Operations",
+        vec![(
+            "args".to_string(),
+            "variadic: Arguments to format into the string".to_string(),
+        )],
+        Arc::new(|value, args| {
+            let template = value.as_str().unwrap_or("");
+            // Simple implementation: replace {} with args in order
+            let mut result = template.to_string();
+            for arg in args {
+                if let Some(arg_str) = arg.as_str() {
+                    if let Some(pos) = result.find("{}") {
+                        result.replace_range(pos..pos + 2, arg_str);
+                    }
+                }
+            }
+            JinjaValue::from(result)
+        }),
+    );
+
+    TemplateRegistry::register_filter(
+        registry,
+        "wordwrap",
+        "Wrap a string to a specified width",
+        "String Operations",
+        vec![(
+            "width".to_string(),
+            "integer: Maximum width of each line (optional, default: 79)".to_string(),
+        )],
+        Arc::new(|value, args| {
+            let s = value.as_str().unwrap_or("");
+            let width = args.first().and_then(|v| v.as_i64()).unwrap_or(79) as usize;
+            let mut result = String::new();
+            let mut current_line = String::new();
+
+            for word in s.split_whitespace() {
+                if current_line.is_empty() {
+                    current_line = word.to_string();
+                } else if current_line.len() + word.len() < width {
+                    current_line.push(' ');
+                    current_line.push_str(word);
+                } else {
+                    if !result.is_empty() {
+                        result.push('\n');
+                    }
+                    result.push_str(&current_line);
+                    current_line = word.to_string();
+                }
+            }
+            if !current_line.is_empty() {
+                if !result.is_empty() {
+                    result.push('\n');
+                }
+                result.push_str(&current_line);
+            }
+            JinjaValue::from(result)
         }),
     );
 
