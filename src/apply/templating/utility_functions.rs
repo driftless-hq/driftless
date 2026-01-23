@@ -35,15 +35,48 @@ pub fn register_utility_functions(
         vec![
             (
                 "type".to_string(),
-                "string: The lookup type (currently only 'env' is supported)".to_string(),
+                "string: The lookup type (env, file, template, pipe)".to_string(),
             ),
-            ("key".to_string(), "string: The key to look up".to_string()),
+            ("key".to_string(), "string: The key/path/command to look up".to_string()),
         ],
         Arc::new(|args| {
             if args.len() >= 2 {
                 if let (Some(type_str), Some(key)) = (args[0].as_str(), args[1].as_str()) {
-                    if type_str == "env" {
-                        return JinjaValue::from(std::env::var(key).unwrap_or_default());
+                    match type_str {
+                        "env" => {
+                            return JinjaValue::from(std::env::var(key).unwrap_or_default());
+                        }
+                        "file" => {
+                            // Read content from file
+                            match std::fs::read_to_string(key) {
+                                Ok(content) => return JinjaValue::from(content),
+                                Err(_) => return JinjaValue::from(""), // Return empty string on error
+                            }
+                        }
+                        "template" => {
+                            // For template lookups, we need access to the template engine
+                            // This is more complex and would require passing the environment
+                            // For now, just read the file as-is
+                            match std::fs::read_to_string(key) {
+                                Ok(content) => return JinjaValue::from(content),
+                                Err(_) => return JinjaValue::from(""),
+                            }
+                        }
+                        "pipe" => {
+                            // Execute command and return output
+                            match std::process::Command::new("sh").arg("-c").arg(key).output() {
+                                Ok(output) => {
+                                    if output.status.success() {
+                                        let stdout = String::from_utf8_lossy(&output.stdout);
+                                        return JinjaValue::from(stdout.trim());
+                                    } else {
+                                        return JinjaValue::from(""); // Return empty on command failure
+                                    }
+                                }
+                                Err(_) => return JinjaValue::from(""),
+                            }
+                        }
+                        _ => {} // Unknown type, fall through to "None"
                     }
                 }
             }

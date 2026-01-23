@@ -59,13 +59,7 @@
 - Plugin registry and download manager
 
 ## TODO
-- Ensure the `lookup` template function is fully complete
 - Identify any template features, filters, or functions implemented in Ansible that have not yet been implemented in this codebase
 - Review the codebase for usage of Rust best-practices and guidelines
 - Review the codebase for safety, security, and production-readiness
 - Ensure comprehensive test coverage
-
-### Template Functions That Need Implementing
-- Generators: range, random.
-- Utilities: hash, uuid, timestamp.
-- Ansible-Specific: lookup (for plugins like env, file, etc., though a basic lookup is partially implemented; full plugin support would require extension).

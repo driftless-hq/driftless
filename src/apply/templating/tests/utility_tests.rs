@@ -60,6 +60,54 @@ mod tests {
     }
 
     #[test]
+    fn test_lookup_function_file() {
+        let env = create_test_env();
+
+        // Create a temporary file for testing
+        let temp_file = tempfile::NamedTempFile::new().unwrap();
+        let file_path = temp_file.path().to_str().unwrap();
+        std::fs::write(file_path, "test content").unwrap();
+
+        let template_str = format!("{{{{ lookup('file', '{}') }}}}", file_path);
+        let template = env.template_from_str(&template_str).unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "test content");
+    }
+
+    #[test]
+    fn test_lookup_function_file_nonexistent() {
+        let env = create_test_env();
+
+        let template = env
+            .template_from_str("{{ lookup('file', '/nonexistent/file') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "");
+    }
+
+    #[test]
+    fn test_lookup_function_pipe() {
+        let env = create_test_env();
+
+        let template = env
+            .template_from_str("{{ lookup('pipe', 'echo hello world') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "hello world");
+    }
+
+    #[test]
+    fn test_lookup_function_pipe_failure() {
+        let env = create_test_env();
+
+        let template = env
+            .template_from_str("{{ lookup('pipe', 'false') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "");
+    }
+
+    #[test]
     fn test_hash_function_md5() {
         let env = create_test_env();
 
