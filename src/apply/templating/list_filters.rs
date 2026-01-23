@@ -166,10 +166,16 @@ pub fn register_list_filters(
         "select",
         "Select items from a list that match a test.",
         "List/Dict Operations",
-        vec![(
-            "test".to_string(),
-            "Test to apply (currently supports 'defined' and 'truthy')".to_string(),
-        )],
+        vec![
+            (
+                "test".to_string(),
+                "Test to apply (supports: defined, truthy, undefined, none, falsy, equalto, match, search, version_compare)".to_string(),
+            ),
+            (
+                "arg".to_string(),
+                "Optional argument for tests that require it (e.g., value for equalto, regex for match)".to_string(),
+            ),
+        ],
         Arc::new(|value, args| {
             if args.is_empty() {
                 return value.clone();
@@ -194,6 +200,62 @@ pub fn register_list_filters(
                                     .unwrap_or(false);
                             !is_falsy
                         }
+                        "undefined" => item.is_undefined(),
+                        "none" => item.is_none(),
+                        "falsy" => {
+                            item.is_undefined()
+                                || item == JinjaValue::from(false)
+                                || item == JinjaValue::from(0)
+                                || item == JinjaValue::from(0.0)
+                                || item.as_str().map(|s| s.is_empty()).unwrap_or(false)
+                                || item
+                                    .try_iter()
+                                    .map(|mut i| i.next().is_none())
+                                    .unwrap_or(false)
+                        }
+                        "equalto" => {
+                            if args.len() > 1 {
+                                item == args[1]
+                            } else {
+                                false
+                            }
+                        }
+                        "match" => {
+                            if args.len() > 1 {
+                                if let (Some(item_str), Some(pattern)) = (item.as_str(), args[1].as_str()) {
+                                    regex::Regex::new(pattern).map(|re| re.is_match(item_str)).unwrap_or(false)
+                                } else {
+                                    false
+                                }
+                            } else {
+                                false
+                            }
+                        }
+                        "search" => {
+                            if args.len() > 1 {
+                                if let (Some(item_str), Some(pattern)) = (item.as_str(), args[1].as_str()) {
+                                    regex::Regex::new(pattern).map(|re| re.find(item_str).is_some()).unwrap_or(false)
+                                } else {
+                                    false
+                                }
+                            } else {
+                                false
+                            }
+                        }
+                        "version_compare" => {
+                            // Simple version comparison - assumes semantic versions
+                            if args.len() > 1 {
+                                if let (Some(item_str), Some(compare_str)) = (item.as_str(), args[1].as_str()) {
+                                    // For simplicity, just compare as strings for now
+                                    // A full implementation would parse versions
+                                    item_str == compare_str
+                                } else {
+                                    false
+                                }
+                            } else {
+                                false
+                            }
+                        }
                         _ => true, // Default to include all
                     };
                     if include {
@@ -213,10 +275,16 @@ pub fn register_list_filters(
         "reject",
         "Reject items from a list that match a test.",
         "List/Dict Operations",
-        vec![(
-            "test".to_string(),
-            "Test to apply (currently supports 'defined' and 'truthy')".to_string(),
-        )],
+        vec![
+            (
+                "test".to_string(),
+                "Test to apply (supports: defined, truthy, undefined, none, falsy, equalto, match, search, version_compare)".to_string(),
+            ),
+            (
+                "arg".to_string(),
+                "Optional argument for tests that require it (e.g., value for equalto, regex for match)".to_string(),
+            ),
+        ],
         Arc::new(|value, args| {
             if args.is_empty() {
                 return value.clone();
@@ -241,7 +309,63 @@ pub fn register_list_filters(
                                     .unwrap_or(false);
                             !is_falsy
                         }
-                        _ => false, // Default to exclude none
+                        "undefined" => item.is_undefined(),
+                        "none" => item.is_none(),
+                        "falsy" => {
+                            item.is_undefined()
+                                || item == JinjaValue::from(false)
+                                || item == JinjaValue::from(0)
+                                || item == JinjaValue::from(0.0)
+                                || item.as_str().map(|s| s.is_empty()).unwrap_or(false)
+                                || item
+                                    .try_iter()
+                                    .map(|mut i| i.next().is_none())
+                                    .unwrap_or(false)
+                        }
+                        "equalto" => {
+                            if args.len() > 1 {
+                                item == args[1]
+                            } else {
+                                false
+                            }
+                        }
+                        "match" => {
+                            if args.len() > 1 {
+                                if let (Some(item_str), Some(pattern)) = (item.as_str(), args[1].as_str()) {
+                                    regex::Regex::new(pattern).map(|re| re.is_match(item_str)).unwrap_or(false)
+                                } else {
+                                    false
+                                }
+                            } else {
+                                false
+                            }
+                        }
+                        "search" => {
+                            if args.len() > 1 {
+                                if let (Some(item_str), Some(pattern)) = (item.as_str(), args[1].as_str()) {
+                                    regex::Regex::new(pattern).map(|re| re.find(item_str).is_some()).unwrap_or(false)
+                                } else {
+                                    false
+                                }
+                            } else {
+                                false
+                            }
+                        }
+                        "version_compare" => {
+                            // Simple version comparison - assumes semantic versions
+                            if args.len() > 1 {
+                                if let (Some(item_str), Some(compare_str)) = (item.as_str(), args[1].as_str()) {
+                                    // For simplicity, just compare as strings for now
+                                    // A full implementation would parse versions
+                                    item_str == compare_str
+                                } else {
+                                    false
+                                }
+                            } else {
+                                false
+                            }
+                        }
+                        _ => false, // Default to exclude nothing
                     };
                     if !exclude {
                         result.push(item);

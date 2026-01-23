@@ -119,6 +119,55 @@ mod tests {
             .unwrap();
         let result = template.render(minijinja::context!()).unwrap();
         assert_eq!(result, "[1, 2]");
+
+        // Test select with undefined
+        let template = env
+            .template_from_str("{{ [None, 1, None, 2] | select('undefined') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "[]");
+
+        // Test select with none
+        let template = env
+            .template_from_str("{{ [None, 1, None, 2] | select('none') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "[none, none]");
+
+        // Test select with falsy
+        let template = env
+            .template_from_str("{{ [0, 1, false, true, '', 'hello'] | select('falsy') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "[0, false, \"\"]");
+
+        // Test select with equalto
+        let template = env
+            .template_from_str("{{ [1, 2, 3, 2, 1] | select('equalto', 2) }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "[2, 2]");
+
+        // Test select with match
+        let template = env
+            .template_from_str("{{ ['abc', 'def', 'ghi'] | select('match', '^a') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "[\"abc\"]");
+
+        // Test select with search
+        let template = env
+            .template_from_str("{{ ['abc', 'def', 'ghi'] | select('search', 'e') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "[\"def\"]");
+
+        // Test select with version_compare
+        let template = env
+            .template_from_str("{{ ['1.0.0', '1.1.0', '2.0.0'] | select('version_compare', '1.1.0') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "[\"1.1.0\"]");
     }
 
     #[test]
@@ -138,6 +187,55 @@ mod tests {
             .unwrap();
         let result = template.render(minijinja::context!()).unwrap();
         assert_eq!(result, "[none, none]");
+
+        // Test reject with undefined
+        let template = env
+            .template_from_str("{{ [None, 1, None, 2] | reject('undefined') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "[none, 1, none, 2]");
+
+        // Test reject with none
+        let template = env
+            .template_from_str("{{ [None, 1, None, 2] | reject('none') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "[1, 2]");
+
+        // Test reject with falsy
+        let template = env
+            .template_from_str("{{ [0, 1, false, true, '', 'hello'] | reject('falsy') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "[1, true, \"hello\"]");
+
+        // Test reject with equalto
+        let template = env
+            .template_from_str("{{ [1, 2, 3, 2, 1] | reject('equalto', 2) }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "[1, 3, 1]");
+
+        // Test reject with match
+        let template = env
+            .template_from_str("{{ ['abc', 'def', 'ghi'] | reject('match', '^a') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "[\"def\", \"ghi\"]");
+
+        // Test reject with search
+        let template = env
+            .template_from_str("{{ ['abc', 'def', 'ghi'] | reject('search', 'e') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "[\"abc\", \"ghi\"]");
+
+        // Test reject with version_compare
+        let template = env
+            .template_from_str("{{ ['1.0.0', '1.1.0', '2.0.0'] | reject('version_compare', '1.1.0') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "[\"1.0.0\", \"2.0.0\"]");
     }
 
     #[test]

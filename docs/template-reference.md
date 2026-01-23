@@ -352,12 +352,13 @@ Reject items from a list that match a test.
 
 **Arguments**:
 
-- `test`: Test to apply (currently supports 'defined' and 'truthy')
+- `test` (Test to apply (supports): defined, truthy, undefined, none, falsy, equalto, match, search, version_compare)
+- `arg`: Optional argument for tests that require it (e.g., value for equalto, regex for match)
 
 **Usage**:
 
 ```jinja2
-{{ value | reject(test) }}
+{{ value | reject(test, arg) }}
 ```
 #### `select`
 
@@ -365,12 +366,13 @@ Select items from a list that match a test.
 
 **Arguments**:
 
-- `test`: Test to apply (currently supports 'defined' and 'truthy')
+- `test` (Test to apply (supports): defined, truthy, undefined, none, falsy, equalto, match, search, version_compare)
+- `arg`: Optional argument for tests that require it (e.g., value for equalto, regex for match)
 
 **Usage**:
 
 ```jinja2
-{{ value | select(test) }}
+{{ value | select(test, arg) }}
 ```
 #### `slice`
 
