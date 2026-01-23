@@ -59,7 +59,6 @@
 - Plugin registry and download manager
 
 ## TODO
-- Implement the following encoding/decoding template filters in a new file and ensure they are compatible with the Ansible template filters of the same name and include comprehensive tests and documentation: b64encode, b64decode, to_json, from_json, to_yaml, from_yaml
 - Implement the following path/filesystem template filters in a new file and ensure they are compatible with the Ansible template filters of the same name and include comprehensive tests and documentation: expanduser, realpath (beyond the current basename/dirname)
 - Implement the following generator template functions in a new file and ensure they are compatible with the Ansible template functions of the same name and include comprehensive tests and documentation: range, random
 - Implement the following utility template functions in a new file and ensure they are compatible with the Ansible template functions of the same name and include comprehensive tests and documentation: hash, uuid, timestamp

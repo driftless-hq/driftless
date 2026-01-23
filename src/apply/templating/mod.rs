@@ -1,5 +1,6 @@
 //! Shared templating utilities for minijinja setup and rendering
 
+pub mod encoding_filters;
 pub mod list_filters;
 pub mod math_filters;
 pub mod path_operations;
@@ -102,6 +103,7 @@ impl TemplateRegistry {
     pub fn initialize_builtin_filters(registry: &mut HashMap<String, TemplateFilterEntry>) {
         string_filters::register_string_filters(registry);
         list_filters::register_list_filters(registry);
+        encoding_filters::register_encoding_filters(registry);
         math_filters::register_math_filters(registry);
         path_operations::register_path_filters(registry);
     }
