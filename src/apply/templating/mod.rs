@@ -19,18 +19,22 @@ type TemplateFunctionFn = Arc<dyn Fn(&[JinjaValue]) -> JinjaValue + Send + Sync>
 // Template filter registry entry
 #[derive(Clone)]
 pub struct TemplateFilterEntry {
+    #[allow(unused)]
     pub name: String,
     pub description: String,
     pub category: String,
+    pub arguments: Vec<String>,
     pub filter_fn: TemplateFilterFn,
 }
 
 // Template function registry entry
 #[derive(Clone)]
 pub struct TemplateFunctionEntry {
+    #[allow(unused)]
     pub name: String,
     pub description: String,
     pub category: String,
+    pub arguments: Vec<String>,
     pub function_fn: TemplateFunctionFn,
 }
 
@@ -60,12 +64,14 @@ impl TemplateRegistry {
         name: &str,
         description: &str,
         category: &str,
+        arguments: Vec<String>,
         filter_fn: TemplateFilterFn,
     ) {
         let entry = TemplateFilterEntry {
             name: name.to_string(),
             description: description.to_string(),
             category: category.to_string(),
+            arguments,
             filter_fn,
         };
         registry.insert(name.to_string(), entry);
@@ -77,12 +83,14 @@ impl TemplateRegistry {
         name: &str,
         description: &str,
         category: &str,
+        arguments: Vec<String>,
         function_fn: TemplateFunctionFn,
     ) {
         let entry = TemplateFunctionEntry {
             name: name.to_string(),
             description: description.to_string(),
             category: category.to_string(),
+            arguments,
             function_fn,
         };
         registry.insert(name.to_string(), entry);
@@ -130,22 +138,51 @@ impl TemplateRegistry {
         registry.get(name).map(|e| e.category.clone())
     }
 
+    /// Get function category
+    pub fn get_function_category(name: &str) -> Option<String> {
+        let registry = TEMPLATE_FUNCTION_REGISTRY.read().unwrap();
+        registry.get(name).map(|e| e.category.clone())
+    }
+
+    /// Get filter arguments
+    pub fn get_filter_arguments(name: &str) -> Option<Vec<String>> {
+        let registry = TEMPLATE_FILTER_REGISTRY.read().unwrap();
+        registry.get(name).map(|e| e.arguments.clone())
+    }
+
+    /// Get function arguments
+    pub fn get_function_arguments(name: &str) -> Option<Vec<String>> {
+        let registry = TEMPLATE_FUNCTION_REGISTRY.read().unwrap();
+        registry.get(name).map(|e| e.arguments.clone())
+    }
+
     /// Register a new filter at runtime
+    #[allow(unused)]
     pub fn register_filter_runtime(
         name: &str,
         description: &str,
         category: &str,
+        arguments: Vec<String>,
         filter_fn: TemplateFilterFn,
     ) {
         let mut registry = TEMPLATE_FILTER_REGISTRY.write().unwrap();
-        TemplateRegistry::register_filter(&mut registry, name, description, category, filter_fn);
+        TemplateRegistry::register_filter(
+            &mut registry,
+            name,
+            description,
+            category,
+            arguments,
+            filter_fn,
+        );
     }
 
     /// Register a new function at runtime
+    #[allow(unused)]
     pub fn register_function_runtime(
         name: &str,
         description: &str,
         category: &str,
+        arguments: Vec<String>,
         function_fn: TemplateFunctionFn,
     ) {
         let mut registry = TEMPLATE_FUNCTION_REGISTRY.write().unwrap();
@@ -154,6 +191,7 @@ impl TemplateRegistry {
             name,
             description,
             category,
+            arguments,
             function_fn,
         );
     }

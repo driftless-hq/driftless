@@ -477,7 +477,9 @@ fn generate_task_schema() -> serde_json::Map<String, serde_json::Value> {
     );
     register_schema.insert(
         "description".to_string(),
-        serde_json::Value::String("Optional variable name to register the task result in".to_string()),
+        serde_json::Value::String(
+            "Optional variable name to register the task result in".to_string(),
+        ),
     );
     properties.insert(
         "register".to_string(),
@@ -491,12 +493,11 @@ fn generate_task_schema() -> serde_json::Map<String, serde_json::Value> {
     );
     when_schema.insert(
         "description".to_string(),
-        serde_json::Value::String("Optional condition to determine if the task should run".to_string()),
+        serde_json::Value::String(
+            "Optional condition to determine if the task should run".to_string(),
+        ),
     );
-    properties.insert(
-        "when".to_string(),
-        serde_json::Value::Object(when_schema),
-    );
+    properties.insert("when".to_string(), serde_json::Value::Object(when_schema));
 
     // Task type discriminator
     let mut type_schema = serde_json::Map::new();
@@ -583,6 +584,224 @@ fn generate_logs_section(
     section.push_str("- **s3**: Store in Amazon S3\n");
     section.push_str("- **elasticsearch**: Send to Elasticsearch\n");
     section.push_str("- **syslog**: Forward to syslog\n\n");
+
+    Ok(section)
+}
+
+/// Generate documentation for template filters and functions
+pub fn generate_template_documentation() -> Result<String> {
+    let mut docs = String::from("# Driftless Template Reference\n\n");
+    docs.push_str("Comprehensive reference for all available Jinja2 template filters and functions in Driftless.\n\n");
+    docs.push_str("This documentation is auto-generated from the Rust source code.\n\n");
+
+    docs.push_str("## Overview\n\n");
+    docs.push_str("Driftless uses Jinja2 templating for dynamic configuration values. ");
+    docs.push_str("Templates support both filters (applied with `|` syntax) and functions (called directly).\n\n");
+
+    docs.push_str("### Template Syntax\n\n");
+    docs.push_str("```jinja2\n");
+    docs.push_str("{{ variable | filter_name(arg1, arg2) }}\n");
+    docs.push_str("{{ function_name(arg1, arg2) }}\n");
+    docs.push_str("```\n\n");
+
+    // Generate filters section
+    docs.push_str(&generate_filters_section()?);
+    docs.push_str(&generate_functions_section()?);
+
+    docs.push_str("## Examples\n\n");
+    docs.push_str("```yaml\n");
+    docs.push_str("# Using filters\n");
+    docs.push_str("path: \"/home/{{ username | lower }}\"\n");
+    docs.push_str("config: \"{{ app_name | upper }}.conf\"\n");
+    docs.push_str("truncated: \"{{ long_text | truncate(50) }}\"\n\n");
+    docs.push_str("# Using functions\n");
+    docs.push_str("length: \"{{ length(items) }}\"\n");
+    docs.push_str("basename: \"{{ basename('/path/to/file.txt') }}\"\n");
+    docs.push_str("env_var: \"{{ lookup('env', 'HOME') }}\"\n");
+    docs.push_str("```\n\n");
+
+    Ok(docs)
+}
+
+/// Generate documentation for template filters
+fn generate_filters_section() -> Result<String> {
+    let mut section = String::from("## Template Filters\n\n");
+    section.push_str("Filters transform values in templates using the `|` syntax.\n\n");
+
+    // Get all registered filters from the registry
+    let registered_filters = crate::apply::templating::TemplateRegistry::get_registered_filters();
+
+    // Group filters by category
+    let mut categories = std::collections::HashMap::new();
+
+    for filter_name in &registered_filters {
+        let category = crate::apply::templating::TemplateRegistry::get_filter_category(filter_name)
+            .unwrap_or_else(|| "Uncategorized".to_string());
+        categories
+            .entry(category)
+            .or_insert_with(Vec::new)
+            .push(filter_name.clone());
+    }
+
+    // Sort categories and filters within categories
+    let mut sorted_categories: Vec<_> = categories.into_iter().collect();
+    sorted_categories.sort_by(|a, b| a.0.cmp(&b.0));
+
+    for (category_name, mut filter_names) in sorted_categories {
+        filter_names.sort();
+        section.push_str(&format!("### {}\n\n", category_name));
+
+        for filter_name in filter_names {
+            if let Some(description) =
+                crate::apply::templating::TemplateRegistry::get_filter_description(&filter_name)
+            {
+                section.push_str(&format!("#### `{}`\n\n", filter_name));
+                section.push_str(&format!("{}\n\n", description));
+
+                // Add arguments if available
+                if let Some(arguments) =
+                    crate::apply::templating::TemplateRegistry::get_filter_arguments(&filter_name)
+                {
+                    if !arguments.is_empty() {
+                        section.push_str("**Arguments**:\n\n");
+                        for arg in &arguments {
+                            section.push_str(&format!("- `{}`\n", arg));
+                        }
+                        section.push('\n');
+                    }
+                }
+
+                // Add usage example
+                section.push_str("**Usage**:\n\n");
+                if let Some(arguments) =
+                    crate::apply::templating::TemplateRegistry::get_filter_arguments(&filter_name)
+                {
+                    if arguments.is_empty() {
+                        section.push_str(&format!(
+                            "```jinja2\n{{{{ value | {} }}}}\n```\n\n",
+                            filter_name
+                        ));
+                    } else {
+                        // Generate example with actual values for known filters
+                        let example_usage = match filter_name.as_str() {
+                            "truncate" => "```jinja2\n{{ value | truncate(50) }}\n{{ value | truncate(20, \"...\") }}\n{{ value | truncate(30, true, \"[truncated]\") }}\n```".to_string(),
+                            _ => {
+                                // For other filters, use parameter names
+                                let param_names: Vec<&str> = arguments
+                                    .iter()
+                                    .map(|arg| arg.split(':').next().unwrap_or(arg))
+                                    .collect();
+                                format!("```jinja2\n{{{{ value | {}({}) }}}}\n```", filter_name, param_names.join(", "))
+                            }
+                        };
+                        section.push_str(&example_usage);
+                        section.push('\n');
+                    }
+                } else {
+                    section.push_str(&format!(
+                        "```jinja2\n{{{{ value | {} }}}}\n```\n\n",
+                        filter_name
+                    ));
+                }
+            }
+        }
+    }
+
+    Ok(section)
+}
+
+/// Generate documentation for template functions
+fn generate_functions_section() -> Result<String> {
+    let mut section = String::from("## Template Functions\n\n");
+    section.push_str("Functions perform operations and return values in templates.\n\n");
+
+    // Get all registered functions from the registry
+    let registered_functions =
+        crate::apply::templating::TemplateRegistry::get_registered_functions();
+
+    // Group functions by category
+    let mut categories = std::collections::HashMap::new();
+
+    for function_name in &registered_functions {
+        let category =
+            crate::apply::templating::TemplateRegistry::get_function_category(function_name)
+                .unwrap_or_else(|| "Uncategorized".to_string());
+        categories
+            .entry(category)
+            .or_insert_with(Vec::new)
+            .push(function_name.clone());
+    }
+
+    // Sort categories and functions within categories
+    let mut sorted_categories: Vec<_> = categories.into_iter().collect();
+    sorted_categories.sort_by(|a, b| a.0.cmp(&b.0));
+
+    for (category_name, mut function_names) in sorted_categories {
+        function_names.sort();
+        section.push_str(&format!("### {}\n\n", category_name));
+
+        for function_name in &function_names {
+            if let Some(description) =
+                crate::apply::templating::TemplateRegistry::get_function_description(function_name)
+            {
+                section.push_str(&format!("#### `{}`\n\n", function_name));
+                section.push_str(&format!("{}\n\n", description));
+
+                // Add arguments if available
+                if let Some(arguments) =
+                    crate::apply::templating::TemplateRegistry::get_function_arguments(
+                        function_name,
+                    )
+                {
+                    if !arguments.is_empty() {
+                        section.push_str("**Arguments**:\n\n");
+                        for arg in &arguments {
+                            section.push_str(&format!("- `{}`\n", arg));
+                        }
+                        section.push('\n');
+                    }
+                }
+
+                // Add usage example
+                section.push_str("**Usage**:\n\n");
+                if let Some(arguments) =
+                    crate::apply::templating::TemplateRegistry::get_function_arguments(
+                        function_name,
+                    )
+                {
+                    if arguments.is_empty() {
+                        section.push_str(&format!(
+                            "```jinja2\n{{{{ {}() }}}}\n```\n\n",
+                            function_name
+                        ));
+                    } else {
+                        // Generate example with actual values for known functions
+                        let example_usage = match function_name.as_str() {
+                            "lookup" => "```jinja2\n{{ lookup('env', 'HOME') }}\n{{ lookup('env', 'USER') }}\n```".to_string(),
+                            "basename" => "```jinja2\n{{ basename('/path/to/file.txt') }}\n{{ basename(path_variable) }}\n```".to_string(),
+                            "dirname" => "```jinja2\n{{ dirname('/path/to/file.txt') }}\n{{ dirname(path_variable) }}\n```".to_string(),
+                            "length" => "```jinja2\n{{ length('hello') }}\n{{ length(items) }}\n{{ length(my_object) }}\n```".to_string(),
+                            _ => {
+                                // For other functions, use parameter names
+                                let param_names: Vec<&str> = arguments
+                                    .iter()
+                                    .map(|arg| arg.split(':').next().unwrap_or(arg))
+                                    .collect();
+                                format!("```jinja2\n{{{{ {}({}) }}}}\n```", function_name, param_names.join(", "))
+                            }
+                        };
+                        section.push_str(&example_usage);
+                        section.push('\n');
+                    }
+                } else {
+                    section.push_str(&format!(
+                        "```jinja2\n{{{{ {}() }}}}\n```\n\n",
+                        function_name
+                    ));
+                }
+            }
+        }
+    }
 
     Ok(section)
 }

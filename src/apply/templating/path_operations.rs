@@ -13,6 +13,7 @@ pub fn register_path_filters(
         "basename",
         "Return the basename of a path",
         "Path Operations",
+        vec![],
         Arc::new(|value, _args| {
             let path_str = value.as_str().unwrap_or("");
             if path_str.ends_with('/') && path_str != "/" {
@@ -35,6 +36,7 @@ pub fn register_path_filters(
         "dirname",
         "Return the directory name of a path",
         "Path Operations",
+        vec![],
         Arc::new(|value, _args| {
             let path_str = value.as_str().unwrap_or("");
             if path_str.is_empty() {
@@ -68,6 +70,7 @@ pub fn register_path_functions(
         "basename",
         "Return the basename of a path",
         "Path Operations",
+        vec!["path: string - The path to extract the basename from".to_string()],
         Arc::new(|args| {
             args.first()
                 .and_then(|v| v.as_str())
@@ -94,6 +97,7 @@ pub fn register_path_functions(
         "dirname",
         "Return the directory name of a path",
         "Path Operations",
+        vec!["path: string - The path to extract the directory name from".to_string()],
         Arc::new(|args| {
             args.first()
                 .and_then(|v| v.as_str())

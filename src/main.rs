@@ -185,10 +185,27 @@ async fn main() -> anyhow::Result<()> {
 
             match format.as_str() {
                 "markdown" => {
-                    let docs = docs::generate_task_documentation()?;
-                    let output_path = output.unwrap_or_else(|| PathBuf::from("docs/tasks.md"));
-                    std::fs::write(&output_path, docs)?;
-                    println!("Documentation generated: {}", output_path.display());
+                    // Generate task documentation
+                    let task_docs = docs::generate_task_documentation()?;
+                    let task_output_path = PathBuf::from("docs/tasks-reference.md");
+                    std::fs::write(&task_output_path, task_docs)?;
+                    println!(
+                        "Task documentation generated: {}",
+                        task_output_path.display()
+                    );
+
+                    // Generate template documentation
+                    let template_docs = docs::generate_template_documentation()?;
+                    let template_output_path = PathBuf::from("docs/template-reference.md");
+                    std::fs::write(&template_output_path, template_docs)?;
+                    println!(
+                        "Template documentation generated: {}",
+                        template_output_path.display()
+                    );
+
+                    if output.is_some() {
+                        println!("Note: Output path parameter is ignored for markdown format. Documentation is generated to docs/ directory.");
+                    }
                 }
                 "json" => {
                     let schema = docs::generate_json_schema()?;

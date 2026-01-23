@@ -4008,7 +4008,7 @@ state = "absent"
 **Registered Outputs**:
 
 - `changed` (bool): Whether any packages were installed or removed
-- `packages` (Vec<String>): List of packages affected
+- `packages` (`Vec<String>`): List of packages affected
 
 **Examples**:
 

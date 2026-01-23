@@ -14,6 +14,7 @@ pub fn register_string_filters(
         "upper",
         "Convert a string to uppercase",
         "String Operations",
+        vec![],
         Arc::new(|value, _args| JinjaValue::from(value.as_str().unwrap_or("").to_uppercase())),
     );
 
@@ -22,6 +23,7 @@ pub fn register_string_filters(
         "lower",
         "Convert a string to lowercase",
         "String Operations",
+        vec![],
         Arc::new(|value, _args| JinjaValue::from(value.as_str().unwrap_or("").to_lowercase())),
     );
 
@@ -30,6 +32,7 @@ pub fn register_string_filters(
         "capitalize",
         "Capitalize the first character of a string",
         "String Operations",
+        vec![],
         Arc::new(|value, _args| {
             let s = value.as_str().unwrap_or("");
             if s.is_empty() {
@@ -49,6 +52,7 @@ pub fn register_string_filters(
         "length",
         "Return the length of a string, list, or object",
         "String/List Operations",
+        vec![],
         Arc::new(|value, _args| JinjaValue::from(value.len().unwrap_or(0) as i64)),
     );
 
@@ -58,6 +62,11 @@ pub fn register_string_filters(
         "truncate",
         "Truncate a string to a specified length",
         "String Operations",
+        vec![
+            "length: integer - Maximum length of the resulting string".to_string(),
+            "killwords: boolean (optional) - If true, truncate at character boundary; if false, try to truncate at word boundary".to_string(),
+            "end: string (optional) - String to append when truncation occurs (default: \"...\")".to_string(),
+        ],
         Arc::new(|value, args| {
             let s = value.as_str().unwrap_or("");
             let length = args.first().and_then(|v| v.as_i64()).unwrap_or(255) as usize;

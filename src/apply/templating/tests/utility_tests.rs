@@ -1,11 +1,9 @@
 //! Tests for utility functions
 
-use minijinja::Environment;
-use crate::apply::templating::setup_minijinja_env;
-
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::apply::templating::setup_minijinja_env;
+    use minijinja::Environment;
 
     fn create_test_env() -> Environment<'static> {
         let mut env = Environment::new();

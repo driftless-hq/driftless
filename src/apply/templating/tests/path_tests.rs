@@ -1,11 +1,9 @@
 //! Tests for path operation filters and functions
 
-use minijinja::Environment;
-use crate::apply::templating::setup_minijinja_env;
-
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::apply::templating::setup_minijinja_env;
+    use minijinja::Environment;
 
     fn create_test_env() -> Environment<'static> {
         let mut env = Environment::new();
@@ -18,17 +16,23 @@ mod tests {
         let env = create_test_env();
 
         // Test basic basename
-        let template = env.template_from_str("{{ '/path/to/file.txt' | basename }}").unwrap();
+        let template = env
+            .template_from_str("{{ '/path/to/file.txt' | basename }}")
+            .unwrap();
         let result = template.render(minijinja::context!()).unwrap();
         assert_eq!(result, "file.txt");
 
         // Test basename with no directory
-        let template = env.template_from_str("{{ 'file.txt' | basename }}").unwrap();
+        let template = env
+            .template_from_str("{{ 'file.txt' | basename }}")
+            .unwrap();
         let result = template.render(minijinja::context!()).unwrap();
         assert_eq!(result, "file.txt");
 
         // Test basename with trailing slash (should be empty)
-        let template = env.template_from_str("{{ '/path/to/dir/' | basename }}").unwrap();
+        let template = env
+            .template_from_str("{{ '/path/to/dir/' | basename }}")
+            .unwrap();
         let result = template.render(minijinja::context!()).unwrap();
         assert_eq!(result, "");
 
@@ -43,7 +47,9 @@ mod tests {
         let env = create_test_env();
 
         // Test basic dirname
-        let template = env.template_from_str("{{ '/path/to/file.txt' | dirname }}").unwrap();
+        let template = env
+            .template_from_str("{{ '/path/to/file.txt' | dirname }}")
+            .unwrap();
         let result = template.render(minijinja::context!()).unwrap();
         assert_eq!(result, "/path/to");
 
@@ -53,7 +59,9 @@ mod tests {
         assert_eq!(result, "");
 
         // Test dirname with trailing slash
-        let template = env.template_from_str("{{ '/path/to/dir/' | dirname }}").unwrap();
+        let template = env
+            .template_from_str("{{ '/path/to/dir/' | dirname }}")
+            .unwrap();
         let result = template.render(minijinja::context!()).unwrap();
         assert_eq!(result, "/path/to/dir");
 
@@ -68,7 +76,9 @@ mod tests {
         let env = create_test_env();
 
         // Test basic basename
-        let template = env.template_from_str("{{ basename('/path/to/file.txt') }}").unwrap();
+        let template = env
+            .template_from_str("{{ basename('/path/to/file.txt') }}")
+            .unwrap();
         let result = template.render(minijinja::context!()).unwrap();
         assert_eq!(result, "file.txt");
 
@@ -78,7 +88,9 @@ mod tests {
         assert_eq!(result, "file.txt");
 
         // Test basename with trailing slash (should be empty)
-        let template = env.template_from_str("{{ basename('/path/to/dir/') }}").unwrap();
+        let template = env
+            .template_from_str("{{ basename('/path/to/dir/') }}")
+            .unwrap();
         let result = template.render(minijinja::context!()).unwrap();
         assert_eq!(result, "");
 
@@ -93,7 +105,9 @@ mod tests {
         let env = create_test_env();
 
         // Test basic dirname
-        let template = env.template_from_str("{{ dirname('/path/to/file.txt') }}").unwrap();
+        let template = env
+            .template_from_str("{{ dirname('/path/to/file.txt') }}")
+            .unwrap();
         let result = template.render(minijinja::context!()).unwrap();
         assert_eq!(result, "/path/to");
 
@@ -103,7 +117,9 @@ mod tests {
         assert_eq!(result, "");
 
         // Test dirname with trailing slash
-        let template = env.template_from_str("{{ dirname('/path/to/dir/') }}").unwrap();
+        let template = env
+            .template_from_str("{{ dirname('/path/to/dir/') }}")
+            .unwrap();
         let result = template.render(minijinja::context!()).unwrap();
         assert_eq!(result, "/path/to/dir");
 

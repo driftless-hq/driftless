@@ -18,6 +18,9 @@ echo "📝 Docs need updating, regenerating..."
 echo "📚 Generating task documentation..."
 ./target/debug/driftless docs --format markdown --output docs/tasks-reference.md
 
+echo "🎨 Generating template documentation..."
+./target/debug/driftless docs --format markdown
+
 echo "🦀 Generating Rust API documentation..."
 cargo doc --no-deps --document-private-items
 
@@ -25,6 +28,7 @@ echo "✅ Documentation generation complete!"
 echo ""
 echo "Generated files:"
 echo "  - docs/tasks-reference.md (Task documentation)"
+echo "  - docs/template-reference.md (Template documentation)"
 echo "  - target/doc/ (Rust API documentation)"
 echo ""
 echo "To view Rust documentation locally:"
