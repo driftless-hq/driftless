@@ -80,7 +80,7 @@ jobs:
         
         # Copy markdown docs to docs subdirectory if they exist
         mkdir -p gh-pages-deploy/docs
-        if ls docs/*.md 1> /dev/null 2>&1; then
+        if [ -d docs ] && ls docs/*.md 1> /dev/null 2>&1; then
           cp docs/*.md gh-pages-deploy/docs/
           echo "Copied markdown documentation files"
         else
@@ -88,7 +88,7 @@ jobs:
         fi
         
         # Determine the crate name from Cargo.toml
-        CRATE_NAME=$(grep '^name = ' Cargo.toml | head -1 | sed 's/name = "\(.*\)"/\1/')
+        CRATE_NAME=$(grep '^name = ' Cargo.toml | head -1 | sed 's/name = [\"]*\([^\"]*\)[\"]*$/\1/')
         echo "Detected crate name: $CRATE_NAME"
         
         # Create a simple index.html that redirects to API docs
