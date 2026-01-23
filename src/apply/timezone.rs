@@ -116,7 +116,10 @@ pub async fn execute_timezone_task(task: &TimezoneTask, dry_run: bool) -> Result
         return Ok(());
     }
 
-    println!("Changing timezone from '{}' to '{}'", current_timezone, task.name);
+    println!(
+        "Changing timezone from '{}' to '{}'",
+        current_timezone, task.name
+    );
 
     if dry_run {
         println!("Would set timezone to: {}", task.name);
@@ -132,8 +135,8 @@ pub async fn execute_timezone_task(task: &TimezoneTask, dry_run: bool) -> Result
 fn get_current_timezone() -> Result<String> {
     // Try to read from /etc/timezone first (Ubuntu/Debian style)
     if Path::new("/etc/timezone").exists() {
-        let content = fs::read_to_string("/etc/timezone")
-            .with_context(|| "Failed to read /etc/timezone")?;
+        let content =
+            fs::read_to_string("/etc/timezone").with_context(|| "Failed to read /etc/timezone")?;
         return Ok(content.trim().to_string());
     }
 
@@ -173,7 +176,10 @@ fn set_timezone(timezone: &str) -> Result<()> {
     // Validate timezone exists
     let zoneinfo_path = format!("/usr/share/zoneinfo/{}", timezone);
     if !Path::new(&zoneinfo_path).exists() {
-        return Err(anyhow::anyhow!("Timezone '{}' does not exist in /usr/share/zoneinfo", timezone));
+        return Err(anyhow::anyhow!(
+            "Timezone '{}' does not exist in /usr/share/zoneinfo",
+            timezone
+        ));
     }
 
     // Try timedatectl first (systemd systems)

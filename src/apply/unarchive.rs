@@ -215,8 +215,8 @@ pub enum UnarchiveState {
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use crate::apply::default_true;
 use crate::apply::archive::ArchiveFormat;
+use crate::apply::default_true;
 use anyhow::{Context, Result};
 use std::fs;
 use std::path::Path;
@@ -226,12 +226,8 @@ use tempfile::NamedTempFile;
 /// Execute an unarchive task
 pub async fn execute_unarchive_task(task: &UnarchiveTask, dry_run: bool) -> Result<()> {
     match task.state {
-        UnarchiveState::Present => {
-            ensure_archive_extracted(task, dry_run).await
-        }
-        UnarchiveState::Absent => {
-            ensure_archive_not_extracted(task, dry_run).await
-        }
+        UnarchiveState::Present => ensure_archive_extracted(task, dry_run).await,
+        UnarchiveState::Absent => ensure_archive_not_extracted(task, dry_run).await,
     }
 }
 
@@ -253,7 +249,10 @@ async fn ensure_archive_extracted(task: &UnarchiveTask, dry_run: bool) -> Result
         let src_path = Path::new(&task.src);
         // Check if source archive exists
         if !src_path.exists() {
-            return Err(anyhow::anyhow!("Archive source does not exist: {}", task.src));
+            return Err(anyhow::anyhow!(
+                "Archive source does not exist: {}",
+                task.src
+            ));
         }
         (src_path.to_path_buf(), None)
     };
@@ -280,14 +279,20 @@ async fn ensure_archive_extracted(task: &UnarchiveTask, dry_run: bool) -> Result
     }
 
     if dry_run {
-        println!("Would extract {} to {} (format: {:?})", task.src, task.dest, format);
+        println!(
+            "Would extract {} to {} (format: {:?})",
+            task.src, task.dest, format
+        );
     } else {
         // Ensure destination directory exists if creates=true
         if task.creates && !dest_path.exists() {
             fs::create_dir_all(dest_path)
                 .with_context(|| format!("Failed to create destination directory {}", task.dest))?;
         } else if !dest_path.exists() {
-            return Err(anyhow::anyhow!("Destination directory does not exist: {}", task.dest));
+            return Err(anyhow::anyhow!(
+                "Destination directory does not exist: {}",
+                task.dest
+            ));
         }
 
         // Perform extraction
@@ -350,7 +355,8 @@ async fn download_url_to_temp_file(task: &UnarchiveTask) -> Result<NamedTempFile
         builder = builder.danger_accept_invalid_certs(true);
     }
 
-    let client = builder.build()
+    let client = builder
+        .build()
         .with_context(|| "Failed to build HTTP client")?;
 
     // Build request
@@ -363,7 +369,7 @@ async fn download_url_to_temp_file(task: &UnarchiveTask) -> Result<NamedTempFile
 
     // Add basic auth
     if let (Some(username), Some(password)) = (&task.username, &task.password) {
-        use base64::{Engine as _, engine::general_purpose};
+        use base64::{engine::general_purpose, Engine as _};
         let credentials = format!("{}:{}", username, password);
         let encoded = general_purpose::STANDARD.encode(credentials);
         request_builder = request_builder.header("Authorization", format!("Basic {}", encoded));
@@ -389,8 +395,7 @@ async fn download_url_to_temp_file(task: &UnarchiveTask) -> Result<NamedTempFile
         .with_context(|| "Failed to read response body")?;
 
     // Create temporary file
-    let mut temp_file = NamedTempFile::new()
-        .with_context(|| "Failed to create temporary file")?;
+    let mut temp_file = NamedTempFile::new().with_context(|| "Failed to create temporary file")?;
 
     // Write content to temporary file
     std::io::Write::write_all(&mut temp_file, &content)
@@ -415,7 +420,9 @@ fn detect_archive_format(path: &Path) -> Result<ArchiveFormat> {
                 if file_stem.ends_with(".tar") {
                     Ok(ArchiveFormat::Tgz)
                 } else {
-                    Err(anyhow::anyhow!("Unsupported archive format: .gz (not tar.gz)"))
+                    Err(anyhow::anyhow!(
+                        "Unsupported archive format: .gz (not tar.gz)"
+                    ))
                 }
             } else {
                 Err(anyhow::anyhow!("Cannot determine archive format"))
@@ -427,7 +434,9 @@ fn detect_archive_format(path: &Path) -> Result<ArchiveFormat> {
                 if file_stem.ends_with(".tar") {
                     Ok(ArchiveFormat::Tbz2)
                 } else {
-                    Err(anyhow::anyhow!("Unsupported archive format: .bz2 (not tar.bz2)"))
+                    Err(anyhow::anyhow!(
+                        "Unsupported archive format: .bz2 (not tar.bz2)"
+                    ))
                 }
             } else {
                 Err(anyhow::anyhow!("Cannot determine archive format"))
@@ -439,7 +448,9 @@ fn detect_archive_format(path: &Path) -> Result<ArchiveFormat> {
                 if file_stem.ends_with(".tar") {
                     Ok(ArchiveFormat::Txz)
                 } else {
-                    Err(anyhow::anyhow!("Unsupported archive format: .xz (not tar.xz)"))
+                    Err(anyhow::anyhow!(
+                        "Unsupported archive format: .xz (not tar.xz)"
+                    ))
                 }
             } else {
                 Err(anyhow::anyhow!("Cannot determine archive format"))
@@ -447,62 +458,101 @@ fn detect_archive_format(path: &Path) -> Result<ArchiveFormat> {
         }
         "zip" => Ok(ArchiveFormat::Zip),
         "7z" => Ok(ArchiveFormat::SevenZ),
-        _ => Err(anyhow::anyhow!("Cannot detect archive format for: {}", path.display())),
+        _ => Err(anyhow::anyhow!(
+            "Cannot detect archive format for: {}",
+            path.display()
+        )),
     }
 }
 
 /// Extract archive using appropriate tool
-async fn extract_archive_from_path(src_path: &Path, dest_path: &Path, _task: &UnarchiveTask, format: &ArchiveFormat) -> Result<()> {
+async fn extract_archive_from_path(
+    src_path: &Path,
+    dest_path: &Path,
+    _task: &UnarchiveTask,
+    format: &ArchiveFormat,
+) -> Result<()> {
     match format {
-        ArchiveFormat::Tar => {
-            extract_tar_archive(src_path, dest_path).await
-        }
-        ArchiveFormat::Tgz => {
-            extract_tar_gz_archive(src_path, dest_path).await
-        }
-        ArchiveFormat::Tbz2 => {
-            extract_tar_bz2_archive(src_path, dest_path).await
-        }
-        ArchiveFormat::Txz => {
-            extract_tar_xz_archive(src_path, dest_path).await
-        }
-        ArchiveFormat::Zip => {
-            extract_zip_archive(src_path, dest_path).await
-        }
-        ArchiveFormat::SevenZ => {
-            extract_7z_archive(src_path, dest_path).await
-        }
+        ArchiveFormat::Tar => extract_tar_archive(src_path, dest_path).await,
+        ArchiveFormat::Tgz => extract_tar_gz_archive(src_path, dest_path).await,
+        ArchiveFormat::Tbz2 => extract_tar_bz2_archive(src_path, dest_path).await,
+        ArchiveFormat::Txz => extract_tar_xz_archive(src_path, dest_path).await,
+        ArchiveFormat::Zip => extract_zip_archive(src_path, dest_path).await,
+        ArchiveFormat::SevenZ => extract_7z_archive(src_path, dest_path).await,
     }
 }
 
 /// Extract uncompressed tar archive
 async fn extract_tar_archive(src: &Path, dest: &Path) -> Result<()> {
-    run_command("tar", &["-xf", &src.to_string_lossy(), "-C", &dest.to_string_lossy()]).await
+    run_command(
+        "tar",
+        &["-xf", &src.to_string_lossy(), "-C", &dest.to_string_lossy()],
+    )
+    .await
 }
 
 /// Extract gzip-compressed tar archive
 async fn extract_tar_gz_archive(src: &Path, dest: &Path) -> Result<()> {
-    run_command("tar", &["-xzf", &src.to_string_lossy(), "-C", &dest.to_string_lossy()]).await
+    run_command(
+        "tar",
+        &[
+            "-xzf",
+            &src.to_string_lossy(),
+            "-C",
+            &dest.to_string_lossy(),
+        ],
+    )
+    .await
 }
 
 /// Extract bzip2-compressed tar archive
 async fn extract_tar_bz2_archive(src: &Path, dest: &Path) -> Result<()> {
-    run_command("tar", &["-xjf", &src.to_string_lossy(), "-C", &dest.to_string_lossy()]).await
+    run_command(
+        "tar",
+        &[
+            "-xjf",
+            &src.to_string_lossy(),
+            "-C",
+            &dest.to_string_lossy(),
+        ],
+    )
+    .await
 }
 
 /// Extract xz-compressed tar archive
 async fn extract_tar_xz_archive(src: &Path, dest: &Path) -> Result<()> {
-    run_command("tar", &["-xJf", &src.to_string_lossy(), "-C", &dest.to_string_lossy()]).await
+    run_command(
+        "tar",
+        &[
+            "-xJf",
+            &src.to_string_lossy(),
+            "-C",
+            &dest.to_string_lossy(),
+        ],
+    )
+    .await
 }
 
 /// Extract zip archive
 async fn extract_zip_archive(src: &Path, dest: &Path) -> Result<()> {
-    run_command("unzip", &["-q", &src.to_string_lossy(), "-d", &dest.to_string_lossy()]).await
+    run_command(
+        "unzip",
+        &["-q", &src.to_string_lossy(), "-d", &dest.to_string_lossy()],
+    )
+    .await
 }
 
 /// Extract 7z archive
 async fn extract_7z_archive(src: &Path, dest: &Path) -> Result<()> {
-    run_command("7z", &["x", &src.to_string_lossy(), &format!("-o{}", dest.to_string_lossy())]).await
+    run_command(
+        "7z",
+        &[
+            "x",
+            &src.to_string_lossy(),
+            &format!("-o{}", dest.to_string_lossy()),
+        ],
+    )
+    .await
 }
 
 /// Run external command for archive extraction
@@ -526,7 +576,9 @@ async fn run_command(command: &str, args: &[&str]) -> Result<()> {
 }
 
 /// Default unarchive timeout (30 seconds)
-pub fn default_unarchive_timeout() -> u64 { 30 }
+pub fn default_unarchive_timeout() -> u64 {
+    30
+}
 
 #[cfg(test)]
 mod tests {
@@ -599,7 +651,10 @@ mod tests {
 
         let result = execute_unarchive_task(&task, true).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Archive source does not exist"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Archive source does not exist"));
     }
 
     #[tokio::test]

@@ -163,12 +163,8 @@ use std::path::Path;
 /// Execute a lineinfile task
 pub async fn execute_lineinfile_task(task: &LineInFileTask, dry_run: bool) -> Result<()> {
     match task.state {
-        LineInFileState::Present => {
-            ensure_line_present(task, dry_run).await
-        }
-        LineInFileState::Absent => {
-            ensure_line_absent(task, dry_run).await
-        }
+        LineInFileState::Present => ensure_line_present(task, dry_run).await,
+        LineInFileState::Absent => ensure_line_absent(task, dry_run).await,
     }
 }
 
@@ -178,12 +174,14 @@ async fn ensure_line_present(task: &LineInFileTask, dry_run: bool) -> Result<()>
 
     // Read existing file content
     let content = if path.exists() {
-        fs::read_to_string(path)
-            .with_context(|| format!("Failed to read file {}", task.path))?
+        fs::read_to_string(path).with_context(|| format!("Failed to read file {}", task.path))?
     } else if task.create {
         String::new()
     } else {
-        return Err(anyhow::anyhow!("File does not exist and create=false: {}", task.path));
+        return Err(anyhow::anyhow!(
+            "File does not exist and create=false: {}",
+            task.path
+        ));
     };
 
     let lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
@@ -207,8 +205,7 @@ async fn ensure_line_present(task: &LineInFileTask, dry_run: bool) -> Result<()>
         // Line doesn't exist, need to add it
         if let Some(regexp) = &task.regexp {
             // Find insertion point based on regexp
-            let re = Regex::new(regexp)
-                .with_context(|| format!("Invalid regexp: {}", regexp))?;
+            let re = Regex::new(regexp).with_context(|| format!("Invalid regexp: {}", regexp))?;
 
             for (i, line) in lines.iter().enumerate() {
                 if re.is_match(line) {
@@ -270,8 +267,9 @@ async fn ensure_line_present(task: &LineInFileTask, dry_run: bool) -> Result<()>
 
         // Ensure parent directory exists
         if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)
-                .with_context(|| format!("Failed to create parent directories for {}", task.path))?;
+            fs::create_dir_all(parent).with_context(|| {
+                format!("Failed to create parent directories for {}", task.path)
+            })?;
         }
 
         // Write new content
@@ -300,8 +298,8 @@ async fn ensure_line_absent(task: &LineInFileTask, dry_run: bool) -> Result<()> 
     }
 
     // Read existing file content
-    let content = fs::read_to_string(path)
-        .with_context(|| format!("Failed to read file {}", task.path))?;
+    let content =
+        fs::read_to_string(path).with_context(|| format!("Failed to read file {}", task.path))?;
 
     let lines: Vec<String> = content.lines().map(|s| s.to_string()).collect();
     let mut new_lines = Vec::new();
@@ -347,8 +345,7 @@ async fn ensure_line_absent(task: &LineInFileTask, dry_run: bool) -> Result<()> 
 /// Check if a line matches the task criteria
 fn matches_line(line: &str, task: &LineInFileTask) -> Result<bool> {
     if let Some(regexp) = &task.regexp {
-        let re = Regex::new(regexp)
-            .with_context(|| format!("Invalid regexp: {}", regexp))?;
+        let re = Regex::new(regexp).with_context(|| format!("Invalid regexp: {}", regexp))?;
         Ok(re.is_match(line))
     } else {
         // Exact string match

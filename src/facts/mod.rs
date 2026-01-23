@@ -259,7 +259,9 @@ impl FactsRegistry {
 
 // Public exports
 #[allow(unused)]
-pub use orchestrator::{FactsOrchestrator, FactsExporter, PrometheusExporter, S3Exporter, FileExporter};
+pub use orchestrator::{
+    FactsExporter, FactsOrchestrator, FileExporter, PrometheusExporter, S3Exporter,
+};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct FactsConfig {

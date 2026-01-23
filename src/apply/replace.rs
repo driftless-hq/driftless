@@ -206,12 +206,8 @@ use std::path::Path;
 /// Execute a replace task
 pub async fn execute_replace_task(task: &ReplaceTask, dry_run: bool) -> Result<()> {
     match task.state {
-        ReplaceState::Present => {
-            ensure_replacement_present(task, dry_run).await
-        }
-        ReplaceState::Absent => {
-            ensure_replacement_absent(task, dry_run).await
-        }
+        ReplaceState::Present => ensure_replacement_present(task, dry_run).await,
+        ReplaceState::Absent => ensure_replacement_absent(task, dry_run).await,
     }
 }
 
@@ -224,8 +220,8 @@ async fn ensure_replacement_present(task: &ReplaceTask, dry_run: bool) -> Result
     }
 
     // Read file content
-    let content = fs::read_to_string(path)
-        .with_context(|| format!("Failed to read file {}", task.path))?;
+    let content =
+        fs::read_to_string(path).with_context(|| format!("Failed to read file {}", task.path))?;
 
     // Create replacement pattern
     let (pattern, replacement) = if let Some(regexp) = &task.regexp {
@@ -235,12 +231,13 @@ async fn ensure_replacement_present(task: &ReplaceTask, dry_run: bool) -> Result
         let escaped = regex::escape(before);
         (escaped, task.replace.clone())
     } else {
-        return Err(anyhow::anyhow!("Either 'regexp' or 'before' must be specified"));
+        return Err(anyhow::anyhow!(
+            "Either 'regexp' or 'before' must be specified"
+        ));
     };
 
     // Compile regex
-    let re = Regex::new(&pattern)
-        .with_context(|| format!("Invalid regex pattern: {}", pattern))?;
+    let re = Regex::new(&pattern).with_context(|| format!("Invalid regex pattern: {}", pattern))?;
 
     // Perform replacement
     let new_content = if task.replace_all {
@@ -263,7 +260,10 @@ async fn ensure_replacement_present(task: &ReplaceTask, dry_run: bool) -> Result
         } else {
             re.find(&content).is_some() as usize
         };
-        println!("Would replace {} occurrence(s) in file: {}", replacement_count, task.path);
+        println!(
+            "Would replace {} occurrence(s) in file: {}",
+            replacement_count, task.path
+        );
     } else {
         // Backup file if requested
         if task.backup {
@@ -282,7 +282,10 @@ async fn ensure_replacement_present(task: &ReplaceTask, dry_run: bool) -> Result
         } else {
             re.find(&content).is_some() as usize
         };
-        println!("Replaced {} occurrence(s) in {}", replacement_count, task.path);
+        println!(
+            "Replaced {} occurrence(s) in {}",
+            replacement_count, task.path
+        );
     }
 
     Ok(())
@@ -298,8 +301,8 @@ async fn ensure_replacement_absent(task: &ReplaceTask, dry_run: bool) -> Result<
     }
 
     // Read file content
-    let content = fs::read_to_string(path)
-        .with_context(|| format!("Failed to read file {}", task.path))?;
+    let content =
+        fs::read_to_string(path).with_context(|| format!("Failed to read file {}", task.path))?;
 
     // For "absent" state, we need to replace the replacement string back with the original
     // This is more complex and would require tracking what was replaced
@@ -320,8 +323,9 @@ async fn ensure_replacement_absent(task: &ReplaceTask, dry_run: bool) -> Result<
             // Backup file if requested
             if task.backup {
                 let backup_path = format!("{}.backup", task.path);
-                fs::copy(&task.path, &backup_path)
-                    .with_context(|| format!("Failed to backup {} to {}", task.path, backup_path))?;
+                fs::copy(&task.path, &backup_path).with_context(|| {
+                    format!("Failed to backup {} to {}", task.path, backup_path)
+                })?;
                 println!("Backed up {} to {}", task.path, backup_path);
             }
 
@@ -334,7 +338,10 @@ async fn ensure_replacement_absent(task: &ReplaceTask, dry_run: bool) -> Result<
     } else {
         // With regex, undoing is more complex - we'd need to store the original content
         // For now, we'll skip this functionality
-        println!("Undo replacement with regex not implemented for {}", task.path);
+        println!(
+            "Undo replacement with regex not implemented for {}",
+            task.path
+        );
     }
 
     Ok(())
@@ -488,7 +495,10 @@ mod tests {
 
         let result = execute_replace_task(&task, true).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Invalid regex pattern"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Invalid regex pattern"));
     }
 
     #[tokio::test]
@@ -510,6 +520,9 @@ mod tests {
 
         let result = execute_replace_task(&task, true).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Either 'regexp' or 'before' must be specified"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Either 'regexp' or 'before' must be specified"));
     }
 }

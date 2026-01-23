@@ -146,15 +146,9 @@ use std::process::Command;
 /// Execute a yum task
 pub async fn execute_yum_task(task: &YumTask, dry_run: bool) -> Result<()> {
     match task.state {
-        PackageState::Present => {
-            ensure_package_present(task, dry_run).await
-        }
-        PackageState::Absent => {
-            ensure_package_absent(task, dry_run).await
-        }
-        PackageState::Latest => {
-            ensure_package_latest(task, dry_run).await
-        }
+        PackageState::Present => ensure_package_present(task, dry_run).await,
+        PackageState::Absent => ensure_package_absent(task, dry_run).await,
+        PackageState::Latest => ensure_package_latest(task, dry_run).await,
     }
 }
 
@@ -206,7 +200,8 @@ async fn ensure_package_present(task: &YumTask, dry_run: bool) -> Result<()> {
 
         args.push(task.name.clone());
 
-        run_package_command(&pkg_manager, &args).await
+        run_package_command(&pkg_manager, &args)
+            .await
             .with_context(|| format!("Failed to install package {}", task.name))?;
 
         println!("Installed package: {}", task.name);
@@ -226,7 +221,10 @@ async fn ensure_package_absent(task: &YumTask, dry_run: bool) -> Result<()> {
             if dry_run {
                 false
             } else {
-                return Err(anyhow::anyhow!("Cannot determine if package {} is installed", task.name));
+                return Err(anyhow::anyhow!(
+                    "Cannot determine if package {} is installed",
+                    task.name
+                ));
             }
         }
     };
@@ -243,8 +241,12 @@ async fn ensure_package_absent(task: &YumTask, dry_run: bool) -> Result<()> {
         let pkg_manager = detect_package_manager()?;
 
         // Remove package
-        run_package_command(&pkg_manager, &["remove".to_string(), "-y".to_string(), task.name.clone()]).await
-            .with_context(|| format!("Failed to remove package {}", task.name))?;
+        run_package_command(
+            &pkg_manager,
+            &["remove".to_string(), "-y".to_string(), task.name.clone()],
+        )
+        .await
+        .with_context(|| format!("Failed to remove package {}", task.name))?;
 
         println!("Removed package: {}", task.name);
     }
@@ -264,8 +266,12 @@ async fn ensure_package_latest(task: &YumTask, dry_run: bool) -> Result<()> {
         let pkg_manager = detect_package_manager()?;
 
         // Upgrade specific package
-        run_package_command(&pkg_manager, &["upgrade".to_string(), "-y".to_string(), task.name.clone()]).await
-            .with_context(|| format!("Failed to upgrade package {}", task.name))?;
+        run_package_command(
+            &pkg_manager,
+            &["upgrade".to_string(), "-y".to_string(), task.name.clone()],
+        )
+        .await
+        .with_context(|| format!("Failed to upgrade package {}", task.name))?;
 
         println!("Upgraded package: {}", task.name);
     }
@@ -279,7 +285,8 @@ async fn update_cache(_task: &YumTask, dry_run: bool) -> Result<()> {
         println!("Would update package cache");
     } else {
         let pkg_manager = detect_package_manager()?;
-        run_package_command(&pkg_manager, &["makecache".to_string()]).await
+        run_package_command(&pkg_manager, &["makecache".to_string()])
+            .await
             .with_context(|| "Failed to update package cache")?;
         println!("Updated package cache");
     }
@@ -290,11 +297,19 @@ async fn update_cache(_task: &YumTask, dry_run: bool) -> Result<()> {
 /// Detect which package manager to use
 fn detect_package_manager() -> Result<String> {
     // Check if dnf is available (newer systems)
-    if Command::new("which").arg("dnf").output().is_ok_and(|o| o.status.success()) {
+    if Command::new("which")
+        .arg("dnf")
+        .output()
+        .is_ok_and(|o| o.status.success())
+    {
         Ok("dnf".to_string())
     }
     // Fall back to yum (older systems)
-    else if Command::new("which").arg("yum").output().is_ok_and(|o| o.status.success()) {
+    else if Command::new("which")
+        .arg("yum")
+        .output()
+        .is_ok_and(|o| o.status.success())
+    {
         Ok("yum".to_string())
     } else {
         Err(anyhow::anyhow!("Neither dnf nor yum found on system"))

@@ -174,9 +174,9 @@ pub struct ScriptTask {
     pub force: bool,
 }
 
+use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use anyhow::{Context, Result};
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -209,12 +209,18 @@ pub async fn execute_script_task(task: &ScriptTask, dry_run: bool) -> Result<()>
     }
 
     if dry_run {
-        println!("Would execute script: {} with params: {:?}", task.path, task.params);
+        println!(
+            "Would execute script: {} with params: {:?}",
+            task.path, task.params
+        );
         if let Some(ref chdir) = task.chdir {
             println!("  (in directory: {})", chdir);
         }
         if !task.environment.is_empty() {
-            println!("  (with environment variables: {} vars)", task.environment.len());
+            println!(
+                "  (with environment variables: {} vars)",
+                task.environment.len()
+            );
         }
         return Ok(());
     }
@@ -239,7 +245,10 @@ pub async fn execute_script_task(task: &ScriptTask, dry_run: bool) -> Result<()>
     if let Some(timeout_secs) = task.timeout {
         // Note: In a real implementation, you'd use tokio::process::Command
         // with timeout handling. For now, we'll execute synchronously.
-        println!("Note: Script timeout not implemented (would timeout after {}s)", timeout_secs);
+        println!(
+            "Note: Script timeout not implemented (would timeout after {}s)",
+            timeout_secs
+        );
     }
 
     let output = command
@@ -303,7 +312,9 @@ mod tests {
             path: script_path.clone(),
             params: vec!["arg1".to_string(), "arg2".to_string()],
             chdir: Some("/tmp".to_string()),
-            environment: vec![("TEST_VAR".to_string(), "test_value".to_string())].into_iter().collect(),
+            environment: vec![("TEST_VAR".to_string(), "test_value".to_string())]
+                .into_iter()
+                .collect(),
             timeout: Some(30),
             creates: false,
             removes: false,
@@ -330,7 +341,10 @@ mod tests {
 
         let result = execute_script_task(&task, true).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Script does not exist"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Script does not exist"));
     }
 
     #[tokio::test]
@@ -361,7 +375,10 @@ mod tests {
 
         let result = execute_script_task(&task, true).await;
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Script is not executable"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Script is not executable"));
     }
 
     #[test]

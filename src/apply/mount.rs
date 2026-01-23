@@ -203,12 +203,8 @@ use std::process::Command;
 /// Execute a mount task
 pub async fn execute_mount_task(task: &MountTask, dry_run: bool) -> Result<()> {
     match task.state {
-        MountState::Mounted => {
-            ensure_mounted(task, dry_run).await
-        }
-        MountState::Unmounted => {
-            ensure_unmounted(task, dry_run).await
-        }
+        MountState::Mounted => ensure_mounted(task, dry_run).await,
+        MountState::Unmounted => ensure_unmounted(task, dry_run).await,
         MountState::Present => {
             ensure_in_fstab(task, dry_run).await?;
             ensure_mounted(task, dry_run).await
@@ -325,8 +321,7 @@ fn mount_filesystem(task: &MountTask) -> Result<()> {
     cmd.push(task.src.clone());
     cmd.push(task.path.clone());
 
-    run_command(&cmd)
-        .with_context(|| format!("Failed to mount {} at {}", task.src, task.path))?;
+    run_command(&cmd).with_context(|| format!("Failed to mount {} at {}", task.src, task.path))?;
 
     Ok(())
 }
@@ -335,16 +330,15 @@ fn mount_filesystem(task: &MountTask) -> Result<()> {
 fn unmount_filesystem(path: &str) -> Result<()> {
     let cmd = vec!["umount".to_string(), path.to_string()];
 
-    run_command(&cmd)
-        .with_context(|| format!("Failed to unmount {}", path))?;
+    run_command(&cmd).with_context(|| format!("Failed to unmount {}", path))?;
 
     Ok(())
 }
 
 /// Check if mount entry exists in fstab
 fn is_in_fstab(task: &MountTask) -> Result<bool> {
-    let fstab_content = fs::read_to_string("/etc/fstab")
-        .with_context(|| "Failed to read /etc/fstab")?;
+    let fstab_content =
+        fs::read_to_string("/etc/fstab").with_context(|| "Failed to read /etc/fstab")?;
 
     // Look for line containing both source and path
     for line in fstab_content.lines() {
@@ -374,21 +368,20 @@ fn add_to_fstab(task: &MountTask) -> Result<()> {
         "2"
     );
 
-    let mut fstab_content = fs::read_to_string("/etc/fstab")
-        .with_context(|| "Failed to read /etc/fstab")?;
+    let mut fstab_content =
+        fs::read_to_string("/etc/fstab").with_context(|| "Failed to read /etc/fstab")?;
 
     fstab_content.push_str(&fstab_entry);
 
-    fs::write("/etc/fstab", fstab_content)
-        .with_context(|| "Failed to write /etc/fstab")?;
+    fs::write("/etc/fstab", fstab_content).with_context(|| "Failed to write /etc/fstab")?;
 
     Ok(())
 }
 
 /// Remove mount entry from fstab
 fn remove_from_fstab(task: &MountTask) -> Result<()> {
-    let fstab_content = fs::read_to_string("/etc/fstab")
-        .with_context(|| "Failed to read /etc/fstab")?;
+    let fstab_content =
+        fs::read_to_string("/etc/fstab").with_context(|| "Failed to read /etc/fstab")?;
 
     let mut new_content = String::new();
 
@@ -407,8 +400,7 @@ fn remove_from_fstab(task: &MountTask) -> Result<()> {
         }
     }
 
-    fs::write("/etc/fstab", new_content)
-        .with_context(|| "Failed to write /etc/fstab")?;
+    fs::write("/etc/fstab", new_content).with_context(|| "Failed to write /etc/fstab")?;
 
     Ok(())
 }
@@ -427,7 +419,10 @@ fn run_command(cmd: &[String]) -> Result<()> {
     if status.success() {
         Ok(())
     } else {
-        Err(anyhow::anyhow!("Command failed with exit code: {}", status.code().unwrap_or(-1)))
+        Err(anyhow::anyhow!(
+            "Command failed with exit code: {}",
+            status.code().unwrap_or(-1)
+        ))
     }
 }
 

@@ -381,7 +381,7 @@ mod tests {
     async fn test_filesystem_create_dry_run() {
         let task = FilesystemTask {
             description: None,
-            dev: "/dev/sdb1".to_string(),
+            dev: "/dev/nonexistent_test_device_12345".to_string(),
             state: FilesystemState::Present,
             fstype: Some("ext4".to_string()),
             force: false,
@@ -459,7 +459,7 @@ mod tests {
     async fn test_filesystem_invalid_fstype() {
         let task = FilesystemTask {
             description: None,
-            dev: "/dev/sda1".to_string(),
+            dev: "/dev/nonexistent_test_device_67890".to_string(),
             state: FilesystemState::Present,
             fstype: Some("invalid_filesystem_type_12345".to_string()), // Invalid filesystem type
             force: false,

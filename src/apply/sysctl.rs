@@ -187,12 +187,8 @@ use std::path::Path;
 /// Execute a sysctl task
 pub async fn execute_sysctl_task(task: &SysctlTask, dry_run: bool) -> Result<()> {
     match task.state {
-        SysctlState::Present => {
-            ensure_sysctl_value(task, dry_run).await
-        }
-        SysctlState::Absent => {
-            ensure_sysctl_absent(task, dry_run).await
-        }
+        SysctlState::Present => ensure_sysctl_value(task, dry_run).await,
+        SysctlState::Absent => ensure_sysctl_absent(task, dry_run).await,
     }
 }
 
@@ -203,11 +199,16 @@ async fn ensure_sysctl_value(task: &SysctlTask, dry_run: bool) -> Result<()> {
 
     if let Some(current) = current_value {
         if current == task.value {
-            println!("Sysctl parameter {} already has value: {}", task.name, task.value);
+            println!(
+                "Sysctl parameter {} already has value: {}",
+                task.name, task.value
+            );
             return Ok(());
         } else {
-            println!("Sysctl parameter {} has different value (current: {}, desired: {})",
-                    task.name, current, task.value);
+            println!(
+                "Sysctl parameter {} has different value (current: {}, desired: {})",
+                task.name, current, task.value
+            );
         }
     } else {
         println!("Sysctl parameter {} does not exist", task.name);
@@ -261,7 +262,7 @@ async fn ensure_sysctl_absent(task: &SysctlTask, dry_run: bool) -> Result<()> {
 /// Get the current value of a sysctl parameter
 fn get_sysctl_value(name: &str) -> Result<Option<String>> {
     let output = std::process::Command::new("sysctl")
-        .arg("-n")  // Only output value, no name
+        .arg("-n") // Only output value, no name
         .arg(name)
         .output()
         .with_context(|| format!("Failed to get sysctl value for {}", name))?;
@@ -282,7 +283,7 @@ fn get_sysctl_value(name: &str) -> Result<Option<String>> {
 /// Set a sysctl parameter value
 fn set_sysctl_value(task: &SysctlTask) -> Result<()> {
     let output = std::process::Command::new("sysctl")
-        .arg("-w")  // Write mode
+        .arg("-w") // Write mode
         .arg(format!("{}={}", task.name, task.value))
         .output()
         .with_context(|| format!("Failed to set sysctl {}={}", task.name, task.value))?;
@@ -310,7 +311,10 @@ fn apply_sysctl_immediately(task: &SysctlTask) -> Result<()> {
         fs::write(&proc_path, &task.value)
             .with_context(|| format!("Failed to write to {}", proc_path))?;
     } else {
-        println!("Warning: {} does not exist, sysctl may not be available", proc_path);
+        println!(
+            "Warning: {} does not exist, sysctl may not be available",
+            proc_path
+        );
     }
 
     Ok(())
@@ -344,7 +348,8 @@ fn persist_sysctl_value(task: &SysctlTask) -> Result<()> {
     let search_pattern = format!("{} =", task.name);
     if content.contains(&search_pattern) {
         // Replace existing entry
-        let lines: Vec<String> = content.lines()
+        let lines: Vec<String> = content
+            .lines()
             .map(|line| {
                 if line.contains(&search_pattern) {
                     format!("{} = {}", task.name, task.value)
@@ -362,8 +367,7 @@ fn persist_sysctl_value(task: &SysctlTask) -> Result<()> {
         content.push_str(&entry);
     }
 
-    fs::write(sysctl_conf, content)
-        .with_context(|| format!("Failed to write {}", sysctl_conf))?;
+    fs::write(sysctl_conf, content).with_context(|| format!("Failed to write {}", sysctl_conf))?;
 
     Ok(())
 }
@@ -381,7 +385,8 @@ fn remove_persistent_sysctl(task: &SysctlTask) -> Result<()> {
 
     // Remove lines containing the parameter
     let search_pattern = format!("{} =", task.name);
-    let new_content: String = content.lines()
+    let new_content: String = content
+        .lines()
         .filter(|line| !line.contains(&search_pattern))
         .collect::<Vec<&str>>()
         .join("\n");
@@ -395,8 +400,8 @@ fn remove_persistent_sysctl(task: &SysctlTask) -> Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::apply::SysctlTask;
     use crate::apply::sysctl::SysctlState;
+    use crate::apply::SysctlTask;
 
     #[tokio::test]
     async fn test_sysctl_set_dry_run() {

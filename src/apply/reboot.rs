@@ -160,9 +160,7 @@ pub async fn execute_reboot_task(task: &RebootTask, dry_run: bool) -> Result<()>
 
         // Send message to all users if provided
         if let Some(msg) = &task.msg {
-            let _ = Command::new("wall")
-                .arg(msg)
-                .status(); // Ignore errors here
+            let _ = Command::new("wall").arg(msg).status(); // Ignore errors here
         }
 
         // Wait for the specified delay
@@ -187,10 +185,13 @@ fn reboot_system(force: bool) -> Result<()> {
         cmd.arg("-r").arg("now");
     } else {
         // Graceful reboot
-        cmd.arg("-r").arg("+0").arg("Rebooting system via Driftless");
+        cmd.arg("-r")
+            .arg("+0")
+            .arg("Rebooting system via Driftless");
     }
 
-    let status = cmd.status()
+    let status = cmd
+        .status()
         .with_context(|| "Failed to execute reboot command")?;
 
     if !status.success() {

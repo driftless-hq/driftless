@@ -133,8 +133,7 @@ impl TaskExecutor {
 
             // Register result if requested
             if let Some(register_name) = &task.register {
-                self.variables_mut()
-                    .set(register_name.clone(), result);
+                self.variables_mut().set(register_name.clone(), result);
             }
         }
 
@@ -366,7 +365,6 @@ pub async fn execute_pause_task(task: &crate::apply::PauseTask, dry_run: bool) -
     Ok(())
 }
 
-
 /// Execute set_fact task
 pub async fn execute_set_fact_task(
     task: &crate::apply::SetFactTask,
@@ -560,14 +558,14 @@ mod tests {
     use crate::apply::group::GroupState;
     use crate::apply::mount::MountState;
     use crate::apply::sysctl::SysctlState;
-    use crate::apply::{TaskAction, 
+    use crate::apply::{
         ApplyConfig, CronTask, FileTask, FilesystemTask, GroupTask, HostnameTask, MountTask,
-        SysctlTask, Task, TimezoneTask,
+        SysctlTask, Task, TaskAction, TimezoneTask,
     };
 
     #[tokio::test]
     async fn test_register_variable() {
-        use crate::apply::{CommandTask, DebugTask, debug::DebugVerbosity};
+        use crate::apply::{debug::DebugVerbosity, CommandTask, DebugTask};
         let mut executor = TaskExecutor::new(false);
         let config = ApplyConfig {
             vars: std::collections::HashMap::new(),
@@ -581,7 +579,8 @@ mod tests {
                     exit_code: 0,
                     user: None,
                     group: None,
-                })).with_register("cmd_output"),
+                }))
+                .with_register("cmd_output"),
                 Task::new(TaskAction::Debug(DebugTask {
                     description: None,
                     msg: "Output was: {{ cmd_output.stdout }}".to_string(),
@@ -592,17 +591,27 @@ mod tests {
         };
 
         executor.execute(&config).await.unwrap();
-        
+
         // Verify variable was registered
-        let registered = executor.variables().get("cmd_output").expect("Variable 'cmd_output' not found");
-        assert!(registered.is_mapping(), "Registered variable is not a mapping: {:?}", registered);
+        let registered = executor
+            .variables()
+            .get("cmd_output")
+            .expect("Variable 'cmd_output' not found");
+        assert!(
+            registered.is_mapping(),
+            "Registered variable is not a mapping: {:?}",
+            registered
+        );
         let map = registered.as_mapping().unwrap();
-        assert_eq!(map.get("stdout").unwrap().as_str().unwrap(), "hello driftless");
+        assert_eq!(
+            map.get("stdout").unwrap().as_str().unwrap(),
+            "hello driftless"
+        );
     }
 
     #[tokio::test]
     async fn test_register_with_when() {
-        use crate::apply::{CommandTask, DebugTask, debug::DebugVerbosity};
+        use crate::apply::{debug::DebugVerbosity, CommandTask, DebugTask};
         let mut executor = TaskExecutor::new(false);
         let config = ApplyConfig {
             vars: std::collections::HashMap::new(),
@@ -616,7 +625,8 @@ mod tests {
                     exit_code: 0,
                     user: None,
                     group: None,
-                })).with_register("cmd_success"),
+                }))
+                .with_register("cmd_success"),
                 Task::new(TaskAction::Command(CommandTask {
                     description: Some("Fail command".to_string()),
                     command: "false".to_string(),
@@ -626,33 +636,47 @@ mod tests {
                     exit_code: 1,
                     user: None,
                     group: None,
-                })).with_register("cmd_fail"),
+                }))
+                .with_register("cmd_fail"),
                 Task::new(TaskAction::Debug(DebugTask {
                     description: Some("Should run".to_string()),
                     msg: "Success task ran".to_string(),
                     var: None,
                     verbosity: DebugVerbosity::Normal,
-                })).with_when("{{ cmd_success.rc }} == 0"),
+                }))
+                .with_when("{{ cmd_success.rc }} == 0"),
                 Task::new(TaskAction::Debug(DebugTask {
                     description: Some("Should also run".to_string()),
                     msg: "Fail task ran".to_string(),
                     var: None,
                     verbosity: DebugVerbosity::Normal,
-                })).with_when("{{ cmd_fail.rc }} == 1"),
+                }))
+                .with_when("{{ cmd_fail.rc }} == 1"),
                 Task::new(TaskAction::Debug(DebugTask {
                     description: Some("Should NOT run".to_string()),
                     msg: "I should be skipped".to_string(),
                     var: None,
                     verbosity: DebugVerbosity::Normal,
-                })).with_when("{{ cmd_success.rc }} != 0").with_register("skipped_task"),
+                }))
+                .with_when("{{ cmd_success.rc }} != 0")
+                .with_register("skipped_task"),
             ],
         };
 
         executor.execute(&config).await.unwrap();
-        
+
         // Verify skipped_task was registered as skipped
-        let skipped = executor.variables().get("skipped_task").expect("Variable 'skipped_task' not found");
-        assert!(skipped.as_mapping().unwrap().get("skipped").unwrap().as_bool().unwrap());
+        let skipped = executor
+            .variables()
+            .get("skipped_task")
+            .expect("Variable 'skipped_task' not found");
+        assert!(skipped
+            .as_mapping()
+            .unwrap()
+            .get("skipped")
+            .unwrap()
+            .as_bool()
+            .unwrap());
     }
 
     #[tokio::test]

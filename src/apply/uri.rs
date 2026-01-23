@@ -290,7 +290,10 @@ pub async fn execute_uri_task(task: &UriTask, dry_run: bool) -> Result<serde_yam
             // For Absent state, we skip the request (idempotent behavior)
             println!("Skipping URI request: {} (absent state)", task.url);
             let mut result = serde_yaml::Mapping::new();
-            result.insert(serde_yaml::Value::String("skipped".to_string()), serde_yaml::Value::Bool(true));
+            result.insert(
+                serde_yaml::Value::String("skipped".to_string()),
+                serde_yaml::Value::Bool(true),
+            );
             Ok(serde_yaml::Value::Mapping(result))
         }
     }
@@ -308,7 +311,10 @@ async fn ensure_uri_request_succeeds(task: &UriTask, dry_run: bool) -> Result<se
             println!("Request body length: {} bytes", body.len());
         }
         let mut result = serde_yaml::Mapping::new();
-        result.insert(serde_yaml::Value::String("dry_run".to_string()), serde_yaml::Value::Bool(true));
+        result.insert(
+            serde_yaml::Value::String("dry_run".to_string()),
+            serde_yaml::Value::Bool(true),
+        );
         return Ok(serde_yaml::Value::Mapping(result));
     }
 
@@ -388,10 +394,19 @@ async fn ensure_uri_request_succeeds(task: &UriTask, dry_run: bool) -> Result<se
     );
 
     let mut result = serde_yaml::Mapping::new();
-    result.insert(serde_yaml::Value::String("status".to_string()), serde_yaml::Value::Number(status_code.into()));
-    result.insert(serde_yaml::Value::String("changed".to_string()), serde_yaml::Value::Bool(true));
+    result.insert(
+        serde_yaml::Value::String("status".to_string()),
+        serde_yaml::Value::Number(status_code.into()),
+    );
+    result.insert(
+        serde_yaml::Value::String("changed".to_string()),
+        serde_yaml::Value::Bool(true),
+    );
     if let Some(content) = response_content {
-        result.insert(serde_yaml::Value::String("content".to_string()), serde_yaml::Value::String(content));
+        result.insert(
+            serde_yaml::Value::String("content".to_string()),
+            serde_yaml::Value::String(content),
+        );
     }
 
     Ok(serde_yaml::Value::Mapping(result))
