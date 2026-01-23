@@ -45,7 +45,7 @@ rust-s3 = "0.33"
 
 # Metrics gathering
 hostname = "0.4.2"
-prometheus = "0.13"
+prometheus = "0.14"
 sysinfo = "0.30"
 
 # Log collection
