@@ -36,7 +36,7 @@ jobs:
             skip_tests: false
           - os: ubuntu-latest
             arch: amd64
-            rust: '1.80'  # MSRV
+            rust: '1.92'  # MSRV
             target: x86_64-unknown-linux-gnu
             skip_tests: false
 
@@ -122,8 +122,19 @@ jobs:
       with:
         toolchain: stable
 
+    - name: Cache cargo-audit
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/bin/cargo-audit
+        key: ${{ runner.os }}-cargo-audit-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-audit-
+
     - name: Install cargo-audit
-      run: cargo install cargo-audit
+      run: |
+        if ! command -v cargo-audit &> /dev/null; then
+          cargo install cargo-audit --locked
+        fi
 
     - name: Run security audit
       run: cargo audit
@@ -141,8 +152,19 @@ jobs:
       with:
         toolchain: nightly
 
+    - name: Cache cargo-udeps
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/bin/cargo-udeps
+        key: ${{ runner.os }}-cargo-udeps-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-udeps-
+
     - name: Install cargo-udeps
-      run: cargo install cargo-udeps
+      run: |
+        if ! command -v cargo-udeps &> /dev/null; then
+          cargo install cargo-udeps --locked
+        fi
 
     - name: Run unused dependencies check
       run: cargo +nightly udeps --all-targets
@@ -161,8 +183,19 @@ jobs:
       with:
         toolchain: stable
 
+    - name: Cache cargo-outdated
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/bin/cargo-outdated
+        key: ${{ runner.os }}-cargo-outdated-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-outdated-
+
     - name: Install cargo-outdated
-      run: cargo install cargo-outdated
+      run: |
+        if ! command -v cargo-outdated &> /dev/null; then
+          cargo install cargo-outdated --locked
+        fi
 
     - name: Check for outdated dependencies
       run: cargo outdated --exit-code 1
