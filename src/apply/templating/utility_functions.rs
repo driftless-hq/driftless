@@ -37,7 +37,10 @@ pub fn register_utility_functions(
                 "type".to_string(),
                 "string: The lookup type (env, file, template, pipe)".to_string(),
             ),
-            ("key".to_string(), "string: The key/path/command to look up".to_string()),
+            (
+                "key".to_string(),
+                "string: The key/path/command to look up".to_string(),
+            ),
         ],
         Arc::new(|args| {
             if args.len() >= 2 {
