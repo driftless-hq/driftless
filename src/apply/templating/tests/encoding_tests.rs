@@ -245,4 +245,217 @@ mod tests {
         assert!(result.contains("2"));
         assert!(result.contains("3"));
     }
+
+    #[test]
+    fn test_mandatory_filter() {
+        let env = create_test_env();
+
+        // Test with defined value
+        let template = env.template_from_str("{{ 'hello' | mandatory }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "hello");
+
+        // Test with empty string (should fail)
+        let template = env.template_from_str("{{ '' | mandatory }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "false");
+
+        // Test with empty list (should fail)
+        let template = env.template_from_str("{{ [] | mandatory }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "false");
+    }
+
+    #[test]
+    fn test_regex_escape_filter() {
+        let env = create_test_env();
+
+        // Test basic escaping
+        let template = env
+            .template_from_str("{{ 'hello.world' | regex_escape }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "hello\\.world");
+
+        // Test with special characters
+        let template = env
+            .template_from_str("{{ '[a-z]+' | regex_escape }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "\\[a\\-z\\]\\+");
+
+        // Test empty string
+        let template = env.template_from_str("{{ '' | regex_escape }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "");
+    }
+
+    #[test]
+    fn test_regex_findall_filter() {
+        let env = create_test_env();
+
+        // Test basic findall
+        let template = env
+            .template_from_str("{{ 'hello world test' | regex_findall(\"\\\\w+\") }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "[\"hello\", \"world\", \"test\"]");
+
+        // Test with no matches
+        let template = env
+            .template_from_str("{{ 'hello' | regex_findall(\"\\\\d+\") }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "[]");
+
+        // Test with invalid regex
+        let template = env
+            .template_from_str("{{ 'hello' | regex_findall('[invalid') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "[]");
+    }
+
+    #[test]
+    fn test_regex_replace_filter() {
+        let env = create_test_env();
+
+        // Test basic replace
+        let template = env
+            .template_from_str("{{ 'hello world' | regex_replace('world', 'universe') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "hello universe");
+
+        // Test replace all
+        let template = env
+            .template_from_str("{{ 'test 123 test 456' | regex_replace(\"\\\\d+\", 'NUM') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "test NUM test NUM");
+
+        // Test with invalid regex
+        let template = env
+            .template_from_str("{{ 'hello' | regex_replace('[invalid', 'X') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "hello");
+    }
+
+    #[test]
+    fn test_regex_search_filter() {
+        let env = create_test_env();
+
+        // Test basic search
+        let template = env
+            .template_from_str("{{ 'hello world' | regex_search('world') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "world");
+
+        // Test no match
+        let template = env
+            .template_from_str("{{ 'hello' | regex_search('world') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "false");
+
+        // Test with invalid regex
+        let template = env
+            .template_from_str("{{ 'hello' | regex_search('[invalid') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "false");
+    }
+
+    #[test]
+    fn test_to_nice_json_filter() {
+        let env = create_test_env();
+
+        // Test basic formatting
+        let template = env
+            .template_from_str("{{ {'name': 'test', 'items': [1, 2, 3]} | to_nice_json }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert!(result.contains("\"name\""));
+        assert!(result.contains("\"test\""));
+        assert!(result.contains("\"items\""));
+        assert!(result.contains("1"));
+        assert!(result.contains("2"));
+        assert!(result.contains("3"));
+        // Should have proper indentation
+        assert!(result.contains("\n  "));
+    }
+
+    #[test]
+    fn test_to_nice_yaml_filter() {
+        let env = create_test_env();
+
+        // Test basic formatting
+        let template = env
+            .template_from_str("{{ {'name': 'test', 'items': [1, 2, 3]} | to_nice_yaml }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert!(result.contains("name:"));
+        assert!(result.contains("test"));
+        assert!(result.contains("items:"));
+        assert!(result.contains("- 1"));
+        assert!(result.contains("- 2"));
+        assert!(result.contains("- 3"));
+    }
+
+    #[test]
+    fn test_urlencode_filter() {
+        let env = create_test_env();
+
+        // Test basic encoding
+        let template = env
+            .template_from_str("{{ 'hello world' | urlencode }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "hello%20world");
+
+        // Test with special characters
+        let template = env
+            .template_from_str("{{ 'hello/world?query=value' | urlencode }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "hello%2Fworld%3Fquery%3Dvalue");
+
+        // Test empty string
+        let template = env.template_from_str("{{ '' | urlencode }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "");
+    }
+
+    #[test]
+    fn test_urldecode_filter() {
+        let env = create_test_env();
+
+        // Test basic decoding
+        let template = env
+            .template_from_str("{{ 'hello%20world' | urldecode }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "hello world");
+
+        // Test with special characters
+        let template = env
+            .template_from_str("{{ 'hello%2Fworld%3Fquery%3Dvalue' | urldecode }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "hello/world?query=value");
+
+        // Test invalid encoding
+        let template = env
+            .template_from_str("{{ 'hello%XX' | urldecode }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "hello%XX"); // Should return original on error
+
+        // Test empty string
+        let template = env.template_from_str("{{ '' | urldecode }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "");
+    }
 }

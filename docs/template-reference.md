@@ -61,6 +61,66 @@ Parse a YAML string into a value.
 {{ value | from_yaml }}
 ```
 
+#### `mandatory`
+
+Fail if the value is undefined, None, or empty. Otherwise return the value.
+
+**Usage**:
+
+```jinja2
+{{ value | mandatory }}
+```
+
+#### `regex_escape`
+
+Escape special regex characters in a string.
+
+**Usage**:
+
+```jinja2
+{{ value | regex_escape }}
+```
+
+#### `regex_findall`
+
+Find all matches of a regex pattern in a string.
+
+**Arguments**:
+
+- `pattern` (string): The regex pattern to search for
+
+**Usage**:
+
+```jinja2
+{{ value | regex_findall(pattern) }}
+```
+#### `regex_replace`
+
+Replace matches of a regex pattern in a string.
+
+**Arguments**:
+
+- `pattern` (string): The regex pattern to search for
+- `replacement` (string): The replacement string
+
+**Usage**:
+
+```jinja2
+{{ value | regex_replace(pattern, replacement) }}
+```
+#### `regex_search`
+
+Search for a regex pattern in a string and return the first match.
+
+**Arguments**:
+
+- `pattern` (string): The regex pattern to search for
+
+**Usage**:
+
+```jinja2
+{{ value | regex_search(pattern) }}
+```
 #### `to_json`
 
 Serialize a value to JSON string.
@@ -74,6 +134,32 @@ Serialize a value to JSON string.
 ```jinja2
 {{ value | to_json(indent) }}
 ```
+#### `to_nice_json`
+
+Convert a value to a nicely formatted JSON string.
+
+**Arguments**:
+
+- `indent` (integer): Number of spaces for indentation (optional, default: 2)
+
+**Usage**:
+
+```jinja2
+{{ value | to_nice_json(indent) }}
+```
+#### `to_nice_yaml`
+
+Convert a value to a nicely formatted YAML string.
+
+**Arguments**:
+
+- `indent` (integer): Number of spaces for indentation (optional, default: 2)
+
+**Usage**:
+
+```jinja2
+{{ value | to_nice_yaml(indent) }}
+```
 #### `to_yaml`
 
 Serialize a value to YAML string.
@@ -82,6 +168,26 @@ Serialize a value to YAML string.
 
 ```jinja2
 {{ value | to_yaml }}
+```
+
+#### `urldecode`
+
+URL decode a string.
+
+**Usage**:
+
+```jinja2
+{{ value | urldecode }}
+```
+
+#### `urlencode`
+
+URL encode a string.
+
+**Usage**:
+
+```jinja2
+{{ value | urlencode }}
 ```
 
 ### List Operations
