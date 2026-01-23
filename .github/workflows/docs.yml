@@ -43,10 +43,7 @@ jobs:
       run: |
         # Make script executable and run it
         chmod +x ./scripts/generate-docs.sh
-        ./scripts/generate-docs.sh --output-dir docs
-
-    - name: Generate Rust API documentation
-      run: cargo doc --no-deps --document-private-items
+        ./scripts/generate-docs.sh
 
     - name: Upload documentation artifacts
       uses: actions/upload-artifact@v4
@@ -72,14 +69,44 @@ jobs:
           git push
         fi
 
+    - name: Prepare GitHub Pages deployment (main branch only)
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: |
+        # Create a temporary directory for GitHub Pages content
+        mkdir -p gh-pages-deploy
+        
+        # Copy Rust API docs to api subdirectory
+        cp -r target/doc gh-pages-deploy/api
+        
+        # Copy markdown docs to docs subdirectory if they exist
+        mkdir -p gh-pages-deploy/docs
+        if [ -d docs ] && find docs -maxdepth 1 -name "*.md" -type f | grep -q .; then
+          cp docs/*.md gh-pages-deploy/docs/
+          echo "Copied markdown documentation files"
+        else
+          echo "Warning: No markdown documentation files found in docs/"
+        fi
+        
+        # Determine the crate name from Cargo.toml
+        CRATE_NAME=$(grep '^name = ' Cargo.toml | head -1 | sed 's/name = [\"]*\([^\"]*\)[\"]*$/\1/')
+        echo "Detected crate name: $CRATE_NAME"
+        
+        # Create index.html from template
+        cp .github/workflows/index.html.template gh-pages-deploy/index.html
+        
+        # Replace the crate name placeholder in index.html
+        sed -i "s/CRATE_NAME_PLACEHOLDER/$CRATE_NAME/g" gh-pages-deploy/index.html
+        
+        # Create .nojekyll to disable Jekyll processing
+        touch gh-pages-deploy/.nojekyll
+    
     - name: Deploy to GitHub Pages (main branch only)
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./target/doc
-        destination_dir: api
-        keep_files: false
+        publish_dir: ./gh-pages-deploy
+        force_orphan: true
 
     - name: Comment on PR with documentation links
       if: github.event_name == 'pull_request'
