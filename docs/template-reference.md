@@ -314,6 +314,59 @@ Convert value to boolean
 {{ value | bool }}
 ```
 
+#### `float`
+
+Convert a value to a floating-point number
+
+**Arguments**:
+
+- `default` (number): Default value if conversion fails (optional)
+
+**Usage**:
+
+```jinja2
+{{ value | float(default) }}
+```
+#### `int`
+
+Convert a value to an integer
+
+**Arguments**:
+
+- `default` (integer): Default value if conversion fails (optional, default: 0)
+- `base` (integer): Base for string conversion (optional, default: 10)
+
+**Usage**:
+
+```jinja2
+{{ value | int(default, base) }}
+```
+#### `log`
+
+Return the logarithm of a number
+
+**Arguments**:
+
+- `base` (number): The base of the logarithm (optional, default: e)
+
+**Usage**:
+
+```jinja2
+{{ value | log(base) }}
+```
+#### `pow`
+
+Return a number raised to a power
+
+**Arguments**:
+
+- `exp` (number): The exponent
+
+**Usage**:
+
+```jinja2
+{{ value | pow(exp) }}
+```
 #### `random`
 
 Return a random number, optionally within a specified range
@@ -328,6 +381,21 @@ Return a random number, optionally within a specified range
 ```jinja2
 {{ value | random(start, end) }}
 ```
+#### `range`
+
+Generate a list of numbers in a range
+
+**Arguments**:
+
+- `start` (integer): Start of the range (optional, default: 0)
+- `end` (integer): End of the range (required if start is provided)
+- `step` (integer): Step size (optional, default: 1)
+
+**Usage**:
+
+```jinja2
+{{ value | range(start, end, step) }}
+```
 #### `round`
 
 Round a number to a given precision (default 0 decimal places)
@@ -341,6 +409,16 @@ Round a number to a given precision (default 0 decimal places)
 ```jinja2
 {{ value | round(precision) }}
 ```
+#### `sqrt`
+
+Return the square root of a number
+
+**Usage**:
+
+```jinja2
+{{ value | sqrt }}
+```
+
 #### `ternary`
 
 Return one of two values based on condition (true_val if condition is true, false_val if false)

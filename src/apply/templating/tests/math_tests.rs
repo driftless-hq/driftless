@@ -87,12 +87,20 @@ mod tests {
 
         // Test random number with end range
         let template = env.template_from_str("{{ 10 | random }}").unwrap();
-        let result: i64 = template.render(minijinja::context!()).unwrap().parse().unwrap();
+        let result: i64 = template
+            .render(minijinja::context!())
+            .unwrap()
+            .parse()
+            .unwrap();
         assert!(result >= 0 && result <= 10);
 
         // Test random number with start and end range
         let template = env.template_from_str("{{ 5 | random(10) }}").unwrap();
-        let result: i64 = template.render(minijinja::context!()).unwrap().parse().unwrap();
+        let result: i64 = template
+            .render(minijinja::context!())
+            .unwrap()
+            .parse()
+            .unwrap();
         assert!(result >= 5 && result <= 10);
 
         // Test random from string
@@ -102,12 +110,20 @@ mod tests {
 
         // Test random from list
         let template = env.template_from_str("{{ [1, 2, 3] | random }}").unwrap();
-        let result: i64 = template.render(minijinja::context!()).unwrap().parse().unwrap();
+        let result: i64 = template
+            .render(minijinja::context!())
+            .unwrap()
+            .parse()
+            .unwrap();
         assert!(result >= 1 && result <= 3);
 
         // Test default random (0-100)
         let template = env.template_from_str("{{ none | random }}").unwrap();
-        let result: i64 = template.render(minijinja::context!()).unwrap().parse().unwrap();
+        let result: i64 = template
+            .render(minijinja::context!())
+            .unwrap()
+            .parse()
+            .unwrap();
         assert!(result >= 0 && result <= 100);
     }
 
@@ -151,12 +167,16 @@ mod tests {
         let env = create_test_env();
 
         // Test true condition
-        let template = env.template_from_str("{{ true | ternary('yes', 'no') }}").unwrap();
+        let template = env
+            .template_from_str("{{ true | ternary('yes', 'no') }}")
+            .unwrap();
         let result = template.render(minijinja::context!()).unwrap();
         assert_eq!(result, "yes");
 
         // Test false condition
-        let template = env.template_from_str("{{ false | ternary('yes', 'no') }}").unwrap();
+        let template = env
+            .template_from_str("{{ false | ternary('yes', 'no') }}")
+            .unwrap();
         let result = template.render(minijinja::context!()).unwrap();
         assert_eq!(result, "no");
 
@@ -177,5 +197,177 @@ mod tests {
         let template = env.template_from_str("{{ false | ternary }}").unwrap();
         let result = template.render(minijinja::context!()).unwrap();
         assert_eq!(result, "false");
+    }
+
+    #[test]
+    fn test_float_filter() {
+        let env = create_test_env();
+
+        // Test integer to float
+        let template = env.template_from_str("{{ 5 | float }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "5.0");
+
+        // Test float to float
+        let template = env.template_from_str("{{ 3.14 | float }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "3.14");
+
+        // Test string to float
+        let template = env.template_from_str("{{ '2.5' | float }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "2.5");
+
+        // Test invalid string with default
+        let template = env
+            .template_from_str("{{ 'invalid' | float(42.0) }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "42.0");
+
+        // Test invalid string without default
+        let template = env.template_from_str("{{ 'invalid' | float }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "0.0");
+    }
+
+    #[test]
+    fn test_int_filter() {
+        let env = create_test_env();
+
+        // Test float to int
+        let template = env.template_from_str("{{ 3.7 | int }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "3");
+
+        // Test int to int
+        let template = env.template_from_str("{{ 42 | int }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "42");
+
+        // Test string to int
+        let template = env.template_from_str("{{ '123' | int }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "123");
+
+        // Test hex string to int
+        let template = env.template_from_str("{{ 'FF' | int(0, 16) }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "255");
+
+        // Test invalid string with default
+        let template = env.template_from_str("{{ 'invalid' | int(99) }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "99");
+
+        // Test invalid string without default
+        let template = env.template_from_str("{{ 'invalid' | int }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "0");
+    }
+
+    #[test]
+    fn test_log_filter() {
+        let env = create_test_env();
+
+        // Test natural log
+        let template = env.template_from_str("{{ 2.718 | log }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert!(result.parse::<f64>().unwrap() > 0.99 && result.parse::<f64>().unwrap() < 1.01);
+
+        // Test log base 10
+        let template = env.template_from_str("{{ 100 | log(10) }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "2.0");
+
+        // Test log base 2
+        let template = env.template_from_str("{{ 8 | log(2) }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "3.0");
+
+        // Test negative number (should return NaN)
+        let template = env.template_from_str("{{ -1 | log }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "NaN");
+    }
+
+    #[test]
+    fn test_pow_filter() {
+        let env = create_test_env();
+
+        // Test power
+        let template = env.template_from_str("{{ 2 | pow(3) }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "8.0");
+
+        // Test square
+        let template = env.template_from_str("{{ 3 | pow(2) }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "9.0");
+
+        // Test fractional power
+        let template = env.template_from_str("{{ 4 | pow(0.5) }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "2.0");
+
+        // Test invalid input
+        let template = env.template_from_str("{{ 'invalid' | pow(2) }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "NaN");
+    }
+
+    #[test]
+    fn test_sqrt_filter() {
+        let env = create_test_env();
+
+        // Test perfect square
+        let template = env.template_from_str("{{ 9 | sqrt }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "3.0");
+
+        // Test non-perfect square
+        let template = env.template_from_str("{{ 2 | sqrt }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert!(result.parse::<f64>().unwrap() > 1.41 && result.parse::<f64>().unwrap() < 1.42);
+
+        // Test zero
+        let template = env.template_from_str("{{ 0 | sqrt }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "0.0");
+
+        // Test negative number (should return NaN)
+        let template = env.template_from_str("{{ -1 | sqrt }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "NaN");
+    }
+
+    #[test]
+    fn test_range_filter() {
+        let env = create_test_env();
+
+        // Test range(end)
+        let template = env.template_from_str("{{ 5 | range }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "[0, 1, 2, 3, 4]");
+
+        // Test range(start, end)
+        let template = env.template_from_str("{{ 2 | range(6) }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "[2, 3, 4, 5]");
+
+        // Test range(start, end, step)
+        let template = env.template_from_str("{{ 1 | range(10, 2) }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "[1, 3, 5, 7, 9]");
+
+        // Test negative step
+        let template = env.template_from_str("{{ 10 | range(0, -1) }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "[10, 9, 8, 7, 6, 5, 4, 3, 2, 1]");
+
+        // Test empty range
+        let template = env.template_from_str("{{ 5 | range(5) }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "[]");
     }
 }
