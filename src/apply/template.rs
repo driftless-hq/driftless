@@ -211,10 +211,8 @@ async fn ensure_template_rendered(task: &TemplateTask, dry_run: bool) -> Result<
     // Determine template directory
     let template_dir = if let Some(ref dir) = task.template_dir {
         Some(std::path::Path::new(dir))
-    } else if let Some(parent) = src_path.parent() {
-        Some(parent)
     } else {
-        None
+        src_path.parent()
     };
 
     // Render template with variables
@@ -294,7 +292,11 @@ async fn ensure_template_not_rendered(task: &TemplateTask, dry_run: bool) -> Res
 }
 
 /// Render template with variable substitution
-fn render_template(template: &str, vars: &HashMap<String, serde_json::Value>, template_dir: Option<&std::path::Path>) -> Result<String> {
+fn render_template(
+    template: &str,
+    vars: &HashMap<String, serde_json::Value>,
+    template_dir: Option<&std::path::Path>,
+) -> Result<String> {
     // Convert vars to JinjaValue
     let context = minijinja::Value::from_serialize(vars);
 
@@ -469,7 +471,11 @@ mod tests {
 
         // Create a template with macros
         let macros_path = template_dir.join("macros.j2");
-        std::fs::write(&macros_path, "{% macro greet(name) %}Hello {{ name }}!{% endmacro %}").unwrap();
+        std::fs::write(
+            &macros_path,
+            "{% macro greet(name) %}Hello {{ name }}!{% endmacro %}",
+        )
+        .unwrap();
 
         // Create main template that imports and uses the macro
         let main_template = "{% import 'macros.j2' as macros %}{{ macros.greet('World') }}";

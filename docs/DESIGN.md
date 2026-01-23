@@ -59,7 +59,26 @@
 - Plugin registry and download manager
 
 ## TODO
-- Now that the `apply` tasks are complete, look at the `facts` and `logs` and determine what task types should exist. Create task prompts in the TODO list that implements these task types with comprehensive documentation and tests in managable pieces.
+- Like the `apply` tasks, `facts` and `logs` need a documentation generator to output a file similar to `docs/tasks-reference.md`, but called `docs/facts-reference.md` and `docs/logs-references.md`. Documentation should be comprehensive and include descriptions for all arguments.
+- **Facts Collection Tasks** - Implement system metrics collection task types:
+  - **System Facts Task**: Create `src/facts/system_facts.rs` with hostname, OS info, kernel version, uptime, boot time, and CPU architecture collection. Include comprehensive tests and documentation.
+  - **CPU Metrics Task**: Create `src/facts/cpu_facts.rs` with CPU usage, per-core metrics, frequency, temperature, and load average collection. Include threshold monitoring and alerting.
+  - **Memory Metrics Task**: Create `src/facts/memory_facts.rs` with total/used/free/available memory, swap usage, and percentage calculations. Include memory pressure monitoring.
+  - **Disk Metrics Task**: Create `src/facts/disk_facts.rs` with disk space monitoring, I/O statistics, and mount point filtering. Include disk usage thresholds and alerts.
+  - **Network Metrics Task**: Create `src/facts/network_facts.rs` with interface statistics, bytes/packets/errors tracking, and network status monitoring.
+  - **Process Metrics Task**: Create `src/facts/process_facts.rs` with process counting, CPU/memory per process, and process status monitoring with pattern matching.
+  - **Command Facts Task**: Create `src/facts/command_facts.rs` for executing custom commands and parsing their output (text, JSON, key-value formats).
+  - **Facts Orchestrator**: Create `src/facts/facts.rs` to orchestrate all fact collectors with scheduling, aggregation, and export capabilities.
+- **Log Collection Tasks** - Implement log processing task types:
+  - **File Log Source Task**: Create `src/logs/file_log_source.rs` for tailing log files with rotation handling, encoding support, and multiline log processing.
+  - **Log Parser Tasks**: Create `src/logs/log_parsers.rs` with parsers for plain text, JSON, key-value, Apache/Nginx logs, syslog, and custom regex patterns.
+  - **Log Filter Tasks**: Create `src/logs/log_filters.rs` with include/exclude patterns, field matching, rate limiting, and content-based filtering.
+  - **File Log Output Task**: Create `src/logs/file_log_output.rs` with file rotation, compression, and timestamp-based filename patterns.
+  - **S3 Log Output Task**: Create `src/logs/s3_log_output.rs` with batched uploads, compression, and configurable prefixes and regions.
+  - **HTTP Log Output Task**: Create `src/logs/http_log_output.rs` with batching, authentication (basic/bearer/API key), retry logic, and compression.
+  - **Syslog Output Task**: Create `src/logs/syslog_log_output.rs` with RFC 3164/5424 compliance and configurable facilities/priorities.
+  - **Console Log Output Task**: Create `src/logs/console_log_output.rs` for stdout/stderr output with structured formatting.
+  - **Log Processing Pipeline**: Create `src/logs/log_pipeline.rs` to orchestrate log sources, parsers, filters, and outputs with buffering and error handling.
 - Create task prompts in the TODO list that create, in managable pieces, an extensions/plugins system via the `wasmtime` crate that can create and register task types and template filters and functions.
 - Review the codebase for usage of Rust best-practices and guidelines
 - Review the codebase for safety, security, and production-readiness

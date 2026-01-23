@@ -1,7 +1,310 @@
+use anyhow::Result;
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::{Arc, RwLock};
 
-/// Main logs configuration schema
+// Type alias for log source functions
+type LogSourceFn = Arc<dyn Fn(&LogSource) -> Result<Box<dyn std::io::Read + Send>> + Send + Sync>;
+
+// Type alias for log output functions
+type LogOutputFn =
+    Arc<dyn Fn(&LogOutput, Box<dyn std::io::Read + Send>) -> Result<()> + Send + Sync>;
+
+// Type alias for log processor functions (used internally by registry)
+type LogProcessorFn =
+    Arc<dyn Fn(&serde_yaml::Value, Box<dyn std::io::Read + Send>) -> Result<()> + Send + Sync>;
+
+// Log registry entry containing source/output function and metadata
+#[derive(Clone)]
+pub(crate) struct LogRegistryEntry {
+    function: LogProcessorFn,
+    category: String,
+    description: String,
+    is_source: bool, // true for sources, false for outputs
+    filename: String,
+}
+
+// Global logs registry for extensible log processing
+static LOGS_REGISTRY: Lazy<RwLock<HashMap<String, LogRegistryEntry>>> = Lazy::new(|| {
+    let mut registry = HashMap::new();
+
+    // Initialize with built-in sources and outputs
+    LogsRegistry::initialize_builtin_processors(&mut registry);
+
+    RwLock::new(registry)
+});
+
+/// Logs processor registry for runtime extensibility
+pub struct LogsRegistry;
+
+impl LogsRegistry {
+    /// Register a log source function with the global registry
+    #[allow(unused)]
+    pub fn register_log_source(
+        source_type: &str,
+        category: &str,
+        description: &str,
+        filename: &str,
+        _source_fn: LogSourceFn,
+    ) {
+        let function = Arc::new(
+            move |config: &serde_yaml::Value, _reader: Box<dyn std::io::Read + Send>| {
+                // For sources, we create a reader from the config
+                // This is a simplified implementation - in practice, this would be more complex
+                let _source_config: LogSource = serde_yaml::from_value(config.clone())?;
+                // TODO: Implement actual source processing
+                Ok(())
+            },
+        );
+
+        let entry = LogRegistryEntry {
+            function,
+            category: category.to_string(),
+            description: description.to_string(),
+            is_source: true,
+            filename: filename.to_string(),
+        };
+        let mut registry = LOGS_REGISTRY.write().unwrap();
+        registry.insert(source_type.to_string(), entry);
+    }
+
+    /// Register a log output function with the global registry
+    #[allow(unused)]
+    pub fn register_log_output(
+        output_type: &str,
+        category: &str,
+        description: &str,
+        filename: &str,
+        _output_fn: LogOutputFn,
+    ) {
+        let function = Arc::new(
+            move |_config: &serde_yaml::Value, _reader: Box<dyn std::io::Read + Send>| {
+                // For outputs, we process the reader
+                // This is a simplified implementation - in practice, this would be more complex
+                let _output_config: LogOutput = serde_yaml::from_value(_config.clone())?;
+                // TODO: Implement actual output processing
+                Ok(())
+            },
+        );
+
+        let entry = LogRegistryEntry {
+            function,
+            category: category.to_string(),
+            description: description.to_string(),
+            is_source: false,
+            filename: filename.to_string(),
+        };
+        let mut registry = LOGS_REGISTRY.write().unwrap();
+        registry.insert(output_type.to_string(), entry);
+    }
+
+    /// Register a log source function
+    pub fn register_source(
+        registry: &mut HashMap<String, LogRegistryEntry>,
+        source_type: &str,
+        category: &str,
+        description: &str,
+        filename: &str,
+        _source_fn: LogSourceFn,
+    ) {
+        let function = Arc::new(
+            move |config: &serde_yaml::Value, _reader: Box<dyn std::io::Read + Send>| {
+                // For sources, we create a reader from the config
+                // This is a simplified implementation - in practice, this would be more complex
+                let _source_config: LogSource = serde_yaml::from_value(config.clone())?;
+                // TODO: Implement actual source processing
+                Ok(())
+            },
+        );
+
+        let entry = LogRegistryEntry {
+            function,
+            category: category.to_string(),
+            description: description.to_string(),
+            is_source: true,
+            filename: filename.to_string(),
+        };
+        registry.insert(source_type.to_string(), entry);
+    }
+
+    /// Register a log output function
+    pub fn register_output(
+        registry: &mut HashMap<String, LogRegistryEntry>,
+        output_type: &str,
+        category: &str,
+        description: &str,
+        filename: &str,
+        _output_fn: LogOutputFn,
+    ) {
+        let function = Arc::new(
+            move |_config: &serde_yaml::Value, _reader: Box<dyn std::io::Read + Send>| {
+                // For outputs, we process the reader
+                // This is a simplified implementation - in practice, this would be more complex
+                let _output_config: LogOutput = serde_yaml::from_value(_config.clone())?;
+                // TODO: Implement actual output processing
+                Ok(())
+            },
+        );
+
+        let entry = LogRegistryEntry {
+            function,
+            category: category.to_string(),
+            description: description.to_string(),
+            is_source: false,
+            filename: filename.to_string(),
+        };
+        registry.insert(output_type.to_string(), entry);
+    }
+
+    /// Initialize the registry with built-in log processors
+    pub fn initialize_builtin_processors(registry: &mut HashMap<String, LogRegistryEntry>) {
+        // File log source
+        LogsRegistry::register_source(
+            registry,
+            "file",
+            "Log Sources",
+            "Tail log files with rotation handling and encoding support",
+            "mod",
+            Arc::new(|_source| {
+                // TODO: Implement file source
+                Ok(Box::new(std::io::empty()) as Box<dyn std::io::Read + Send>)
+            }),
+        );
+
+        // File log output
+        LogsRegistry::register_output(
+            registry,
+            "file",
+            "Log Outputs",
+            "Write logs to files with rotation and compression",
+            "mod",
+            Arc::new(|_output, _reader| {
+                // TODO: Implement file output
+                Ok(())
+            }),
+        );
+
+        // S3 log output
+        LogsRegistry::register_output(
+            registry,
+            "s3",
+            "Log Outputs",
+            "Upload logs to S3 with batching and compression",
+            "mod",
+            Arc::new(|_output, _reader| {
+                // TODO: Implement S3 output
+                Ok(())
+            }),
+        );
+
+        // HTTP log output
+        LogsRegistry::register_output(
+            registry,
+            "http",
+            "Log Outputs",
+            "Send logs to HTTP endpoints with authentication and retry",
+            "mod",
+            Arc::new(|_output, _reader| {
+                // TODO: Implement HTTP output
+                Ok(())
+            }),
+        );
+
+        // Syslog output
+        LogsRegistry::register_output(
+            registry,
+            "syslog",
+            "Log Outputs",
+            "Send logs to syslog with RFC compliance",
+            "mod",
+            Arc::new(|_output, _reader| {
+                // TODO: Implement syslog output
+                Ok(())
+            }),
+        );
+
+        // Console output
+        LogsRegistry::register_output(
+            registry,
+            "console",
+            "Log Outputs",
+            "Output logs to stdout/stderr for debugging",
+            "mod",
+            Arc::new(|_output, _reader| {
+                // TODO: Implement console output
+                Ok(())
+            }),
+        );
+    }
+
+    /// Get all registered processor types
+    pub fn get_registered_processor_types() -> Vec<String> {
+        let registry = LOGS_REGISTRY.read().unwrap();
+        registry.keys().cloned().collect()
+    }
+
+    /// Get the category for a processor type
+    #[allow(unused)]
+    pub fn get_processor_category(processor_type: &str) -> String {
+        let registry = LOGS_REGISTRY.read().unwrap();
+        registry
+            .get(processor_type)
+            .map(|e| e.category.clone())
+            .unwrap_or_else(|| "Other".to_string())
+    }
+
+    /// Get the description for a processor type
+    pub fn get_processor_description(processor_type: &str) -> String {
+        let registry = LOGS_REGISTRY.read().unwrap();
+        registry
+            .get(processor_type)
+            .map(|e| e.description.clone())
+            .unwrap_or_else(|| "Unknown processor type".to_string())
+    }
+
+    /// Check if a processor type is a source
+    #[allow(unused)]
+    pub fn is_source_processor(processor_type: &str) -> bool {
+        let registry = LOGS_REGISTRY.read().unwrap();
+        registry
+            .get(processor_type)
+            .map(|e| e.is_source)
+            .unwrap_or(false)
+    }
+
+    /// Get the filename for a processor type
+    #[allow(unused)]
+    pub fn get_processor_filename(processor_type: &str) -> String {
+        let registry = LOGS_REGISTRY.read().unwrap();
+        registry
+            .get(processor_type)
+            .map(|e| e.filename.clone())
+            .unwrap_or_else(|| "mod".to_string())
+    }
+
+    /// Process logs using a registered processor
+    #[allow(unused)]
+    pub fn process_logs(
+        processor_type: &str,
+        config: &serde_yaml::Value,
+        reader: Box<dyn std::io::Read + Send>,
+    ) -> Result<()> {
+        let entry = {
+            let registry = LOGS_REGISTRY.read().unwrap();
+            registry.get(processor_type).cloned()
+        };
+
+        if let Some(entry) = entry {
+            (entry.function)(config, reader)
+        } else {
+            Err(anyhow::anyhow!(
+                "No processor registered for type: {}",
+                processor_type
+            ))
+        }
+    }
+}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LogsConfig {
     /// Global settings for log collection
@@ -93,7 +396,6 @@ pub enum FileEncoding {
     Latin1,
 }
 
-
 /// How to handle missing files
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
@@ -106,7 +408,6 @@ pub enum MissingFileHandling {
     /// Error and stop
     Error,
 }
-
 
 /// Parser configuration for log entries
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -151,7 +452,6 @@ pub enum ParserType {
     Regex,
 }
 
-
 /// Multiline log configuration
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct MultilineConfig {
@@ -171,15 +471,31 @@ pub struct MultilineConfig {
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum FilterConfig {
     /// Include only lines matching regex
-    Include { pattern: String, case_sensitive: Option<bool> },
+    Include {
+        pattern: String,
+        case_sensitive: Option<bool>,
+    },
     /// Exclude lines matching regex
-    Exclude { pattern: String, case_sensitive: Option<bool> },
+    Exclude {
+        pattern: String,
+        case_sensitive: Option<bool>,
+    },
     /// Include lines containing any of the specified strings
-    Contains { values: Vec<String>, case_sensitive: Option<bool> },
+    Contains {
+        values: Vec<String>,
+        case_sensitive: Option<bool>,
+    },
     /// Exclude lines containing any of the specified strings
-    NotContains { values: Vec<String>, case_sensitive: Option<bool> },
+    NotContains {
+        values: Vec<String>,
+        case_sensitive: Option<bool>,
+    },
     /// Include lines where field matches value
-    FieldMatch { field: String, value: String, case_sensitive: Option<bool> },
+    FieldMatch {
+        field: String,
+        value: String,
+        case_sensitive: Option<bool>,
+    },
     /// Drop lines above a certain rate (rate limiting)
     RateLimit { events_per_second: u32 },
 }
@@ -327,7 +643,6 @@ pub enum SyslogProtocol {
     Tcp,
 }
 
-
 /// Console output configuration (for debugging)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConsoleOutput {
@@ -351,7 +666,6 @@ pub enum ConsoleTarget {
     /// Standard error
     Stderr,
 }
-
 
 /// File rotation configuration
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -385,7 +699,6 @@ pub enum RotationStrategy {
     SizeOrTime,
 }
 
-
 /// Compression configuration
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct CompressionConfig {
@@ -412,7 +725,6 @@ pub enum CompressionAlgorithm {
     /// No compression
     None,
 }
-
 
 /// Batch configuration for HTTP outputs
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -469,7 +781,11 @@ pub enum TransformationConfig {
     /// Copy field value to another field
     CopyField { from: String, to: String },
     /// Set field value conditionally
-    SetFieldIf { field: String, value: String, condition: ConditionConfig },
+    SetFieldIf {
+        field: String,
+        value: String,
+        condition: ConditionConfig,
+    },
 }
 
 /// Condition configuration for transformations
@@ -504,25 +820,63 @@ pub enum ConditionOperator {
 }
 
 // Default value functions
-fn default_true() -> bool { true }
-fn default_buffer_size() -> usize { 8192 }
-fn default_flush_interval() -> u64 { 30 }
-fn default_max_lines() -> usize { 100 }
-fn default_filename_pattern() -> String { "%Y-%m-%d-%H-%M-%S.log".to_string() }
-fn default_s3_prefix() -> String { "logs/".to_string() }
-fn default_upload_interval() -> u64 { 300 }
-fn default_http_method() -> String { "POST".to_string() }
-fn default_syslog_facility() -> String { "local0".to_string() }
-fn default_syslog_severity() -> String { "info".to_string() }
-fn default_syslog_tag() -> String { "driftless".to_string() }
-fn default_max_files() -> usize { 10 }
-pub fn default_compression_level() -> u32 { 6 }
-fn default_batch_size() -> usize { 100 }
-fn default_batch_age() -> u64 { 30 }
-fn default_batch_bytes() -> usize { 1024 * 1024 }
-fn default_max_retries() -> u32 { 3 }
-fn default_initial_backoff() -> u64 { 1 }
-fn default_max_backoff() -> u64 { 60 }
+fn default_true() -> bool {
+    true
+}
+fn default_buffer_size() -> usize {
+    8192
+}
+fn default_flush_interval() -> u64 {
+    30
+}
+fn default_max_lines() -> usize {
+    100
+}
+fn default_filename_pattern() -> String {
+    "%Y-%m-%d-%H-%M-%S.log".to_string()
+}
+fn default_s3_prefix() -> String {
+    "logs/".to_string()
+}
+fn default_upload_interval() -> u64 {
+    300
+}
+fn default_http_method() -> String {
+    "POST".to_string()
+}
+fn default_syslog_facility() -> String {
+    "local0".to_string()
+}
+fn default_syslog_severity() -> String {
+    "info".to_string()
+}
+fn default_syslog_tag() -> String {
+    "driftless".to_string()
+}
+fn default_max_files() -> usize {
+    10
+}
+pub fn default_compression_level() -> u32 {
+    6
+}
+fn default_batch_size() -> usize {
+    100
+}
+fn default_batch_age() -> u64 {
+    30
+}
+fn default_batch_bytes() -> usize {
+    1024 * 1024
+}
+fn default_max_retries() -> u32 {
+    3
+}
+fn default_initial_backoff() -> u64 {
+    1
+}
+fn default_max_backoff() -> u64 {
+    60
+}
 
 #[cfg(test)]
 mod tests {
@@ -550,7 +904,10 @@ outputs:
         assert_eq!(source.name, "nginx_access");
         assert!(source.enabled);
         assert_eq!(source.paths.len(), 2);
-        assert!(matches!(source.parser.parser_type, ParserType::ApacheCombined));
+        assert!(matches!(
+            source.parser.parser_type,
+            ParserType::ApacheCombined
+        ));
         assert_eq!(source.filters.len(), 1);
         assert_eq!(source.outputs.len(), 2);
     }
@@ -585,11 +942,20 @@ compression:
                 assert!(http.enabled);
                 assert_eq!(http.url, "http://elasticsearch:9200/_bulk");
                 assert_eq!(http.method, "POST");
-                assert_eq!(http.headers.get("Content-Type").unwrap(), "application/x-ndjson");
-                assert!(matches!(http.auth.as_ref().unwrap(), HttpAuth::Basic { .. }));
+                assert_eq!(
+                    http.headers.get("Content-Type").unwrap(),
+                    "application/x-ndjson"
+                );
+                assert!(matches!(
+                    http.auth.as_ref().unwrap(),
+                    HttpAuth::Basic { .. }
+                ));
                 assert_eq!(http.batch.max_size, 1000);
                 assert!(http.compression.enabled);
-                assert!(matches!(http.compression.algorithm, CompressionAlgorithm::Gzip));
+                assert!(matches!(
+                    http.compression.algorithm,
+                    CompressionAlgorithm::Gzip
+                ));
             }
             _ => panic!("Expected HTTP output"),
         }

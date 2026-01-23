@@ -8,10 +8,12 @@ use anyhow::Result;
 use std::collections::HashMap;
 
 /// Metrics collector for system facts
+#[allow(dead_code)]
 pub struct MetricsCollector {
     config: FactsConfig,
 }
 
+#[allow(unused)]
 impl MetricsCollector {
     /// Create a new metrics collector
     pub fn new(config: FactsConfig) -> Self {
@@ -68,7 +70,7 @@ impl MetricsCollector {
     }
 
     /// Get the name of a collector
-    fn get_collector_name(&self, collector: &Collector) -> &str {
+    fn get_collector_name<'a>(&self, collector: &'a Collector) -> &'a str {
         use crate::facts::Collector::*;
 
         match collector {
@@ -101,10 +103,12 @@ impl MetricsCollector {
 }
 
 /// Prometheus exporter for metrics
+#[allow(dead_code)]
 pub struct PrometheusExporter {
     config: crate::facts::PrometheusExport,
 }
 
+#[allow(unused)]
 impl PrometheusExporter {
     /// Create a new Prometheus exporter
     pub fn new(config: crate::facts::PrometheusExport) -> Self {

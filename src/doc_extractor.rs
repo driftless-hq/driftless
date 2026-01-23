@@ -114,20 +114,38 @@ fn add_common_task_fields(docs: &mut HashMap<String, TaskDocumentation>) {
 
 /// Extract documentation for all facts collectors
 pub fn extract_all_facts_docs() -> Result<HashMap<String, TaskDocumentation>> {
-    let docs = HashMap::new();
+    let mut docs = HashMap::new();
 
-    // For now, return empty docs since facts collectors are not yet implemented
-    // When implemented, this will extract from src/facts/mod.rs similar to apply tasks
+    // Get all registered collector types from the registry
+    let registered_collector_types = crate::facts::FactsRegistry::get_registered_collector_types();
+
+    // Extract from facts/mod.rs
+    let file_path = "src/facts/mod.rs";
+    if let Ok(content) = fs::read_to_string(file_path) {
+        extract_facts_struct_docs(&content, &mut docs, &registered_collector_types)?;
+    }
+
+    // Add common fields to all facts collectors
+    add_common_facts_fields(&mut docs);
 
     Ok(docs)
 }
 
 /// Extract documentation for all logs sources and outputs
 pub fn extract_all_logs_docs() -> Result<HashMap<String, TaskDocumentation>> {
-    let docs = HashMap::new();
+    let mut docs = HashMap::new();
 
-    // For now, return empty docs since logs functionality is not yet implemented
-    // When implemented, this will extract from src/logs/mod.rs similar to apply tasks
+    // Get all registered processor types from the registry
+    let registered_processor_types = crate::logs::LogsRegistry::get_registered_processor_types();
+
+    // Extract from logs/mod.rs
+    let file_path = "src/logs/mod.rs";
+    if let Ok(content) = fs::read_to_string(file_path) {
+        extract_logs_struct_docs(&content, &mut docs, &registered_processor_types)?;
+    }
+
+    // Add common fields to all logs processors
+    add_common_logs_fields(&mut docs);
 
     Ok(docs)
 }
@@ -597,5 +615,193 @@ fn extract_examples_from_file(content: &str) -> Option<Vec<TaskExample>> {
         None
     } else {
         Some(examples)
+    }
+}
+
+/// Extract facts collector documentation from mod.rs
+fn extract_facts_struct_docs(
+    content: &str,
+    docs: &mut HashMap<String, TaskDocumentation>,
+    collector_types: &[String],
+) -> Result<()> {
+    let lines: Vec<&str> = content.lines().collect();
+    let mut i = 0;
+
+    while i < lines.len() {
+        // Look for collector struct definitions
+        if lines[i].contains("#[derive") && lines[i + 1].contains("pub struct") {
+            let struct_line = lines[i + 1];
+            if let Some(struct_name) = extract_struct_name(struct_line) {
+                // If it ends with Collector, assume it's a collector struct
+                if struct_name.ends_with("Collector") {
+                    let collector_type = struct_name.trim_end_matches("Collector").to_lowercase();
+                    if collector_types.contains(&collector_type) {
+                        let description = crate::facts::FactsRegistry::get_collector_description(&collector_type);
+                        let mut task_doc = TaskDocumentation {
+                            description,
+                            fields: HashMap::new(),
+                            examples: Vec::new(),
+                            register_outputs: HashMap::new(),
+                        };
+
+                        // Extract field documentation
+                        extract_struct_fields(&lines, &mut i, &mut task_doc.fields)?;
+
+                        docs.insert(collector_type, task_doc);
+                    }
+                }
+            }
+        }
+        i += 1;
+    }
+
+    Ok(())
+}
+
+/// Extract all fields from a struct
+fn extract_struct_fields(
+    lines: &[&str],
+    i: &mut usize,
+    fields: &mut HashMap<String, FieldDocumentation>,
+) -> Result<()> {
+    // Skip the derive and struct lines
+    *i += 2;
+
+    while *i < lines.len() && !lines[*i].contains('}') {
+        if lines[*i].contains("pub ") && lines[*i].contains(": ") {
+            if let Some(field_doc) = extract_field_doc(lines, i) {
+                fields.insert(field_doc.name.clone(), field_doc);
+            }
+        } else {
+            *i += 1;
+        }
+    }
+
+    Ok(())
+}
+
+/// Add common fields to all facts collectors
+fn add_common_facts_fields(docs: &mut HashMap<String, TaskDocumentation>) {
+    for task_doc in docs.values_mut() {
+        // Add base collector fields that all collectors inherit
+        task_doc.fields.insert(
+            "name".to_string(),
+            FieldDocumentation {
+                name: "name".to_string(),
+                field_type: "String".to_string(),
+                required: true,
+                description: "Collector name (used for metric names)".to_string(),
+            },
+        );
+
+        task_doc.fields.insert(
+            "enabled".to_string(),
+            FieldDocumentation {
+                name: "enabled".to_string(),
+                field_type: "bool".to_string(),
+                required: false,
+                description: "Whether this collector is enabled (default: true)".to_string(),
+            },
+        );
+
+        task_doc.fields.insert(
+            "poll_interval".to_string(),
+            FieldDocumentation {
+                name: "poll_interval".to_string(),
+                field_type: "Option<u64>".to_string(),
+                required: false,
+                description: "Poll interval override in seconds".to_string(),
+            },
+        );
+
+        task_doc.fields.insert(
+            "labels".to_string(),
+            FieldDocumentation {
+                name: "labels".to_string(),
+                field_type: "HashMap<String, String>".to_string(),
+                required: false,
+                description: "Additional labels for this collector".to_string(),
+            },
+        );
+    }
+}
+
+/// Extract logs processor documentation from mod.rs
+fn extract_logs_struct_docs(
+    content: &str,
+    docs: &mut HashMap<String, TaskDocumentation>,
+    processor_types: &[String],
+) -> Result<()> {
+    let lines: Vec<&str> = content.lines().collect();
+    let mut i = 0;
+
+    while i < lines.len() {
+        // Look for log struct definitions
+        if lines[i].contains("#[derive") && lines[i + 1].contains("pub struct") {
+            let struct_line = lines[i + 1];
+            if let Some(struct_name) = extract_struct_name(struct_line) {
+                // Check if it's a LogSource or LogOutput struct
+                let processor_type = if struct_name == "LogSource" {
+                    // This is a generic source, skip for now
+                    i += 1;
+                    continue;
+                } else if struct_name == "LogOutput" {
+                    // This is a generic output, skip for now
+                    i += 1;
+                    continue;
+                } else if struct_name.starts_with("Log") && struct_name.ends_with("Source") {
+                    struct_name.trim_start_matches("Log").trim_end_matches("Source").to_lowercase()
+                } else if struct_name.starts_with("Log") && struct_name.ends_with("Output") {
+                    struct_name.trim_start_matches("Log").trim_end_matches("Output").to_lowercase()
+                } else {
+                    i += 1;
+                    continue;
+                };
+
+                if processor_types.contains(&processor_type) {
+                    let description = crate::logs::LogsRegistry::get_processor_description(&processor_type);
+                    let mut task_doc = TaskDocumentation {
+                        description,
+                        fields: HashMap::new(),
+                        examples: Vec::new(),
+                        register_outputs: HashMap::new(),
+                    };
+
+                    // Extract field documentation
+                    extract_struct_fields(&lines, &mut i, &mut task_doc.fields)?;
+
+                    docs.insert(processor_type, task_doc);
+                }
+            }
+        }
+        i += 1;
+    }
+
+    Ok(())
+}
+
+/// Add common fields to all logs processors
+fn add_common_logs_fields(docs: &mut HashMap<String, TaskDocumentation>) {
+    for task_doc in docs.values_mut() {
+        // Add common log processor fields
+        task_doc.fields.insert(
+            "enabled".to_string(),
+            FieldDocumentation {
+                name: "enabled".to_string(),
+                field_type: "bool".to_string(),
+                required: false,
+                description: "Whether this processor is enabled (default: true)".to_string(),
+            },
+        );
+
+        task_doc.fields.insert(
+            "name".to_string(),
+            FieldDocumentation {
+                name: "name".to_string(),
+                field_type: "String".to_string(),
+                required: true,
+                description: "Processor name for identification".to_string(),
+            },
+        );
     }
 }

@@ -534,26 +534,117 @@ fn generate_task_schema() -> serde_json::Map<String, serde_json::Value> {
 
 /// Generate detailed documentation for all facts collectors
 fn generate_facts_section(
-    _facts_docs: &std::collections::HashMap<String, TaskDocumentation>,
+    facts_docs: &std::collections::HashMap<String, TaskDocumentation>,
 ) -> Result<String> {
     let mut section = String::from("## Facts Collectors (`facts`)\n\n");
     section.push_str("Facts collectors gather system metrics and inventory information. ");
     section.push_str("These collectors run at specified intervals to provide monitoring data.\n\n");
 
-    section.push_str("**Note**: Facts collectors are not yet implemented. ");
-    section.push_str(
-        "This section will be populated when facts collection functionality is added.\n\n",
-    );
+    // Get all registered collector types from the registry
+    let registered_collector_types = crate::facts::FactsRegistry::get_registered_collector_types();
 
-    // Placeholder for future facts collector documentation
-    section.push_str("### Planned Collectors\n\n");
-    section.push_str("- **system**: System information (OS, kernel, hardware)\n");
-    section.push_str("- **cpu**: CPU usage and performance metrics\n");
-    section.push_str("- **memory**: Memory usage statistics\n");
-    section.push_str("- **disk**: Disk usage and I/O metrics\n");
-    section.push_str("- **network**: Network interface statistics\n");
-    section.push_str("- **process**: Process information and metrics\n");
-    section.push_str("- **command**: Custom command output collection\n\n");
+    // Group collectors by category dynamically
+    let mut categories = std::collections::HashMap::new();
+
+    for collector_type in &registered_collector_types {
+        let category = crate::facts::FactsRegistry::get_collector_category(collector_type);
+        categories
+            .entry(category)
+            .or_insert_with(Vec::new)
+            .push(collector_type.clone());
+    }
+
+    // Sort categories and collectors within categories
+    let mut sorted_categories: Vec<_> = categories.into_iter().collect();
+    sorted_categories.sort_by(|a, b| a.0.cmp(&b.0));
+
+    for (category_name, mut collector_types) in sorted_categories {
+        collector_types.sort();
+        section.push_str(&format!("### {}\n\n", category_name));
+
+        for collector_type in collector_types {
+            if let Some(collector_doc) = facts_docs.get(&collector_type) {
+                section.push_str(&format!("#### {}\n\n", collector_type));
+                section.push_str(&format!("**Description**: {}\n\n", collector_doc.description));
+
+                if !collector_doc.fields.is_empty() {
+                    // Collect and sort fields: required first, then alphabetical
+                    let mut required_fields = Vec::new();
+                    let mut optional_fields = Vec::new();
+
+                    for field in collector_doc.fields.values() {
+                        if field.required {
+                            required_fields.push(field.clone());
+                        } else {
+                            optional_fields.push(field.clone());
+                        }
+                    }
+
+                    // Sort each group alphabetically by field name
+                    required_fields.sort_by(|a, b| a.name.cmp(&b.name));
+                    optional_fields.sort_by(|a, b| a.name.cmp(&b.name));
+
+                    // Display required fields first
+                    if !required_fields.is_empty() {
+                        section.push_str("**Required Fields**:\n\n");
+                        for field in &required_fields {
+                            section
+                                .push_str(&format!("- `{}` ({}):\n", field.name, field.field_type));
+                            // Indent each line of the description
+                            for line in field.description.lines() {
+                                if !line.trim().is_empty() {
+                                    section.push_str(&format!("  {}\n", line));
+                                } else {
+                                    section.push('\n');
+                                }
+                            }
+                            section.push('\n');
+                        }
+                    }
+
+                    // Display optional fields second
+                    if !optional_fields.is_empty() {
+                        section.push_str("**Optional Fields**:\n\n");
+                        for field in &optional_fields {
+                            section
+                                .push_str(&format!("- `{}` ({}):\n", field.name, field.field_type));
+                            // Indent each line of the description
+                            for line in field.description.lines() {
+                                if !line.trim().is_empty() {
+                                    section.push_str(&format!("  {}\n", line));
+                                } else {
+                                    section.push('\n');
+                                }
+                            }
+                            section.push('\n');
+                        }
+                    }
+                }
+
+                // Add examples if available
+                if !collector_doc.examples.is_empty() {
+                    section.push_str("**Examples**:\n\n");
+                    for example in &collector_doc.examples {
+                        section.push_str(&format!("**{}**:\n\n", example.description));
+                        section.push_str("**YAML Format**:\n\n");
+                        section.push_str("```yaml\n");
+                        section.push_str(&example.yaml);
+                        section.push_str("\n```\n\n");
+
+                        section.push_str("**JSON Format**:\n\n");
+                        section.push_str("```json\n");
+                        section.push_str(&example.json);
+                        section.push_str("\n```\n\n");
+
+                        section.push_str("**TOML Format**:\n\n");
+                        section.push_str("```toml\n");
+                        section.push_str(&example.toml);
+                        section.push_str("\n```\n\n");
+                    }
+                }
+            }
+        }
+    }
 
     Ok(section)
 }

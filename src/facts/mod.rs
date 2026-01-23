@@ -1,7 +1,260 @@
+use anyhow::Result;
+use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::{Arc, RwLock};
 
-/// Main facts configuration schema
+// Module declarations for individual collectors
+mod collector;
+mod command_facts;
+mod cpu_facts;
+mod disk_facts;
+mod memory_facts;
+mod network_facts;
+mod process_facts;
+mod system_facts;
+
+// Type alias for facts collector functions
+type FactsCollectorFn = Arc<dyn Fn(&Collector) -> Result<serde_yaml::Value> + Send + Sync>;
+
+// Facts registry entry containing collector function and metadata
+#[derive(Clone)]
+pub(crate) struct FactsRegistryEntry {
+    collector: FactsCollectorFn,
+    category: String,
+    description: String,
+    filename: String,
+}
+
+// Global facts registry for extensible facts collection
+static FACTS_REGISTRY: Lazy<RwLock<HashMap<String, FactsRegistryEntry>>> = Lazy::new(|| {
+    let mut registry = HashMap::new();
+
+    // Initialize with built-in collectors
+    FactsRegistry::initialize_builtin_collectors(&mut registry);
+
+    RwLock::new(registry)
+});
+
+/// Facts collector registry for runtime extensibility
+pub struct FactsRegistry;
+
+impl FactsRegistry {
+    /// Register a facts collector function with the global registry
+    #[allow(unused)]
+    pub fn register_collector(
+        collector_type: &str,
+        category: &str,
+        description: &str,
+        filename: &str,
+        collector: FactsCollectorFn,
+    ) {
+        let entry = FactsRegistryEntry {
+            collector,
+            category: category.to_string(),
+            description: description.to_string(),
+            filename: filename.to_string(),
+        };
+        let mut registry = FACTS_REGISTRY.write().unwrap();
+        registry.insert(collector_type.to_string(), entry);
+    }
+
+    /// Register a facts collector function
+    pub fn register(
+        registry: &mut HashMap<String, FactsRegistryEntry>,
+        collector_type: &str,
+        category: &str,
+        description: &str,
+        filename: &str,
+        collector: FactsCollectorFn,
+    ) {
+        let entry = FactsRegistryEntry {
+            collector,
+            category: category.to_string(),
+            description: description.to_string(),
+            filename: filename.to_string(),
+        };
+        registry.insert(collector_type.to_string(), entry);
+    }
+
+    /// Initialize the registry with built-in facts collectors
+    pub fn initialize_builtin_collectors(registry: &mut HashMap<String, FactsRegistryEntry>) {
+        // System facts collector
+        FactsRegistry::register(
+            registry,
+            "system",
+            "System Information",
+            "Collect system information including hostname, OS, kernel, uptime, and architecture",
+            "system_facts",
+            Arc::new(|collector| {
+                if let Collector::System(system_collector) = collector {
+                    system_facts::collect_system_facts(system_collector)
+                } else {
+                    Err(anyhow::anyhow!("Invalid collector type for system facts"))
+                }
+            }),
+        );
+
+        // CPU facts collector
+        FactsRegistry::register(
+            registry,
+            "cpu",
+            "CPU Metrics",
+            "Collect CPU usage, frequency, temperature, and load average metrics",
+            "cpu_facts",
+            Arc::new(|collector| {
+                if let Collector::Cpu(cpu_collector) = collector {
+                    cpu_facts::collect_cpu_facts(cpu_collector)
+                } else {
+                    Err(anyhow::anyhow!("Invalid collector type for CPU facts"))
+                }
+            }),
+        );
+
+        // Memory facts collector
+        FactsRegistry::register(
+            registry,
+            "memory",
+            "Memory Metrics",
+            "Collect memory usage statistics including total, used, free, and swap",
+            "memory_facts",
+            Arc::new(|collector| {
+                if let Collector::Memory(memory_collector) = collector {
+                    memory_facts::collect_memory_facts(memory_collector)
+                } else {
+                    Err(anyhow::anyhow!("Invalid collector type for memory facts"))
+                }
+            }),
+        );
+
+        // Disk facts collector
+        FactsRegistry::register(
+            registry,
+            "disk",
+            "Disk Metrics",
+            "Collect disk space and I/O statistics for mounted filesystems",
+            "disk_facts",
+            Arc::new(|collector| {
+                if let Collector::Disk(disk_collector) = collector {
+                    disk_facts::collect_disk_facts(disk_collector)
+                } else {
+                    Err(anyhow::anyhow!("Invalid collector type for disk facts"))
+                }
+            }),
+        );
+
+        // Network facts collector
+        FactsRegistry::register(
+            registry,
+            "network",
+            "Network Metrics",
+            "Collect network interface statistics and status information",
+            "network_facts",
+            Arc::new(|collector| {
+                if let Collector::Network(network_collector) = collector {
+                    network_facts::collect_network_facts(network_collector)
+                } else {
+                    Err(anyhow::anyhow!("Invalid collector type for network facts"))
+                }
+            }),
+        );
+
+        // Process facts collector
+        FactsRegistry::register(
+            registry,
+            "process",
+            "Process Metrics",
+            "Collect process information and resource usage statistics",
+            "process_facts",
+            Arc::new(|collector| {
+                if let Collector::Process(process_collector) = collector {
+                    process_facts::collect_process_facts(process_collector)
+                } else {
+                    Err(anyhow::anyhow!("Invalid collector type for process facts"))
+                }
+            }),
+        );
+
+        // Command facts collector
+        FactsRegistry::register(
+            registry,
+            "command",
+            "Command Output",
+            "Execute custom commands and collect their output as facts",
+            "command_facts",
+            Arc::new(|collector| {
+                if let Collector::Command(command_collector) = collector {
+                    command_facts::collect_command_facts(command_collector)
+                } else {
+                    Err(anyhow::anyhow!("Invalid collector type for command facts"))
+                }
+            }),
+        );
+    }
+
+    /// Get all registered collector types
+    pub fn get_registered_collector_types() -> Vec<String> {
+        let registry = FACTS_REGISTRY.read().unwrap();
+        registry.keys().cloned().collect()
+    }
+
+    /// Get the category for a collector type
+    #[allow(unused)]
+    pub fn get_collector_category(collector_type: &str) -> String {
+        let registry = FACTS_REGISTRY.read().unwrap();
+        registry
+            .get(collector_type)
+            .map(|e| e.category.clone())
+            .unwrap_or_else(|| "Other".to_string())
+    }
+
+    /// Get the description for a collector type
+    pub fn get_collector_description(collector_type: &str) -> String {
+        let registry = FACTS_REGISTRY.read().unwrap();
+        registry
+            .get(collector_type)
+            .map(|e| e.description.clone())
+            .unwrap_or_else(|| "Unknown collector type".to_string())
+    }
+
+    /// Get the filename for a collector type
+    #[allow(unused)]
+    pub fn get_collector_filename(collector_type: &str) -> String {
+        let registry = FACTS_REGISTRY.read().unwrap();
+        registry
+            .get(collector_type)
+            .map(|e| e.filename.clone())
+            .unwrap_or_else(|| "mod".to_string())
+    }
+
+    /// Execute a collector and return facts
+    #[allow(unused)]
+    pub fn collect_facts(collector: &Collector) -> Result<serde_yaml::Value> {
+        let collector_type = match collector {
+            Collector::System(_) => "system",
+            Collector::Cpu(_) => "cpu",
+            Collector::Memory(_) => "memory",
+            Collector::Disk(_) => "disk",
+            Collector::Network(_) => "network",
+            Collector::Process(_) => "process",
+            Collector::Command(_) => "command",
+        };
+
+        let entry = {
+            let registry = FACTS_REGISTRY.read().unwrap();
+            registry.get(collector_type).cloned()
+        };
+
+        if let Some(entry) = entry {
+            (entry.collector)(collector)
+        } else {
+            Err(anyhow::anyhow!(
+                "No collector registered for type: {}",
+                collector_type
+            ))
+        }
+    }
+}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FactsConfig {
     /// Global settings for facts collection
@@ -15,7 +268,7 @@ pub struct FactsConfig {
 }
 
 /// Global settings for facts collection
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GlobalSettings {
     /// Default poll interval (seconds)
     #[serde(default = "default_poll_interval")]
@@ -26,6 +279,16 @@ pub struct GlobalSettings {
     /// Labels to add to all metrics
     #[serde(default)]
     pub labels: HashMap<String, String>,
+}
+
+impl Default for GlobalSettings {
+    fn default() -> Self {
+        Self {
+            poll_interval: default_poll_interval(),
+            enabled: default_true(),
+            labels: HashMap::new(),
+        }
+    }
 }
 
 /// Types of collectors
@@ -341,7 +604,6 @@ pub enum CommandOutputFormat {
     KeyValue,
 }
 
-
 /// Export configuration
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ExportConfig {
@@ -418,7 +680,6 @@ pub enum FileFormat {
     /// InfluxDB line protocol
     Influx,
 }
-
 
 // Default value functions
 fn default_poll_interval() -> u64 {

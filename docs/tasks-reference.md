@@ -8248,17 +8248,231 @@ state = "absent"
 
 Facts collectors gather system metrics and inventory information. These collectors run at specified intervals to provide monitoring data.
 
-**Note**: Facts collectors are not yet implemented. This section will be populated when facts collection functionality is added.
+### CPU Metrics
 
-### Planned Collectors
+#### cpu
 
-- **system**: System information (OS, kernel, hardware)
-- **cpu**: CPU usage and performance metrics
-- **memory**: Memory usage statistics
-- **disk**: Disk usage and I/O metrics
-- **network**: Network interface statistics
-- **process**: Process information and metrics
-- **command**: Custom command output collection
+**Description**: Collect CPU usage, frequency, temperature, and load average metrics
+
+**Required Fields**:
+
+- `base` (BaseCollector):
+  No description available
+
+- `collect` (CpuCollectOptions):
+  CPU metrics to collect
+
+- `name` (String):
+  Collector name (used for metric names)
+
+- `thresholds` (CpuThresholds):
+  Thresholds for alerts
+
+**Optional Fields**:
+
+- `enabled` (bool):
+  Whether this collector is enabled (default: true)
+
+- `labels` (HashMap<String, String>):
+  Additional labels for this collector
+
+- `poll_interval` (Option<u64>):
+  Poll interval override in seconds
+
+### Command Output
+
+#### command
+
+**Description**: Execute custom commands and collect their output as facts
+
+**Required Fields**:
+
+- `base` (BaseCollector):
+  No description available
+
+- `command` (String):
+  Command to execute
+
+- `env` (HashMap<String, String>):
+  Environment variables
+
+- `format` (CommandOutputFormat):
+  Expected output format
+
+- `name` (String):
+  Collector name (used for metric names)
+
+**Optional Fields**:
+
+- `cwd` (Option<String>):
+  Working directory for command
+
+- `enabled` (bool):
+  Whether this collector is enabled (default: true)
+
+- `labels` (HashMap<String, String>):
+  Additional labels for this collector
+
+- `poll_interval` (Option<u64>):
+  Poll interval override in seconds
+
+### Disk Metrics
+
+#### disk
+
+**Description**: Collect disk space and I/O statistics for mounted filesystems
+
+**Required Fields**:
+
+- `base` (BaseCollector):
+  No description available
+
+- `collect` (DiskCollectOptions):
+  Disk metrics to collect
+
+- `devices` (Vec<String>):
+  Disk devices to monitor (empty = all)
+
+- `mount_points` (Vec<String>):
+  Mount points to monitor (empty = all)
+
+- `name` (String):
+  Collector name (used for metric names)
+
+- `thresholds` (DiskThresholds):
+  Thresholds for alerts
+
+**Optional Fields**:
+
+- `enabled` (bool):
+  Whether this collector is enabled (default: true)
+
+- `labels` (HashMap<String, String>):
+  Additional labels for this collector
+
+- `poll_interval` (Option<u64>):
+  Poll interval override in seconds
+
+### Memory Metrics
+
+#### memory
+
+**Description**: Collect memory usage statistics including total, used, free, and swap
+
+**Required Fields**:
+
+- `base` (BaseCollector):
+  No description available
+
+- `collect` (MemoryCollectOptions):
+  Memory metrics to collect
+
+- `name` (String):
+  Collector name (used for metric names)
+
+- `thresholds` (MemoryThresholds):
+  Thresholds for alerts
+
+**Optional Fields**:
+
+- `enabled` (bool):
+  Whether this collector is enabled (default: true)
+
+- `labels` (HashMap<String, String>):
+  Additional labels for this collector
+
+- `poll_interval` (Option<u64>):
+  Poll interval override in seconds
+
+### Network Metrics
+
+#### network
+
+**Description**: Collect network interface statistics and status information
+
+**Required Fields**:
+
+- `base` (BaseCollector):
+  No description available
+
+- `collect` (NetworkCollectOptions):
+  Network metrics to collect
+
+- `interfaces` (Vec<String>):
+  Network interfaces to monitor (empty = all)
+
+- `name` (String):
+  Collector name (used for metric names)
+
+**Optional Fields**:
+
+- `enabled` (bool):
+  Whether this collector is enabled (default: true)
+
+- `labels` (HashMap<String, String>):
+  Additional labels for this collector
+
+- `poll_interval` (Option<u64>):
+  Poll interval override in seconds
+
+### Process Metrics
+
+#### process
+
+**Description**: Collect process information and resource usage statistics
+
+**Required Fields**:
+
+- `base` (BaseCollector):
+  No description available
+
+- `collect` (ProcessCollectOptions):
+  Process metrics to collect
+
+- `name` (String):
+  Collector name (used for metric names)
+
+- `patterns` (Vec<String>):
+  Process name patterns to monitor (empty = all processes)
+
+**Optional Fields**:
+
+- `enabled` (bool):
+  Whether this collector is enabled (default: true)
+
+- `labels` (HashMap<String, String>):
+  Additional labels for this collector
+
+- `poll_interval` (Option<u64>):
+  Poll interval override in seconds
+
+### System Information
+
+#### system
+
+**Description**: Collect system information including hostname, OS, kernel, uptime, and architecture
+
+**Required Fields**:
+
+- `base` (BaseCollector):
+  No description available
+
+- `collect` (SystemCollectOptions):
+  What system information to collect
+
+- `name` (String):
+  Collector name (used for metric names)
+
+**Optional Fields**:
+
+- `enabled` (bool):
+  Whether this collector is enabled (default: true)
+
+- `labels` (HashMap<String, String>):
+  Additional labels for this collector
+
+- `poll_interval` (Option<u64>):
+  Poll interval override in seconds
 
 ## Log Sources/Outputs (`logs`)
 
