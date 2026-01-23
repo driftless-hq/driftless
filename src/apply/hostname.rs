@@ -127,7 +127,10 @@ pub async fn execute_hostname_task(task: &HostnameTask, dry_run: bool) -> Result
         return Ok(());
     }
 
-    println!("Changing hostname from '{}' to '{}'", current_hostname, task.name);
+    println!(
+        "Changing hostname from '{}' to '{}'",
+        current_hostname, task.name
+    );
 
     if dry_run {
         println!("Would set hostname to: {}", task.name);

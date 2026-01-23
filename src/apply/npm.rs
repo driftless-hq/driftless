@@ -180,15 +180,9 @@ use std::process::Command;
 /// Execute an npm task
 pub async fn execute_npm_task(task: &NpmTask, dry_run: bool) -> Result<()> {
     match task.state {
-        PackageState::Present => {
-            ensure_package_present(task, dry_run).await
-        }
-        PackageState::Absent => {
-            ensure_package_absent(task, dry_run).await
-        }
-        PackageState::Latest => {
-            ensure_package_latest(task, dry_run).await
-        }
+        PackageState::Present => ensure_package_present(task, dry_run).await,
+        PackageState::Absent => ensure_package_absent(task, dry_run).await,
+        PackageState::Latest => ensure_package_latest(task, dry_run).await,
     }
 }
 
@@ -236,7 +230,8 @@ async fn ensure_package_present(task: &NpmTask, dry_run: bool) -> Result<()> {
         // Add extra arguments
         args.extend(task.extra_args.clone());
 
-        run_npm_command(&args, &task.executable).await
+        run_npm_command(&args, &task.executable)
+            .await
             .with_context(|| format!("Failed to install NPM package {}", task.name))?;
 
         println!("Installed NPM package: {}", task.name);
@@ -256,7 +251,10 @@ async fn ensure_package_absent(task: &NpmTask, dry_run: bool) -> Result<()> {
             if dry_run {
                 false
             } else {
-                return Err(anyhow::anyhow!("Cannot determine if NPM package {} is installed", task.name));
+                return Err(anyhow::anyhow!(
+                    "Cannot determine if NPM package {} is installed",
+                    task.name
+                ));
             }
         }
     };
@@ -284,7 +282,8 @@ async fn ensure_package_absent(task: &NpmTask, dry_run: bool) -> Result<()> {
         // Add extra arguments
         args.extend(task.extra_args.clone());
 
-        run_npm_command(&args, &task.executable).await
+        run_npm_command(&args, &task.executable)
+            .await
             .with_context(|| format!("Failed to remove NPM package {}", task.name))?;
 
         println!("Removed NPM package: {}", task.name);
@@ -313,7 +312,8 @@ async fn ensure_package_latest(task: &NpmTask, dry_run: bool) -> Result<()> {
         // Add extra arguments
         args.extend(task.extra_args.clone());
 
-        run_npm_command(&args, &task.executable).await
+        run_npm_command(&args, &task.executable)
+            .await
             .with_context(|| format!("Failed to upgrade NPM package {}", task.name))?;
 
         println!("Upgraded NPM package: {}", task.name);
@@ -364,7 +364,9 @@ async fn run_npm_command(args: &[String], executable: &str) -> Result<()> {
 }
 
 /// Default npm executable ("npm")
-pub fn default_npm_executable() -> String { "npm".to_string() }
+pub fn default_npm_executable() -> String {
+    "npm".to_string()
+}
 
 #[cfg(test)]
 mod tests {

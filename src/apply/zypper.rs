@@ -140,15 +140,9 @@ use std::process::Command;
 /// Execute a zypper task
 pub async fn execute_zypper_task(task: &ZypperTask, dry_run: bool) -> Result<()> {
     match task.state {
-        PackageState::Present => {
-            ensure_package_present(task, dry_run).await
-        }
-        PackageState::Absent => {
-            ensure_package_absent(task, dry_run).await
-        }
-        PackageState::Latest => {
-            ensure_package_latest(task, dry_run).await
-        }
+        PackageState::Present => ensure_package_present(task, dry_run).await,
+        PackageState::Absent => ensure_package_absent(task, dry_run).await,
+        PackageState::Latest => ensure_package_latest(task, dry_run).await,
     }
 }
 
@@ -197,7 +191,8 @@ async fn ensure_package_present(task: &ZypperTask, dry_run: bool) -> Result<()> 
 
         args.push(task.name.clone());
 
-        run_zypper_command(&args).await
+        run_zypper_command(&args)
+            .await
             .with_context(|| format!("Failed to install package {}", task.name))?;
 
         println!("Installed package: {}", task.name);
@@ -217,7 +212,10 @@ async fn ensure_package_absent(task: &ZypperTask, dry_run: bool) -> Result<()> {
             if dry_run {
                 false
             } else {
-                return Err(anyhow::anyhow!("Cannot determine if package {} is installed", task.name));
+                return Err(anyhow::anyhow!(
+                    "Cannot determine if package {} is installed",
+                    task.name
+                ));
             }
         }
     };
@@ -239,7 +237,8 @@ async fn ensure_package_absent(task: &ZypperTask, dry_run: bool) -> Result<()> {
 
         args.push(task.name.clone());
 
-        run_zypper_command(&args).await
+        run_zypper_command(&args)
+            .await
             .with_context(|| format!("Failed to remove package {}", task.name))?;
 
         println!("Removed package: {}", task.name);
@@ -265,7 +264,8 @@ async fn ensure_package_latest(task: &ZypperTask, dry_run: bool) -> Result<()> {
 
         args.push(task.name.clone());
 
-        run_zypper_command(&args).await
+        run_zypper_command(&args)
+            .await
             .with_context(|| format!("Failed to upgrade package {}", task.name))?;
 
         println!("Upgraded package: {}", task.name);
@@ -279,7 +279,8 @@ async fn update_cache(_task: &ZypperTask, dry_run: bool) -> Result<()> {
     if dry_run {
         println!("Would refresh package cache");
     } else {
-        run_zypper_command(&["refresh".to_string()]).await
+        run_zypper_command(&["refresh".to_string()])
+            .await
             .with_context(|| "Failed to refresh package cache")?;
         println!("Refreshed package cache");
     }

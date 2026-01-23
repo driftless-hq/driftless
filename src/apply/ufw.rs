@@ -132,8 +132,8 @@
 //! from = "192.168.1.100"
 //! ```
 
+use anyhow::{bail, Context, Result};
 use std::process::Command;
-use anyhow::{Result, Context, bail};
 
 /// UFW firewall management task
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -211,49 +211,24 @@ pub enum UfwState {
 }
 
 /// Execute UFW firewall task
-pub async fn execute_ufw_task(
-    task: &UfwTask,
-    dry_run: bool,
-) -> Result<()> {
+pub async fn execute_ufw_task(task: &UfwTask, dry_run: bool) -> Result<()> {
     // Check if UFW is available
     if !dry_run && !is_ufw_available()? {
         bail!("UFW is not available on this system");
     }
 
     match task.state {
-        UfwState::Enabled => {
-            ensure_ufw_enabled(dry_run).await
-        }
-        UfwState::Disabled => {
-            ensure_ufw_disabled(dry_run).await
-        }
-        UfwState::Reload => {
-            reload_ufw(dry_run).await
-        }
-        UfwState::Reset => {
-            reset_ufw(dry_run).await
-        }
-        UfwState::Allow => {
-            add_ufw_rule(task, "allow", dry_run).await
-        }
-        UfwState::Deny => {
-            add_ufw_rule(task, "deny", dry_run).await
-        }
-        UfwState::Reject => {
-            add_ufw_rule(task, "reject", dry_run).await
-        }
-        UfwState::Limit => {
-            add_ufw_rule(task, "limit", dry_run).await
-        }
-        UfwState::Delete => {
-            delete_ufw_rule(task, dry_run).await
-        }
-        UfwState::Logging => {
-            set_ufw_logging(task, dry_run).await
-        }
-        UfwState::Default => {
-            set_ufw_default(task, dry_run).await
-        }
+        UfwState::Enabled => ensure_ufw_enabled(dry_run).await,
+        UfwState::Disabled => ensure_ufw_disabled(dry_run).await,
+        UfwState::Reload => reload_ufw(dry_run).await,
+        UfwState::Reset => reset_ufw(dry_run).await,
+        UfwState::Allow => add_ufw_rule(task, "allow", dry_run).await,
+        UfwState::Deny => add_ufw_rule(task, "deny", dry_run).await,
+        UfwState::Reject => add_ufw_rule(task, "reject", dry_run).await,
+        UfwState::Limit => add_ufw_rule(task, "limit", dry_run).await,
+        UfwState::Delete => delete_ufw_rule(task, dry_run).await,
+        UfwState::Logging => set_ufw_logging(task, dry_run).await,
+        UfwState::Default => set_ufw_default(task, dry_run).await,
     }
 }
 
@@ -318,11 +293,7 @@ async fn reset_ufw(dry_run: bool) -> Result<()> {
 }
 
 /// Add a UFW rule
-async fn add_ufw_rule(
-    task: &UfwTask,
-    action: &str,
-    dry_run: bool,
-) -> Result<()> {
+async fn add_ufw_rule(task: &UfwTask, action: &str, dry_run: bool) -> Result<()> {
     let mut cmd_parts = vec!["ufw"];
 
     // Add action
@@ -378,10 +349,7 @@ async fn add_ufw_rule(
 }
 
 /// Delete a UFW rule
-async fn delete_ufw_rule(
-    task: &UfwTask,
-    dry_run: bool,
-) -> Result<()> {
+async fn delete_ufw_rule(task: &UfwTask, dry_run: bool) -> Result<()> {
     let mut cmd_parts = vec!["ufw", "delete"];
 
     // Add rule if specified
@@ -443,11 +411,11 @@ async fn delete_ufw_rule(
 }
 
 /// Set UFW logging level
-async fn set_ufw_logging(
-    task: &UfwTask,
-    dry_run: bool,
-) -> Result<()> {
-    let logging = task.logging.as_ref().ok_or_else(|| anyhow::anyhow!("Logging level must be specified"))?;
+async fn set_ufw_logging(task: &UfwTask, dry_run: bool) -> Result<()> {
+    let logging = task
+        .logging
+        .as_ref()
+        .ok_or_else(|| anyhow::anyhow!("Logging level must be specified"))?;
     let cmd = format!("ufw logging {}", logging);
 
     if dry_run {
@@ -460,11 +428,11 @@ async fn set_ufw_logging(
 }
 
 /// Set UFW default policy
-async fn set_ufw_default(
-    task: &UfwTask,
-    dry_run: bool,
-) -> Result<()> {
-    let default_policy = task.default.as_ref().ok_or_else(|| anyhow::anyhow!("Default policy must be specified"))?;
+async fn set_ufw_default(task: &UfwTask, dry_run: bool) -> Result<()> {
+    let default_policy = task
+        .default
+        .as_ref()
+        .ok_or_else(|| anyhow::anyhow!("Default policy must be specified"))?;
     let cmd = format!("ufw default {}", default_policy);
 
     if dry_run {
@@ -539,12 +507,15 @@ mod tests {
             default: None,
         };
 
-        let result = tokio::runtime::Runtime::new().unwrap().block_on(async {
-            execute_ufw_task(&task, true).await
-        });
+        let result = tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(async { execute_ufw_task(&task, true).await });
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Logging level must be specified"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Logging level must be specified"));
     }
 
     #[test]
@@ -564,11 +535,14 @@ mod tests {
             default: None,
         };
 
-        let result = tokio::runtime::Runtime::new().unwrap().block_on(async {
-            execute_ufw_task(&task, true).await
-        });
+        let result = tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(async { execute_ufw_task(&task, true).await });
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Default policy must be specified"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Default policy must be specified"));
     }
 }

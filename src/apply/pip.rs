@@ -178,15 +178,9 @@ use std::process::Command;
 /// Execute a pip task
 pub async fn execute_pip_task(task: &PipTask, dry_run: bool) -> Result<()> {
     match task.state {
-        PackageState::Present => {
-            ensure_package_present(task, dry_run).await
-        }
-        PackageState::Absent => {
-            ensure_package_absent(task, dry_run).await
-        }
-        PackageState::Latest => {
-            ensure_package_latest(task, dry_run).await
-        }
+        PackageState::Present => ensure_package_present(task, dry_run).await,
+        PackageState::Absent => ensure_package_absent(task, dry_run).await,
+        PackageState::Latest => ensure_package_latest(task, dry_run).await,
     }
 }
 
@@ -215,7 +209,10 @@ async fn ensure_package_present(task: &PipTask, dry_run: bool) -> Result<()> {
         if let Some(ref venv) = task.virtualenv {
             // Activate virtual environment
             env::set_var("VIRTUAL_ENV", venv);
-            env::set_var("PATH", format!("{}/bin:{}", venv, env::var("PATH").unwrap_or_default()));
+            env::set_var(
+                "PATH",
+                format!("{}/bin:{}", venv, env::var("PATH").unwrap_or_default()),
+            );
         }
 
         if let Some(ref requirements) = task.requirements {
@@ -233,7 +230,8 @@ async fn ensure_package_present(task: &PipTask, dry_run: bool) -> Result<()> {
         // Add extra arguments
         args.extend(task.extra_args.clone());
 
-        run_pip_command(&args).await
+        run_pip_command(&args)
+            .await
             .with_context(|| format!("Failed to install Python package {}", task.name))?;
 
         println!("Installed Python package: {}", task.name);
@@ -253,7 +251,10 @@ async fn ensure_package_absent(task: &PipTask, dry_run: bool) -> Result<()> {
             if dry_run {
                 false
             } else {
-                return Err(anyhow::anyhow!("Cannot determine if Python package {} is installed", task.name));
+                return Err(anyhow::anyhow!(
+                    "Cannot determine if Python package {} is installed",
+                    task.name
+                ));
             }
         }
     };
@@ -270,17 +271,25 @@ async fn ensure_package_absent(task: &PipTask, dry_run: bool) -> Result<()> {
         }
     } else {
         // Uninstall package
-        let mut args = vec![task.executable.clone(), "uninstall".to_string(), "-y".to_string()];
+        let mut args = vec![
+            task.executable.clone(),
+            "uninstall".to_string(),
+            "-y".to_string(),
+        ];
 
         if let Some(ref venv) = task.virtualenv {
             // Activate virtual environment
             env::set_var("VIRTUAL_ENV", venv);
-            env::set_var("PATH", format!("{}/bin:{}", venv, env::var("PATH").unwrap_or_default()));
+            env::set_var(
+                "PATH",
+                format!("{}/bin:{}", venv, env::var("PATH").unwrap_or_default()),
+            );
         }
 
         args.push(task.name.clone());
 
-        run_pip_command(&args).await
+        run_pip_command(&args)
+            .await
             .with_context(|| format!("Failed to remove Python package {}", task.name))?;
 
         println!("Removed Python package: {}", task.name);
@@ -298,12 +307,19 @@ async fn ensure_package_latest(task: &PipTask, dry_run: bool) -> Result<()> {
         }
     } else {
         // Upgrade package
-        let mut args = vec![task.executable.clone(), "install".to_string(), "--upgrade".to_string()];
+        let mut args = vec![
+            task.executable.clone(),
+            "install".to_string(),
+            "--upgrade".to_string(),
+        ];
 
         if let Some(ref venv) = task.virtualenv {
             // Activate virtual environment
             env::set_var("VIRTUAL_ENV", venv);
-            env::set_var("PATH", format!("{}/bin:{}", venv, env::var("PATH").unwrap_or_default()));
+            env::set_var(
+                "PATH",
+                format!("{}/bin:{}", venv, env::var("PATH").unwrap_or_default()),
+            );
         }
 
         args.push(task.name.clone());
@@ -311,7 +327,8 @@ async fn ensure_package_latest(task: &PipTask, dry_run: bool) -> Result<()> {
         // Add extra arguments
         args.extend(task.extra_args.clone());
 
-        run_pip_command(&args).await
+        run_pip_command(&args)
+            .await
             .with_context(|| format!("Failed to upgrade Python package {}", task.name))?;
 
         println!("Upgraded Python package: {}", task.name);
@@ -327,7 +344,10 @@ fn is_package_installed(task: &PipTask) -> Result<bool> {
     if let Some(ref venv) = task.virtualenv {
         // Activate virtual environment
         env::set_var("VIRTUAL_ENV", venv);
-        env::set_var("PATH", format!("{}/bin:{}", venv, env::var("PATH").unwrap_or_default()));
+        env::set_var(
+            "PATH",
+            format!("{}/bin:{}", venv, env::var("PATH").unwrap_or_default()),
+        );
     }
 
     args.push(task.name.clone());
@@ -362,7 +382,9 @@ async fn run_pip_command(args: &[String]) -> Result<()> {
 }
 
 /// Default Python executable ("python3")
-pub fn default_python_executable() -> String { "python3".to_string() }
+pub fn default_python_executable() -> String {
+    "python3".to_string()
+}
 
 #[cfg(test)]
 mod tests {

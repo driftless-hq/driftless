@@ -180,15 +180,9 @@ use std::process::Command;
 /// Execute a gem task
 pub async fn execute_gem_task(task: &GemTask, dry_run: bool) -> Result<()> {
     match task.state {
-        PackageState::Present => {
-            ensure_gem_present(task, dry_run).await
-        }
-        PackageState::Absent => {
-            ensure_gem_absent(task, dry_run).await
-        }
-        PackageState::Latest => {
-            ensure_gem_latest(task, dry_run).await
-        }
+        PackageState::Present => ensure_gem_present(task, dry_run).await,
+        PackageState::Absent => ensure_gem_absent(task, dry_run).await,
+        PackageState::Latest => ensure_gem_latest(task, dry_run).await,
     }
 }
 
@@ -232,7 +226,8 @@ async fn ensure_gem_present(task: &GemTask, dry_run: bool) -> Result<()> {
         // Add extra arguments
         args.extend(task.extra_args.clone());
 
-        run_gem_command(&args).await
+        run_gem_command(&args)
+            .await
             .with_context(|| format!("Failed to install gem {}", task.name))?;
 
         println!("Installed gem: {}", task.name);
@@ -252,7 +247,10 @@ async fn ensure_gem_absent(task: &GemTask, dry_run: bool) -> Result<()> {
             if dry_run {
                 false
             } else {
-                return Err(anyhow::anyhow!("Cannot determine if gem {} is installed", task.name));
+                return Err(anyhow::anyhow!(
+                    "Cannot determine if gem {} is installed",
+                    task.name
+                ));
             }
         }
     };
@@ -266,7 +264,11 @@ async fn ensure_gem_absent(task: &GemTask, dry_run: bool) -> Result<()> {
         println!("Would remove gem: {}", task.name);
     } else {
         // Uninstall gem
-        let mut args = vec![task.gem_executable.clone(), "uninstall".to_string(), "-x".to_string()];
+        let mut args = vec![
+            task.gem_executable.clone(),
+            "uninstall".to_string(),
+            "-x".to_string(),
+        ];
 
         if task.force {
             args.push("-f".to_string());
@@ -274,7 +276,8 @@ async fn ensure_gem_absent(task: &GemTask, dry_run: bool) -> Result<()> {
 
         args.push(task.name.clone());
 
-        run_gem_command(&args).await
+        run_gem_command(&args)
+            .await
             .with_context(|| format!("Failed to remove gem {}", task.name))?;
 
         println!("Removed gem: {}", task.name);
@@ -303,7 +306,8 @@ async fn ensure_gem_latest(task: &GemTask, dry_run: bool) -> Result<()> {
         // Add extra arguments
         args.extend(task.extra_args.clone());
 
-        run_gem_command(&args).await
+        run_gem_command(&args)
+            .await
             .with_context(|| format!("Failed to upgrade gem {}", task.name))?;
 
         println!("Upgraded gem: {}", task.name);
@@ -314,7 +318,12 @@ async fn ensure_gem_latest(task: &GemTask, dry_run: bool) -> Result<()> {
 
 /// Check if gem is installed
 fn is_gem_installed(task: &GemTask) -> Result<bool> {
-    let args = vec![task.gem_executable.clone(), "list".to_string(), "--local".to_string(), task.name.clone()];
+    let args = vec![
+        task.gem_executable.clone(),
+        "list".to_string(),
+        "--local".to_string(),
+        task.name.clone(),
+    ];
 
     let output = Command::new(&task.executable)
         .args(&args)
@@ -348,9 +357,13 @@ async fn run_gem_command(args: &[String]) -> Result<()> {
 }
 
 /// Default Ruby executable ("ruby")
-pub fn default_ruby_executable() -> String { "ruby".to_string() }
+pub fn default_ruby_executable() -> String {
+    "ruby".to_string()
+}
 /// Default gem executable ("gem")
-pub fn default_gem_executable() -> String { "gem".to_string() }
+pub fn default_gem_executable() -> String {
+    "gem".to_string()
+}
 
 #[cfg(test)]
 mod tests {

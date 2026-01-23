@@ -135,9 +135,9 @@
 //! recurse = true
 //! ```
 
-use std::process::Command;
+use anyhow::{bail, Context, Result};
 use std::path::Path;
-use anyhow::{Result, Context, bail};
+use std::process::Command;
 
 /// SELinux policy management task
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
@@ -219,46 +219,29 @@ pub enum SelinuxState {
 }
 
 /// Execute SELinux policy task
-pub async fn execute_selinux_task(
-    task: &SelinuxTask,
-    dry_run: bool,
-) -> Result<()> {
+pub async fn execute_selinux_task(task: &SelinuxTask, dry_run: bool) -> Result<()> {
     // Check if SELinux is available
     if !dry_run && !is_selinux_available()? {
         bail!("SELinux is not available on this system");
     }
 
     match task.state {
-        SelinuxState::On => {
-            ensure_selinux_boolean_on(task, dry_run).await
-        }
-        SelinuxState::Off => {
-            ensure_selinux_boolean_off(task, dry_run).await
-        }
-        SelinuxState::Enforcing => {
-            set_selinux_enforcing(dry_run).await
-        }
-        SelinuxState::Permissive => {
-            set_selinux_permissive(dry_run).await
-        }
-        SelinuxState::Disabled => {
-            set_selinux_disabled(dry_run).await
-        }
-        SelinuxState::Context => {
-            set_selinux_context(task, dry_run).await
-        }
-        SelinuxState::Restorecon => {
-            restore_selinux_context(task, dry_run).await
-        }
+        SelinuxState::On => ensure_selinux_boolean_on(task, dry_run).await,
+        SelinuxState::Off => ensure_selinux_boolean_off(task, dry_run).await,
+        SelinuxState::Enforcing => set_selinux_enforcing(dry_run).await,
+        SelinuxState::Permissive => set_selinux_permissive(dry_run).await,
+        SelinuxState::Disabled => set_selinux_disabled(dry_run).await,
+        SelinuxState::Context => set_selinux_context(task, dry_run).await,
+        SelinuxState::Restorecon => restore_selinux_context(task, dry_run).await,
     }
 }
 
 /// Ensure SELinux boolean is on
-async fn ensure_selinux_boolean_on(
-    task: &SelinuxTask,
-    dry_run: bool,
-) -> Result<()> {
-    let boolean = task.boolean.as_ref().ok_or_else(|| anyhow::anyhow!("Boolean name must be specified"))?;
+async fn ensure_selinux_boolean_on(task: &SelinuxTask, dry_run: bool) -> Result<()> {
+    let boolean = task
+        .boolean
+        .as_ref()
+        .ok_or_else(|| anyhow::anyhow!("Boolean name must be specified"))?;
 
     if is_selinux_boolean_on(boolean)? {
         return Ok(());
@@ -276,11 +259,11 @@ async fn ensure_selinux_boolean_on(
 }
 
 /// Ensure SELinux boolean is off
-async fn ensure_selinux_boolean_off(
-    task: &SelinuxTask,
-    dry_run: bool,
-) -> Result<()> {
-    let boolean = task.boolean.as_ref().ok_or_else(|| anyhow::anyhow!("Boolean name must be specified"))?;
+async fn ensure_selinux_boolean_off(task: &SelinuxTask, dry_run: bool) -> Result<()> {
+    let boolean = task
+        .boolean
+        .as_ref()
+        .ok_or_else(|| anyhow::anyhow!("Boolean name must be specified"))?;
 
     if !is_selinux_boolean_on(boolean)? {
         return Ok(());
@@ -341,11 +324,11 @@ async fn set_selinux_disabled(_dry_run: bool) -> Result<()> {
 }
 
 /// Set SELinux context on files
-async fn set_selinux_context(
-    task: &SelinuxTask,
-    dry_run: bool,
-) -> Result<()> {
-    let target = task.target.as_ref().ok_or_else(|| anyhow::anyhow!("Target path must be specified"))?;
+async fn set_selinux_context(task: &SelinuxTask, dry_run: bool) -> Result<()> {
+    let target = task
+        .target
+        .as_ref()
+        .ok_or_else(|| anyhow::anyhow!("Target path must be specified"))?;
 
     if !Path::new(target).exists() && !task.ignore_missing {
         bail!("Target path does not exist: {}", target);
@@ -396,11 +379,11 @@ async fn set_selinux_context(
 }
 
 /// Restore SELinux context from policy
-async fn restore_selinux_context(
-    task: &SelinuxTask,
-    dry_run: bool,
-) -> Result<()> {
-    let target = task.target.as_ref().ok_or_else(|| anyhow::anyhow!("Target path must be specified"))?;
+async fn restore_selinux_context(task: &SelinuxTask, dry_run: bool) -> Result<()> {
+    let target = task
+        .target
+        .as_ref()
+        .ok_or_else(|| anyhow::anyhow!("Target path must be specified"))?;
 
     if !Path::new(target).exists() && !task.ignore_missing {
         bail!("Target path does not exist: {}", target);
@@ -501,12 +484,15 @@ mod tests {
             policy: None,
         };
 
-        let result = tokio::runtime::Runtime::new().unwrap().block_on(async {
-            execute_selinux_task(&task, true).await
-        });
+        let result = tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(async { execute_selinux_task(&task, true).await });
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Boolean name must be specified"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Boolean name must be specified"));
     }
 
     #[test]
@@ -529,11 +515,14 @@ mod tests {
             policy: None,
         };
 
-        let result = tokio::runtime::Runtime::new().unwrap().block_on(async {
-            execute_selinux_task(&task, true).await
-        });
+        let result = tokio::runtime::Runtime::new()
+            .unwrap()
+            .block_on(async { execute_selinux_task(&task, true).await });
 
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Target path must be specified"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Target path must be specified"));
     }
 }

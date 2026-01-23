@@ -22,8 +22,10 @@ impl MetricsCollector {
 
     /// Start collecting metrics
     pub async fn start(&self) -> Result<()> {
-        println!("Starting metrics collection with {} collectors",
-                 self.config.collectors.len());
+        println!(
+            "Starting metrics collection with {} collectors",
+            self.config.collectors.len()
+        );
 
         // TODO: Implement actual metrics collection loop
         // This would typically run in a loop with the configured poll_interval
@@ -46,7 +48,10 @@ impl MetricsCollector {
         // This would gather real system metrics
 
         // Placeholder metrics for demonstration
-        metrics.insert("timestamp".to_string(), chrono::Utc::now().timestamp().into());
+        metrics.insert(
+            "timestamp".to_string(),
+            chrono::Utc::now().timestamp().into(),
+        );
         metrics.insert("hostname".to_string(), "localhost".into());
 
         Ok(metrics)
@@ -119,8 +124,10 @@ impl PrometheusExporter {
             return Ok(());
         }
 
-        println!("Starting Prometheus exporter on {}:{}",
-                 self.config.host, self.config.port);
+        println!(
+            "Starting Prometheus exporter on {}:{}",
+            self.config.host, self.config.port
+        );
 
         // TODO: Implement actual Prometheus HTTP server
         // This would start a warp or axum server serving metrics
@@ -134,14 +141,15 @@ impl PrometheusExporter {
         "# HELP driftless_info Driftless agent information
 # TYPE driftless_info gauge
 driftless_info{version=\"0.1.0\"} 1
-".to_string()
+"
+        .to_string()
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::facts::{FactsConfig, GlobalSettings, Collector, SystemCollector, BaseCollector};
+    use crate::facts::{BaseCollector, Collector, FactsConfig, GlobalSettings, SystemCollector};
 
     #[tokio::test]
     async fn test_metrics_collection() {
@@ -151,17 +159,15 @@ mod tests {
                 poll_interval: 30,
                 ..Default::default()
             },
-            collectors: vec![
-                Collector::System(SystemCollector {
-                    base: BaseCollector {
-                        name: "system".to_string(),
-                        enabled: true,
-                        poll_interval: 60,
-                        labels: HashMap::new(),
-                    },
-                    collect: Default::default(),
-                }),
-            ],
+            collectors: vec![Collector::System(SystemCollector {
+                base: BaseCollector {
+                    name: "system".to_string(),
+                    enabled: true,
+                    poll_interval: 60,
+                    labels: HashMap::new(),
+                },
+                collect: Default::default(),
+            })],
             export: Default::default(),
         };
 
@@ -179,17 +185,15 @@ mod tests {
                 enabled: true,
                 ..Default::default()
             },
-            collectors: vec![
-                Collector::System(SystemCollector {
-                    base: BaseCollector {
-                        name: "system".to_string(),
-                        enabled: true,
-                        poll_interval: 60,
-                        labels: HashMap::new(),
-                    },
-                    collect: Default::default(),
-                }),
-            ],
+            collectors: vec![Collector::System(SystemCollector {
+                base: BaseCollector {
+                    name: "system".to_string(),
+                    enabled: true,
+                    poll_interval: 60,
+                    labels: HashMap::new(),
+                },
+                collect: Default::default(),
+            })],
             export: Default::default(),
         };
 
