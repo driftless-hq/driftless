@@ -59,13 +59,10 @@
 - Plugin registry and download manager
 
 ## TODO
-- Implement the following string template filters and ensure they are compatible with the Ansible template filters of the same name and include comprehensive tests: lstrip, rstrip, splitlines, title, wordcount, batch, first, last, join, reverse, sort, unique
-- Implement the following math/logic template filters and ensure they are compatible with the Ansible template filters of the same name and include comprehensive tests: abs, round, random, bool, ternary
-- Implement the following dict/list template filters and ensure they are compatible with the Ansible template filters of the same name and include comprehensive tests: combine, dict2items, items2dict, flatten, map, select, reject, zip
-- Implement the following encoding/decoding template filters and ensure they are compatible with the Ansible template filters of the same name and include comprehensive tests: b64encode, b64decode, to_json, from_json, to_yaml, from_yaml
-- Implement the following path/filesystem template filters and ensure they are compatible with the Ansible template filters of the same name and include comprehensive tests: expanduser, realpath (beyond the current basename/dirname)
-- Implement the following generator template functions and ensure they are compatible with the Ansible template functions of the same name and include comprehensive tests: range, random
-- Implement the following utility template functions and ensure they are compatible with the Ansible template functions of the same name and include comprehensive tests: hash, uuid, timestamp
+- Implement the following encoding/decoding template filters in a new file and ensure they are compatible with the Ansible template filters of the same name and include comprehensive tests and documentation: b64encode, b64decode, to_json, from_json, to_yaml, from_yaml
+- Implement the following path/filesystem template filters in a new file and ensure they are compatible with the Ansible template filters of the same name and include comprehensive tests and documentation: expanduser, realpath (beyond the current basename/dirname)
+- Implement the following generator template functions in a new file and ensure they are compatible with the Ansible template functions of the same name and include comprehensive tests and documentation: range, random
+- Implement the following utility template functions in a new file and ensure they are compatible with the Ansible template functions of the same name and include comprehensive tests and documentation: hash, uuid, timestamp
 - Ensure the `lookup` template function is fully complete
 - Identify any template features, filters, or functions implemented in Ansible that have not yet been implemented in this codebase
 - Review the codebase for usage of Rust best-practices and guidelines
