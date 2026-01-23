@@ -192,6 +192,21 @@ Convert a dictionary to a list of items with 'key' and 'value' fields.
 {{ value | dict2items }}
 ```
 
+#### `dictsort`
+
+Sort a dictionary by keys or values
+
+**Arguments**:
+
+- `case_sensitive` (boolean): Whether sorting is case sensitive (optional, default: false)
+- `by` (string): Sort by 'key' or 'value' (optional, default: 'key')
+- `reverse` (boolean): Reverse the sort order (optional, default: false)
+
+**Usage**:
+
+```jinja2
+{{ value | dictsort(case_sensitive, by, reverse) }}
+```
 #### `flatten`
 
 Flatten a nested list structure.
@@ -250,6 +265,19 @@ Select items from a list that match a test.
 
 ```jinja2
 {{ value | select(test) }}
+```
+#### `slice`
+
+Slice a list into sublists of a specified size
+
+**Arguments**:
+
+- `size` (integer): Size of each slice
+
+**Usage**:
+
+```jinja2
+{{ value | slice(size) }}
 ```
 #### `zip`
 

@@ -298,4 +298,109 @@ pub fn register_list_filters(
             JinjaValue::from(result)
         }),
     );
+
+    // dictsort filter
+    TemplateRegistry::register_filter(
+        registry,
+        "dictsort",
+        "Sort a dictionary by keys or values",
+        "List/Dict Operations",
+        vec![
+            (
+                "case_sensitive".to_string(),
+                "boolean: Whether sorting is case sensitive (optional, default: false)".to_string(),
+            ),
+            (
+                "by".to_string(),
+                "string: Sort by 'key' or 'value' (optional, default: 'key')".to_string(),
+            ),
+            (
+                "reverse".to_string(),
+                "boolean: Reverse the sort order (optional, default: false)".to_string(),
+            ),
+        ],
+        Arc::new(|value, args| {
+            let case_sensitive = args.first().map(|v| v.is_true()).unwrap_or(false);
+            let by = args.get(1).and_then(|v| v.as_str()).unwrap_or("key");
+            let reverse = args.get(2).map(|v| v.is_true()).unwrap_or(false);
+
+            if let Ok(serde_json::Value::Object(map)) = serde_json::to_value(&value) {
+                let mut items: Vec<_> = map.into_iter().collect();
+
+                items.sort_by(|a, b| {
+                    let cmp = match by {
+                        "value" => {
+                            let a_val = &a.1;
+                            let b_val = &b.1;
+                            match (a_val, b_val) {
+                                (
+                                    serde_json::Value::String(ref a_str),
+                                    serde_json::Value::String(ref b_str),
+                                ) => {
+                                    if case_sensitive {
+                                        a_str.cmp(b_str)
+                                    } else {
+                                        a_str.to_lowercase().cmp(&b_str.to_lowercase())
+                                    }
+                                }
+                                _ => a_val.to_string().cmp(&b_val.to_string()),
+                            }
+                        }
+                        _ => {
+                            // "key"
+                            let a_key = &a.0;
+                            let b_key = &b.0;
+                            if case_sensitive {
+                                a_key.cmp(b_key)
+                            } else {
+                                a_key.to_lowercase().cmp(&b_key.to_lowercase())
+                            }
+                        }
+                    };
+                    if reverse {
+                        cmp.reverse()
+                    } else {
+                        cmp
+                    }
+                });
+
+                let sorted_map: std::collections::HashMap<String, serde_json::Value> =
+                    items.into_iter().collect();
+                JinjaValue::from_serialize(&sorted_map)
+            } else {
+                // Not a dict, return as is
+                value
+            }
+        }),
+    );
+
+    // slice filter
+    TemplateRegistry::register_filter(
+        registry,
+        "slice",
+        "Slice a list into sublists of a specified size",
+        "List/Dict Operations",
+        vec![(
+            "size".to_string(),
+            "integer: Size of each slice".to_string(),
+        )],
+        Arc::new(|value, args| {
+            let size = args.first().and_then(|v| v.as_i64()).unwrap_or(1) as usize;
+            if size == 0 {
+                return JinjaValue::from(Vec::<JinjaValue>::new());
+            }
+
+            if let Ok(seq) = value.try_iter() {
+                let items: Vec<JinjaValue> = seq.collect();
+                let mut result = Vec::new();
+                for chunk in items.chunks(size) {
+                    result.push(JinjaValue::from(chunk.to_vec()));
+                }
+                JinjaValue::from(result)
+            } else {
+                // Not a sequence, return empty list
+                JinjaValue::from(Vec::<JinjaValue>::new())
+            }
+        }),
+    );
 }
