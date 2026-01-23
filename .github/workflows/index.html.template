@@ -107,6 +107,50 @@
             margin-top: 2rem;
         }
 
+        .docs-section {
+            margin-bottom: 2rem;
+        }
+
+        .doc-links-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .doc-link {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #333;
+            transition: all 0.2s ease;
+        }
+
+        .doc-link:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            transform: translateX(4px);
+        }
+
+        .doc-link-icon {
+            font-size: 1.5rem;
+            margin-right: 0.75rem;
+        }
+
+        .doc-link-text {
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .api-section {
+            margin-top: 2rem;
+        }
+
         .doc-card {
             background: #f8f9fa;
             border: 2px solid #e9ecef;
@@ -185,6 +229,10 @@
             .docs-links {
                 grid-template-columns: 1fr;
             }
+
+            .doc-links-grid {
+                grid-template-columns: 1fr;
+            }
         }
     </style>
 </head>
@@ -213,14 +261,39 @@
                 </ul>
             </div>
 
-            <div class="docs-links">
-                <a href="docs/tasks-reference.md" class="doc-card">
-                    <div class="doc-card-icon">📚</div>
-                    <h3>Usage Reference</h3>
-                    <p>Complete documentation for configuration operations, facts collectors, and log management with examples in YAML, JSON, and TOML.</p>
-                    <div class="doc-card-arrow">View Documentation</div>
-                </a>
+            <h2 style="text-align: center; margin-bottom: 1.5rem; color: #333;">Documentation</h2>
 
+            <div class="docs-section">
+                <h3 style="font-size: 1.1rem; margin-bottom: 1rem; color: #667eea;">📚 Usage References</h3>
+                <div class="doc-links-grid">
+                    <a href="docs/tasks-reference.md" class="doc-link">
+                        <span class="doc-link-icon">📋</span>
+                        <span class="doc-link-text">Tasks Reference</span>
+                    </a>
+                    <a href="docs/facts-reference.md" class="doc-link">
+                        <span class="doc-link-icon">📊</span>
+                        <span class="doc-link-text">Facts Reference</span>
+                    </a>
+                    <a href="docs/logs-reference.md" class="doc-link">
+                        <span class="doc-link-icon">📝</span>
+                        <span class="doc-link-text">Logs Reference</span>
+                    </a>
+                    <a href="docs/template-reference.md" class="doc-link">
+                        <span class="doc-link-icon">🔧</span>
+                        <span class="doc-link-text">Template Reference</span>
+                    </a>
+                    <a href="docs/template-examples.md" class="doc-link">
+                        <span class="doc-link-icon">💡</span>
+                        <span class="doc-link-text">Template Examples</span>
+                    </a>
+                    <a href="docs/apply-task-types.md" class="doc-link">
+                        <span class="doc-link-icon">⚙️</span>
+                        <span class="doc-link-text">Apply Task Types</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="api-section">
                 <a href="api/CRATE_NAME_PLACEHOLDER/" class="doc-card">
                     <div class="doc-card-icon">🦀</div>
                     <h3>Rust API Documentation</h3>
