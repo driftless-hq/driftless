@@ -164,7 +164,9 @@ mod tests {
 
         // Test select with version_compare
         let template = env
-            .template_from_str("{{ ['1.0.0', '1.1.0', '2.0.0'] | select('version_compare', '1.1.0') }}")
+            .template_from_str(
+                "{{ ['1.0.0', '1.1.0', '2.0.0'] | select('version_compare', '1.1.0') }}",
+            )
             .unwrap();
         let result = template.render(minijinja::context!()).unwrap();
         assert_eq!(result, "[\"1.1.0\"]");
@@ -232,7 +234,9 @@ mod tests {
 
         // Test reject with version_compare
         let template = env
-            .template_from_str("{{ ['1.0.0', '1.1.0', '2.0.0'] | reject('version_compare', '1.1.0') }}")
+            .template_from_str(
+                "{{ ['1.0.0', '1.1.0', '2.0.0'] | reject('version_compare', '1.1.0') }}",
+            )
             .unwrap();
         let result = template.render(minijinja::context!()).unwrap();
         assert_eq!(result, "[\"1.0.0\", \"2.0.0\"]");
