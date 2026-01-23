@@ -19,6 +19,89 @@ Driftless uses Jinja2 templating for dynamic configuration values. Templates sup
 
 Filters transform values in templates using the `|` syntax.
 
+### List Operations
+
+#### `batch`
+
+Batch items in a list into groups of a specified size
+
+**Arguments**:
+
+- `size: integer - Size of each batch`
+- `fill_with: any (optional) - Value to fill incomplete batches`
+
+**Usage**:
+
+```jinja2
+{{ value | batch(size, fill_with) }}
+```
+#### `first`
+
+Get the first item from a list
+
+**Usage**:
+
+```jinja2
+{{ value | first }}
+```
+
+#### `join`
+
+Join a list of strings with a separator
+
+**Arguments**:
+
+- `separator: string (optional) - String to join with (default: empty string)`
+
+**Usage**:
+
+```jinja2
+{{ value | join(separator) }}
+```
+#### `last`
+
+Get the last item from a list
+
+**Usage**:
+
+```jinja2
+{{ value | last }}
+```
+
+#### `reverse`
+
+Reverse the order of items in a list
+
+**Usage**:
+
+```jinja2
+{{ value | reverse }}
+```
+
+#### `sort`
+
+Sort items in a list
+
+**Arguments**:
+
+- `reverse: boolean (optional) - Sort in reverse order (default: false)`
+- `case_sensitive: boolean (optional) - Case sensitive sorting for strings (default: true)`
+
+**Usage**:
+
+```jinja2
+{{ value | sort(reverse, case_sensitive) }}
+```
+#### `unique`
+
+Remove duplicate items from a list
+
+**Usage**:
+
+```jinja2
+{{ value | unique }}
+```
+
 ### Path Operations
 
 #### `basename`
@@ -53,6 +136,48 @@ Capitalize the first character of a string
 {{ value | capitalize }}
 ```
 
+#### `center`
+
+Center a string in a field of given width
+
+**Arguments**:
+
+- `width: integer - Width of the field`
+- `fillchar: string (optional) - Character to fill with (default: space)`
+
+**Usage**:
+
+```jinja2
+{{ value | center(width, fillchar) }}
+```
+#### `indent`
+
+Indent each line of a string
+
+**Arguments**:
+
+- `width: integer - Number of spaces to indent`
+- `indentfirst: boolean (optional) - Whether to indent the first line (default: false)`
+
+**Usage**:
+
+```jinja2
+{{ value | indent(width, indentfirst) }}
+```
+#### `ljust`
+
+Left-justify a string in a field of given width
+
+**Arguments**:
+
+- `width: integer - Width of the field`
+- `fillchar: string (optional) - Character to fill with (default: space)`
+
+**Usage**:
+
+```jinja2
+{{ value | ljust(width, fillchar) }}
+```
 #### `lower`
 
 Convert a string to lowercase
@@ -61,6 +186,60 @@ Convert a string to lowercase
 
 ```jinja2
 {{ value | lower }}
+```
+
+#### `lstrip`
+
+Remove leading whitespace from a string
+
+**Usage**:
+
+```jinja2
+{{ value | lstrip }}
+```
+
+#### `rjust`
+
+Right-justify a string in a field of given width
+
+**Arguments**:
+
+- `width: integer - Width of the field`
+- `fillchar: string (optional) - Character to fill with (default: space)`
+
+**Usage**:
+
+```jinja2
+{{ value | rjust(width, fillchar) }}
+```
+#### `rstrip`
+
+Remove trailing whitespace from a string
+
+**Usage**:
+
+```jinja2
+{{ value | rstrip }}
+```
+
+#### `splitlines`
+
+Split a string into a list of lines
+
+**Usage**:
+
+```jinja2
+{{ value | splitlines }}
+```
+
+#### `title`
+
+Convert a string to title case
+
+**Usage**:
+
+```jinja2
+{{ value | title }}
 ```
 
 #### `truncate`
@@ -88,6 +267,16 @@ Convert a string to uppercase
 
 ```jinja2
 {{ value | upper }}
+```
+
+#### `wordcount`
+
+Count the number of words in a string
+
+**Usage**:
+
+```jinja2
+{{ value | wordcount }}
 ```
 
 ### String/List Operations

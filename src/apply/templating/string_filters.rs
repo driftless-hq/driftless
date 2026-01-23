@@ -137,4 +137,450 @@ pub fn register_string_filters(
             }
         }),
     );
+
+    // String justification filters
+    TemplateRegistry::register_filter(
+        registry,
+        "center",
+        "Center a string in a field of given width",
+        "String Operations",
+        vec![
+            "width: integer - Width of the field".to_string(),
+            "fillchar: string (optional) - Character to fill with (default: space)".to_string(),
+        ],
+        Arc::new(|value, args| {
+            let s = value.as_str().unwrap_or("");
+            let width = args.first().and_then(|v| v.as_i64()).unwrap_or(0) as usize;
+            let fillchar = args
+                .get(1)
+                .and_then(|v| v.as_str())
+                .and_then(|s| s.chars().next())
+                .unwrap_or(' ');
+
+            if s.len() >= width {
+                JinjaValue::from(s.to_string())
+            } else {
+                let padding = width - s.len();
+                let left_pad = padding / 2;
+                let right_pad = padding - left_pad;
+                let result = format!(
+                    "{}{}{}",
+                    fillchar.to_string().repeat(left_pad),
+                    s,
+                    fillchar.to_string().repeat(right_pad)
+                );
+                JinjaValue::from(result)
+            }
+        }),
+    );
+
+    TemplateRegistry::register_filter(
+        registry,
+        "ljust",
+        "Left-justify a string in a field of given width",
+        "String Operations",
+        vec![
+            "width: integer - Width of the field".to_string(),
+            "fillchar: string (optional) - Character to fill with (default: space)".to_string(),
+        ],
+        Arc::new(|value, args| {
+            let s = value.as_str().unwrap_or("");
+            let width = args.first().and_then(|v| v.as_i64()).unwrap_or(0) as usize;
+            let fillchar = args
+                .get(1)
+                .and_then(|v| v.as_str())
+                .and_then(|s| s.chars().next())
+                .unwrap_or(' ');
+
+            if s.len() >= width {
+                JinjaValue::from(s.to_string())
+            } else {
+                let padding = width - s.len();
+                let result = format!("{}{}", s, fillchar.to_string().repeat(padding));
+                JinjaValue::from(result)
+            }
+        }),
+    );
+
+    TemplateRegistry::register_filter(
+        registry,
+        "rjust",
+        "Right-justify a string in a field of given width",
+        "String Operations",
+        vec![
+            "width: integer - Width of the field".to_string(),
+            "fillchar: string (optional) - Character to fill with (default: space)".to_string(),
+        ],
+        Arc::new(|value, args| {
+            let s = value.as_str().unwrap_or("");
+            let width = args.first().and_then(|v| v.as_i64()).unwrap_or(0) as usize;
+            let fillchar = args
+                .get(1)
+                .and_then(|v| v.as_str())
+                .and_then(|s| s.chars().next())
+                .unwrap_or(' ');
+
+            if s.len() >= width {
+                JinjaValue::from(s.to_string())
+            } else {
+                let padding = width - s.len();
+                let result = format!("{}{}", fillchar.to_string().repeat(padding), s);
+                JinjaValue::from(result)
+            }
+        }),
+    );
+
+    TemplateRegistry::register_filter(
+        registry,
+        "indent",
+        "Indent each line of a string",
+        "String Operations",
+        vec![
+            "width: integer - Number of spaces to indent".to_string(),
+            "indentfirst: boolean (optional) - Whether to indent the first line (default: false)"
+                .to_string(),
+        ],
+        Arc::new(|value, args| {
+            let s = value.as_str().unwrap_or("");
+            let width = args.first().and_then(|v| v.as_i64()).unwrap_or(0) as usize;
+            let indentfirst = args
+                .get(1)
+                .map(|v| v.is_true() || v.as_str() == Some("true"))
+                .unwrap_or(false);
+
+            if width == 0 {
+                return JinjaValue::from(s.to_string());
+            }
+
+            let indent_str = " ".repeat(width);
+            let mut result = String::new();
+            let has_trailing_newline = s.ends_with('\n');
+
+            // Split by lines but preserve empty lines
+            let lines: Vec<&str> = s.split('\n').collect();
+
+            for (i, line) in lines.iter().enumerate() {
+                if i == 0 && !indentfirst {
+                    result.push_str(line);
+                } else if line.is_empty() {
+                    // Don't indent empty lines
+                    // Do nothing, just preserve the line break
+                } else {
+                    result.push_str(&indent_str);
+                    result.push_str(line);
+                }
+
+                // Add newline if not the last line, or if it's an empty line in the middle
+                if i < lines.len() - 1 {
+                    result.push('\n');
+                }
+            }
+
+            // If original string had trailing newline, add it back
+            if has_trailing_newline && !result.ends_with('\n') {
+                result.push('\n');
+            }
+
+            JinjaValue::from(result)
+        }),
+    );
+
+    // String trimming filters
+    TemplateRegistry::register_filter(
+        registry,
+        "lstrip",
+        "Remove leading whitespace from a string",
+        "String Operations",
+        vec![],
+        Arc::new(|value, _args| JinjaValue::from(value.as_str().unwrap_or("").trim_start())),
+    );
+
+    TemplateRegistry::register_filter(
+        registry,
+        "rstrip",
+        "Remove trailing whitespace from a string",
+        "String Operations",
+        vec![],
+        Arc::new(|value, _args| JinjaValue::from(value.as_str().unwrap_or("").trim_end())),
+    );
+
+    // String transformation filters
+    TemplateRegistry::register_filter(
+        registry,
+        "title",
+        "Convert a string to title case",
+        "String Operations",
+        vec![],
+        Arc::new(|value, _args| {
+            let s = value.as_str().unwrap_or("");
+            let mut result = String::new();
+            let mut capitalize_next = true;
+
+            for ch in s.chars() {
+                if ch.is_whitespace() {
+                    result.push(ch);
+                    capitalize_next = true;
+                } else if capitalize_next {
+                    result.extend(ch.to_uppercase());
+                    capitalize_next = false;
+                } else {
+                    result.extend(ch.to_lowercase());
+                }
+            }
+
+            JinjaValue::from(result)
+        }),
+    );
+
+    TemplateRegistry::register_filter(
+        registry,
+        "splitlines",
+        "Split a string into a list of lines",
+        "String Operations",
+        vec![],
+        Arc::new(|value, _args| {
+            let s = value.as_str().unwrap_or("");
+            let lines: Vec<JinjaValue> = s.lines().map(JinjaValue::from).collect();
+            JinjaValue::from(lines)
+        }),
+    );
+
+    TemplateRegistry::register_filter(
+        registry,
+        "wordcount",
+        "Count the number of words in a string",
+        "String Operations",
+        vec![],
+        Arc::new(|value, _args| {
+            let s = value.as_str().unwrap_or("");
+            let count = s.split_whitespace().filter(|word| !word.is_empty()).count() as i64;
+            JinjaValue::from(count)
+        }),
+    );
+
+    // List operation filters
+    TemplateRegistry::register_filter(
+        registry,
+        "first",
+        "Get the first item from a list",
+        "List Operations",
+        vec![],
+        Arc::new(|value, _args| {
+            if let Some(_s) = value.as_str() {
+                // For strings, return empty
+                JinjaValue::from("")
+            } else if let Ok(mut iter) = value.try_iter() {
+                if let Some(first) = iter.next() {
+                    first
+                } else {
+                    JinjaValue::from("")
+                }
+            } else {
+                JinjaValue::from("")
+            }
+        }),
+    );
+
+    TemplateRegistry::register_filter(
+        registry,
+        "last",
+        "Get the last item from a list",
+        "List Operations",
+        vec![],
+        Arc::new(|value, _args| {
+            if let Some(_s) = value.as_str() {
+                // For strings, return empty
+                JinjaValue::from("")
+            } else if let Ok(iter) = value.try_iter() {
+                let mut last_item = None;
+                for item in iter {
+                    last_item = Some(item);
+                }
+                last_item.unwrap_or(JinjaValue::from(""))
+            } else {
+                JinjaValue::from("")
+            }
+        }),
+    );
+
+    TemplateRegistry::register_filter(
+        registry,
+        "join",
+        "Join a list of strings with a separator",
+        "List Operations",
+        vec![
+            "separator: string (optional) - String to join with (default: empty string)"
+                .to_string(),
+        ],
+        Arc::new(|value, args| {
+            let separator = args.first().and_then(|v| v.as_str()).unwrap_or("");
+
+            if let Ok(iter) = value.try_iter() {
+                let strings: Vec<String> = iter
+                    .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                    .collect();
+                JinjaValue::from(strings.join(separator))
+            } else {
+                JinjaValue::from(value.as_str().unwrap_or(""))
+            }
+        }),
+    );
+
+    TemplateRegistry::register_filter(
+        registry,
+        "reverse",
+        "Reverse the order of items in a list",
+        "List Operations",
+        vec![],
+        Arc::new(|value, _args| {
+            if let Some(s) = value.as_str() {
+                // For strings, reverse the characters
+                let reversed: String = s.chars().rev().collect();
+                JinjaValue::from(reversed)
+            } else if let Ok(iter) = value.try_iter() {
+                let mut reversed: Vec<JinjaValue> = iter.collect();
+                reversed.reverse();
+                JinjaValue::from(reversed)
+            } else {
+                value.clone()
+            }
+        }),
+    );
+
+    TemplateRegistry::register_filter(
+        registry,
+        "sort",
+        "Sort items in a list",
+        "List Operations",
+        vec![
+            "reverse: boolean (optional) - Sort in reverse order (default: false)".to_string(),
+            "case_sensitive: boolean (optional) - Case sensitive sorting for strings (default: true)".to_string(),
+        ],
+        Arc::new(|value, args| {
+            let reverse = args.first()
+                .map(|v| v.is_true() || v.as_str() == Some("true"))
+                .unwrap_or(false);
+            let case_sensitive = args.get(1)
+                .map(|v| v.is_true() || v.as_str() == Some("true"))
+                .unwrap_or(true);
+
+            if let Some(s) = value.as_str() {
+                // For strings, sort the characters
+                let mut chars: Vec<char> = s.chars().collect();
+                chars.sort();
+                if reverse {
+                    chars.reverse();
+                }
+                let sorted: String = chars.into_iter().collect();
+                JinjaValue::from(sorted)
+            } else if let Ok(iter) = value.try_iter() {
+                let mut sorted: Vec<JinjaValue> = iter.collect();
+
+                sorted.sort_by(|a, b| {
+                    match (a.as_str(), b.as_str()) {
+                        (Some(a_str), Some(b_str)) => {
+                            if case_sensitive {
+                                a_str.cmp(b_str)
+                            } else {
+                                a_str.to_lowercase().cmp(&b_str.to_lowercase())
+                            }
+                        }
+                        _ => {
+                            // For non-string values, convert to string for comparison
+                            let a_str = a.to_string();
+                            let b_str = b.to_string();
+                            if case_sensitive {
+                                a_str.cmp(&b_str)
+                            } else {
+                                a_str.to_lowercase().cmp(&b_str.to_lowercase())
+                            }
+                        }
+                    }
+                });
+
+                if reverse {
+                    sorted.reverse();
+                }
+
+                JinjaValue::from(sorted)
+            } else {
+                value.clone()
+            }
+        }),
+    );
+
+    TemplateRegistry::register_filter(
+        registry,
+        "unique",
+        "Remove duplicate items from a list",
+        "List Operations",
+        vec![],
+        Arc::new(|value, _args| {
+            if let Some(_s) = value.as_str() {
+                // For strings, return as-is
+                value.clone()
+            } else if let Ok(iter) = value.try_iter() {
+                let mut seen = std::collections::HashSet::new();
+                let mut unique: Vec<JinjaValue> = Vec::new();
+
+                for item in iter {
+                    // Use string representation for uniqueness check
+                    let key = item.to_string();
+                    if seen.insert(key) {
+                        unique.push(item);
+                    }
+                }
+
+                JinjaValue::from(unique)
+            } else {
+                value.clone()
+            }
+        }),
+    );
+
+    TemplateRegistry::register_filter(
+        registry,
+        "batch",
+        "Batch items in a list into groups of a specified size",
+        "List Operations",
+        vec![
+            "size: integer - Size of each batch".to_string(),
+            "fill_with: any (optional) - Value to fill incomplete batches".to_string(),
+        ],
+        Arc::new(|value, args| {
+            let size = args.first().and_then(|v| v.as_i64()).unwrap_or(1) as usize;
+            let fill_with = args.get(1).cloned();
+
+            if let Some(_s) = value.as_str() {
+                // For strings, return empty list
+                JinjaValue::from(Vec::<JinjaValue>::new())
+            } else if let Ok(iter) = value.try_iter() {
+                let mut batches: Vec<JinjaValue> = Vec::new();
+                let mut current_batch: Vec<JinjaValue> = Vec::new();
+
+                for item in iter {
+                    current_batch.push(item);
+                    if current_batch.len() == size {
+                        batches.push(JinjaValue::from(current_batch.clone()));
+                        current_batch.clear();
+                    }
+                }
+
+                // Handle remaining items
+                if !current_batch.is_empty() {
+                    if let Some(fill) = &fill_with {
+                        while current_batch.len() < size {
+                            current_batch.push(fill.clone());
+                        }
+                    }
+                    batches.push(JinjaValue::from(current_batch));
+                }
+
+                JinjaValue::from(batches)
+            } else {
+                // For non-sequence values, return empty list
+                JinjaValue::from(Vec::<JinjaValue>::new())
+            }
+        }),
+    );
 }

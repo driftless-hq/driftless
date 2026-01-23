@@ -59,21 +59,18 @@
 - Plugin registry and download manager
 
 ## TODO
-- Implement the following missing template filters and ensure they are compatible with the Ansible template filters of the same name and include comprehensive tests: center, indent, ljust, rjust
-	- REPEAT until all filters and functions implemented
-- The template filters and functions should follow a similar pattern to global task type registration to allow plugins to add additional template filters and functions
-- We need a documentation generator for the template filters and functions. The generator should use the global [filter and function registry] as its source for implemented filters and functions.
+- Implement the following string template filters and ensure they are compatible with the Ansible template filters of the same name and include comprehensive tests: lstrip, rstrip, splitlines, title, wordcount, batch, first, last, join, reverse, sort, unique
+- Implement the following math/logic template filters and ensure they are compatible with the Ansible template filters of the same name and include comprehensive tests: abs, round, random, bool, ternary
+- Implement the following dict/list template filters and ensure they are compatible with the Ansible template filters of the same name and include comprehensive tests: combine, dict2items, items2dict, flatten, map, select, reject, zip
+- Implement the following encoding/decoding template filters and ensure they are compatible with the Ansible template filters of the same name and include comprehensive tests: b64encode, b64decode, to_json, from_json, to_yaml, from_yaml
+- Implement the following path/filesystem template filters and ensure they are compatible with the Ansible template filters of the same name and include comprehensive tests: expanduser, realpath (beyond the current basename/dirname)
+- Implement the following generator template functions and ensure they are compatible with the Ansible template functions of the same name and include comprehensive tests: range, random
+- Implement the following utility template functions and ensure they are compatible with the Ansible template functions of the same name and include comprehensive tests: hash, uuid, timestamp
+- Ensure the `lookup` template function is fully complete
+- Identify any template features, filters, or functions implemented in Ansible that have not yet been implemented in this codebase
 - Review the codebase for usage of Rust best-practices and guidelines
 - Review the codebase for safety, security, and production-readiness
 - Ensure comprehensive test coverage
-
-### Template Filters That Need Implementing
-- String/List Manipulation: capitalize, center, indent, ljust, rjust, lstrip, rstrip, splitlines, title, truncate, wordcount, batch, first, last, join, reverse, sort, unique.
-- Math/Logic: abs, round, random, bool, ternary.
-- Dict/List Operations: combine, dict2items, items2dict, flatten, map, select, reject, zip.
-- Encoding/Decoding: b64encode, b64decode, to_json, from_json, to_yaml, from_yaml.
-- Path/Filesystem: expanduser, realpath (beyond the current basename/dirname).
-- Other: default (already supported via minijinja), mandatory, regex_replace, regex_search, regex_findall.
 
 ### Template Functions That Need Implementing
 - Generators: range, random.
