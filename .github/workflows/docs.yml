@@ -10,11 +10,6 @@ on:
       - 'scripts/generate-docs.sh'
   pull_request:
     branches: [ main, master ]
-    paths:
-      - 'src/**'
-      - 'docs/**'
-      - 'Cargo.toml'
-      - 'scripts/generate-docs.sh'
   workflow_dispatch:
 
 jobs:
