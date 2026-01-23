@@ -105,10 +105,6 @@ jobs:
       run: cargo test --target ${{ matrix.target }} --verbose
       if: ${{ !matrix.skip_tests }}
 
-    - name: Run doc tests
-      run: cargo test --target ${{ matrix.target }} --doc
-      if: ${{ !matrix.skip_tests }}
-
   # Security audit
   audit:
     name: Security Audit
