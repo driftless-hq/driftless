@@ -67,20 +67,20 @@ pub fn register_string_filters(
             ("killwords".to_string(), "boolean: If true, truncate at character boundary; if false, try to truncate at word boundary (optional, default: false)".to_string()),
             ("end".to_string(), "string: String to append when truncation occurs (optional, default: \"...\")".to_string()),
         ],
-        Arc::new(|value, args| {
+        Arc::new(|value: JinjaValue, args: &[JinjaValue]| {
             let s = value.as_str().unwrap_or("");
-            let length = args.first().and_then(|v| v.as_i64()).unwrap_or(255) as usize;
+            let length = args.first().and_then(|v: &JinjaValue| v.as_i64()).unwrap_or(255) as usize;
 
             // Handle variable arguments: truncate(length), truncate(length, end), truncate(length, killwords, end)
             let (killwords, end) = if args.len() >= 3 {
                 // truncate(length, killwords, end)
                 let killwords = args
                     .get(1)
-                    .map(|v| v.is_true() || v.as_str() == Some("true"))
+                    .map(|v: &JinjaValue| v.is_true() || v.as_str() == Some("true"))
                     .unwrap_or(false);
                 let end = args
                     .get(2)
-                    .and_then(|v| v.as_str())
+                    .and_then(|v: &JinjaValue| v.as_str())
                     .unwrap_or("...")
                     .to_string();
                 (killwords, end)
@@ -88,7 +88,7 @@ pub fn register_string_filters(
                 // truncate(length, end) - assume killwords = false
                 let end = args
                     .get(1)
-                    .and_then(|v| v.as_str())
+                    .and_then(|v: &JinjaValue| v.as_str())
                     .unwrap_or("...")
                     .to_string();
                 (false, end)
@@ -154,13 +154,16 @@ pub fn register_string_filters(
                 "string: Character to fill with (optional, default: space)".to_string(),
             ),
         ],
-        Arc::new(|value, args| {
+        Arc::new(|value: JinjaValue, args: &[JinjaValue]| {
             let s = value.as_str().unwrap_or("");
-            let width = args.first().and_then(|v| v.as_i64()).unwrap_or(0) as usize;
+            let width = args
+                .first()
+                .and_then(|v: &JinjaValue| v.as_i64())
+                .unwrap_or(0) as usize;
             let fillchar = args
                 .get(1)
-                .and_then(|v| v.as_str())
-                .and_then(|s| s.chars().next())
+                .and_then(|v: &JinjaValue| v.as_str())
+                .and_then(|s: &str| s.chars().next())
                 .unwrap_or(' ');
 
             if s.len() >= width {
@@ -195,13 +198,16 @@ pub fn register_string_filters(
                 "string: Character to fill with (optional, default: space)".to_string(),
             ),
         ],
-        Arc::new(|value, args| {
+        Arc::new(|value: JinjaValue, args: &[JinjaValue]| {
             let s = value.as_str().unwrap_or("");
-            let width = args.first().and_then(|v| v.as_i64()).unwrap_or(0) as usize;
+            let width = args
+                .first()
+                .and_then(|v: &JinjaValue| v.as_i64())
+                .unwrap_or(0) as usize;
             let fillchar = args
                 .get(1)
-                .and_then(|v| v.as_str())
-                .and_then(|s| s.chars().next())
+                .and_then(|v: &JinjaValue| v.as_str())
+                .and_then(|s: &str| s.chars().next())
                 .unwrap_or(' ');
 
             if s.len() >= width {
@@ -229,13 +235,16 @@ pub fn register_string_filters(
                 "string: Character to fill with (optional, default: space)".to_string(),
             ),
         ],
-        Arc::new(|value, args| {
+        Arc::new(|value: JinjaValue, args: &[JinjaValue]| {
             let s = value.as_str().unwrap_or("");
-            let width = args.first().and_then(|v| v.as_i64()).unwrap_or(0) as usize;
+            let width = args
+                .first()
+                .and_then(|v: &JinjaValue| v.as_i64())
+                .unwrap_or(0) as usize;
             let fillchar = args
                 .get(1)
-                .and_then(|v| v.as_str())
-                .and_then(|s| s.chars().next())
+                .and_then(|v: &JinjaValue| v.as_str())
+                .and_then(|s: &str| s.chars().next())
                 .unwrap_or(' ');
 
             if s.len() >= width {
@@ -263,12 +272,15 @@ pub fn register_string_filters(
                 "boolean: Whether to indent the first line (optional, default: false)".to_string(),
             ),
         ],
-        Arc::new(|value, args| {
+        Arc::new(|value: JinjaValue, args: &[JinjaValue]| {
             let s = value.as_str().unwrap_or("");
-            let width = args.first().and_then(|v| v.as_i64()).unwrap_or(0) as usize;
+            let width = args
+                .first()
+                .and_then(|v: &JinjaValue| v.as_i64())
+                .unwrap_or(0) as usize;
             let indentfirst = args
                 .get(1)
-                .map(|v| v.is_true() || v.as_str() == Some("true"))
+                .map(|v: &JinjaValue| v.is_true() || v.as_str() == Some("true"))
                 .unwrap_or(false);
 
             if width == 0 {
@@ -399,9 +411,12 @@ pub fn register_string_filters(
             "style".to_string(),
             "string: Comment style (optional, default: #)".to_string(),
         )],
-        Arc::new(|value, args| {
+        Arc::new(|value: JinjaValue, args: &[JinjaValue]| {
             let s = value.as_str().unwrap_or("");
-            let style = args.first().and_then(|v| v.as_str()).unwrap_or("#");
+            let style = args
+                .first()
+                .and_then(|v: &JinjaValue| v.as_str())
+                .unwrap_or("#");
             let lines: Vec<&str> = s.lines().collect();
             if lines.is_empty() {
                 JinjaValue::from(format!("{} ", style))
@@ -424,7 +439,7 @@ pub fn register_string_filters(
             "args".to_string(),
             "variadic: Arguments to format into the string".to_string(),
         )],
-        Arc::new(|value, args| {
+        Arc::new(|value: JinjaValue, args: &[JinjaValue]| {
             let template = value.as_str().unwrap_or("");
             // Simple implementation: replace {} with args in order
             let mut result = template.to_string();
@@ -448,9 +463,12 @@ pub fn register_string_filters(
             "width".to_string(),
             "integer: Maximum width of each line (optional, default: 79)".to_string(),
         )],
-        Arc::new(|value, args| {
+        Arc::new(|value: JinjaValue, args: &[JinjaValue]| {
             let s = value.as_str().unwrap_or("");
-            let width = args.first().and_then(|v| v.as_i64()).unwrap_or(79) as usize;
+            let width = args
+                .first()
+                .and_then(|v: &JinjaValue| v.as_i64())
+                .unwrap_or(79) as usize;
             let mut result = String::new();
             let mut current_line = String::new();
 
@@ -532,12 +550,15 @@ pub fn register_string_filters(
             "separator".to_string(),
             "string: String to join with (optional, default: empty string)".to_string(),
         )],
-        Arc::new(|value, args| {
-            let separator = args.first().and_then(|v| v.as_str()).unwrap_or("");
+        Arc::new(|value: JinjaValue, args: &[JinjaValue]| {
+            let separator = args
+                .first()
+                .and_then(|v: &JinjaValue| v.as_str())
+                .unwrap_or("");
 
             if let Ok(iter) = value.try_iter() {
                 let strings: Vec<String> = iter
-                    .filter_map(|v| v.as_str().map(|s| s.to_string()))
+                    .filter_map(|v: JinjaValue| v.as_str().map(|s: &str| s.to_string()))
                     .collect();
                 JinjaValue::from(strings.join(separator))
             } else {
@@ -582,14 +603,14 @@ pub fn register_string_filters(
                 "boolean: Case sensitive sorting for strings (optional, default: true)".to_string(),
             ),
         ],
-        Arc::new(|value, args| {
+        Arc::new(|value: JinjaValue, args: &[JinjaValue]| {
             let reverse = args
                 .first()
-                .map(|v| v.is_true() || v.as_str() == Some("true"))
+                .map(|v: &JinjaValue| v.is_true() || v.as_str() == Some("true"))
                 .unwrap_or(false);
             let case_sensitive = args
                 .get(1)
-                .map(|v| v.is_true() || v.as_str() == Some("true"))
+                .map(|v: &JinjaValue| v.is_true() || v.as_str() == Some("true"))
                 .unwrap_or(true);
 
             if let Some(s) = value.as_str() {
@@ -681,8 +702,11 @@ pub fn register_string_filters(
                 "any: Value to fill incomplete batches (optional)".to_string(),
             ),
         ],
-        Arc::new(|value, args| {
-            let size = args.first().and_then(|v| v.as_i64()).unwrap_or(1) as usize;
+        Arc::new(|value: JinjaValue, args: &[JinjaValue]| {
+            let size = args
+                .first()
+                .and_then(|v: &JinjaValue| v.as_i64())
+                .unwrap_or(1) as usize;
             let fill_with = args.get(1).cloned();
 
             if let Some(_s) = value.as_str() {

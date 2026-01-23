@@ -59,10 +59,29 @@ static TEMPLATE_FUNCTION_REGISTRY: Lazy<RwLock<HashMap<String, TemplateFunctionE
         RwLock::new(registry)
     });
 
-/// Template registry for runtime extensibility
+// Template registry for managing filters and functions
 pub struct TemplateRegistry;
 
 impl TemplateRegistry {
+    /// Initialize built-in filters
+    pub fn initialize_builtin_filters(registry: &mut HashMap<String, TemplateFilterEntry>) {
+        // Add all the built-in filters from various modules
+        encoding_filters::register_encoding_filters(registry);
+        list_filters::register_list_filters(registry);
+        math_filters::register_math_filters(registry);
+        path_filters::register_path_filters(registry);
+        path_operations::register_path_filters(registry);
+        string_filters::register_string_filters(registry);
+    }
+
+    /// Initialize built-in functions
+    pub fn initialize_builtin_functions(registry: &mut HashMap<String, TemplateFunctionEntry>) {
+        // Add built-in functions
+        generator_functions::register_generator_functions(registry);
+        path_operations::register_path_functions(registry);
+        utility_functions::register_utility_functions(registry);
+    }
+
     /// Register a template filter
     pub fn register_filter(
         registry: &mut HashMap<String, TemplateFilterEntry>,
@@ -99,23 +118,6 @@ impl TemplateRegistry {
             function_fn,
         };
         registry.insert(name.to_string(), entry);
-    }
-
-    /// Initialize the registry with built-in filters
-    pub fn initialize_builtin_filters(registry: &mut HashMap<String, TemplateFilterEntry>) {
-        string_filters::register_string_filters(registry);
-        list_filters::register_list_filters(registry);
-        encoding_filters::register_encoding_filters(registry);
-        math_filters::register_math_filters(registry);
-        path_operations::register_path_filters(registry);
-        path_filters::register_path_filters(registry);
-    }
-
-    /// Initialize the registry with built-in functions
-    pub fn initialize_builtin_functions(registry: &mut HashMap<String, TemplateFunctionEntry>) {
-        utility_functions::register_utility_functions(registry);
-        path_operations::register_path_functions(registry);
-        generator_functions::register_generator_functions(registry);
     }
 
     /// Get all registered filter names
@@ -168,7 +170,7 @@ impl TemplateRegistry {
 
     /// Register a new filter at runtime
     #[allow(unused)]
-    pub fn register_filter_runtime(
+    pub fn register_custom_filter(
         name: &str,
         description: &str,
         category: &str,
@@ -188,7 +190,7 @@ impl TemplateRegistry {
 
     /// Register a new function at runtime
     #[allow(unused)]
-    pub fn register_function_runtime(
+    pub fn register_custom_function(
         name: &str,
         description: &str,
         category: &str,
@@ -214,7 +216,7 @@ pub fn setup_minijinja_env(env: &mut Environment) {
         let registry = TEMPLATE_FILTER_REGISTRY.read().unwrap();
         for (name, entry) in registry.iter() {
             let filter_fn = entry.filter_fn.clone();
-            let name_owned = name.clone();
+            let name_owned: String = name.clone();
             env.add_filter(name_owned, move |value: JinjaValue, args: &[JinjaValue]| {
                 filter_fn(value, args)
             });
@@ -226,7 +228,7 @@ pub fn setup_minijinja_env(env: &mut Environment) {
         let registry = TEMPLATE_FUNCTION_REGISTRY.read().unwrap();
         for (name, entry) in registry.iter() {
             let function_fn = entry.function_fn.clone();
-            let name_owned = name.clone();
+            let name_owned: String = name.clone();
             env.add_function(name_owned, move |args: &[JinjaValue]| function_fn(args));
         }
     }
@@ -242,5 +244,46 @@ pub fn render_with_context(
     setup_minijinja_env(&mut env);
 
     let tmpl = env.template_from_str(template)?;
+    tmpl.render(&context)
+}
+
+/// Render a template with file loading support for includes/imports
+pub fn render_template_with_loader(
+    template_content: &str,
+    _template_name: &str,
+    template_dir: Option<&std::path::Path>,
+    context: minijinja::Value,
+) -> Result<String, minijinja::Error> {
+    let mut env = Environment::new();
+    env.set_undefined_behavior(minijinja::UndefinedBehavior::Strict);
+    setup_minijinja_env(&mut env);
+
+    // Store template contents to keep them alive
+    let mut template_contents = Vec::new();
+    let mut template_names = Vec::new();
+
+    // If template_dir is provided, load all templates in the directory
+    if let Some(dir) = template_dir {
+        if let Ok(entries) = std::fs::read_dir(dir) {
+            for entry in entries.flatten() {
+                if let Ok(file_type) = entry.file_type() {
+                    if file_type.is_file() {
+                        let name_owned = entry.file_name().to_string_lossy().to_string();
+                        if let Ok(content) = std::fs::read_to_string(entry.path()) {
+                            template_contents.push(content);
+                            template_names.push(name_owned);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Add all templates to environment
+    for (name, content) in template_names.iter().zip(template_contents.iter()) {
+        let _ = env.add_template(name, content);
+    }
+
+    let tmpl = env.template_from_str(template_content)?;
     tmpl.render(&context)
 }

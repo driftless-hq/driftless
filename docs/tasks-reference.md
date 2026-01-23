@@ -2310,6 +2310,12 @@ path = "/home/user"
   Human-readable description of the task's purpose. Used for documentation
   and can be displayed in logs or reports.
 
+- `template_dir` (Option<String>):
+  Template directory for includes/imports
+
+  Directory containing templates that can be included or imported.
+  If not specified, includes/imports will not work.
+
 - `when` (Option<String>):
   Optional condition to determine if the task should run
 

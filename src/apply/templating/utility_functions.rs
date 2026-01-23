@@ -74,7 +74,7 @@ pub fn register_utility_functions(
                 "string: The key/path/command to look up".to_string(),
             ),
         ],
-        Arc::new(|args| {
+        Arc::new(|args: &[JinjaValue]| {
             if args.len() >= 2 {
                 if let (Some(type_str), Some(key)) = (args[0].as_str(), args[1].as_str()) {
                     match type_str {
@@ -134,7 +134,7 @@ pub fn register_utility_functions(
                 "string: The hash algorithm (md5, sha1, sha256, sha384, sha512)".to_string(),
             ),
         ],
-        Arc::new(|args| {
+        Arc::new(|args: &[JinjaValue]| {
             if args.len() >= 2 {
                 if let (Some(value), Some(algorithm)) = (args[0].as_str(), args[1].as_str()) {
                     return match algorithm {
@@ -191,9 +191,9 @@ pub fn register_utility_functions(
             "format".to_string(),
             "string: Optional strftime format string (default: ISO 8601)".to_string(),
         )],
-        Arc::new(|args| {
+        Arc::new(|args: &[JinjaValue]| {
             let now = chrono::Utc::now();
-            if let Some(format_str) = args.first().and_then(|v| v.as_str()) {
+            if let Some(format_str) = args.first().and_then(|v: &JinjaValue| v.as_str()) {
                 // Try to format with the given string, fall back to ISO 8601 on error
                 let formatted = now.format(format_str);
                 // Use a safe conversion that won't panic
@@ -226,8 +226,8 @@ pub fn register_utility_functions(
             "string".to_string(),
             "string: The string containing environment variables to expand".to_string(),
         )],
-        Arc::new(|args| {
-            if let Some(input_str) = args.first().and_then(|v| v.as_str()) {
+        Arc::new(|args: &[JinjaValue]| {
+            if let Some(input_str) = args.first().and_then(|v: &JinjaValue| v.as_str()) {
                 let mut result = input_str.to_string();
 
                 // Simple environment variable expansion
@@ -397,8 +397,8 @@ pub fn register_utility_functions(
             "file".to_string(),
             "string: Path to the file containing variables".to_string(),
         )],
-        Arc::new(|args| {
-            if let Some(file_path) = args.first().and_then(|v| v.as_str()) {
+        Arc::new(|args: &[JinjaValue]| {
+            if let Some(file_path) = args.first().and_then(|v: &JinjaValue| v.as_str()) {
                 match std::fs::read_to_string(file_path) {
                     Ok(content) => {
                         // Try to parse as YAML first, then JSON
@@ -447,7 +447,7 @@ pub fn register_utility_functions(
                 "any: Arguments for the query".to_string(),
             ),
         ],
-        Arc::new(|args| {
+        Arc::new(|args: &[JinjaValue]| {
             if !args.is_empty() {
                 if let Some(query_type) = args[0].as_str() {
                     match query_type {

@@ -169,6 +169,12 @@ pub struct TemplateTask {
     /// Force template rendering
     #[serde(default)]
     pub force: bool,
+    /// Template directory for includes/imports
+    ///
+    /// Directory containing templates that can be included or imported.
+    /// If not specified, includes/imports will not work.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub template_dir: Option<String>,
 }
 
 use crate::apply::templating;
@@ -202,8 +208,17 @@ async fn ensure_template_rendered(task: &TemplateTask, dry_run: bool) -> Result<
     let template_content = fs::read_to_string(src_path)
         .with_context(|| format!("Failed to read template {}", task.src))?;
 
+    // Determine template directory
+    let template_dir = if let Some(ref dir) = task.template_dir {
+        Some(std::path::Path::new(dir))
+    } else if let Some(parent) = src_path.parent() {
+        Some(parent)
+    } else {
+        None
+    };
+
     // Render template with variables
-    let rendered_content = render_template(&template_content, &task.vars)?;
+    let rendered_content = render_template(&template_content, &task.vars, template_dir)?;
 
     // Check if destination needs updating
     let needs_update = if dest_path.exists() {
@@ -279,11 +294,11 @@ async fn ensure_template_not_rendered(task: &TemplateTask, dry_run: bool) -> Res
 }
 
 /// Render template with variable substitution
-fn render_template(template: &str, vars: &HashMap<String, serde_json::Value>) -> Result<String> {
+fn render_template(template: &str, vars: &HashMap<String, serde_json::Value>, template_dir: Option<&std::path::Path>) -> Result<String> {
     // Convert vars to JinjaValue
     let context = minijinja::Value::from_serialize(vars);
 
-    templating::render_with_context(template, context)
+    templating::render_template_with_loader(template, "main", template_dir, context)
         .with_context(|| "Failed to render template".to_string())
 }
 
@@ -321,6 +336,7 @@ mod tests {
             vars,
             backup: false,
             force: false,
+            template_dir: None,
         };
 
         let result = execute_template_task(&task, true).await;
@@ -354,6 +370,7 @@ mod tests {
             vars,
             backup: false,
             force: false,
+            template_dir: None,
         };
 
         let result = execute_template_task(&task, false).await;
@@ -375,7 +392,7 @@ mod tests {
         vars.insert("age".to_string(), serde_json::json!(25));
         vars.insert("active".to_string(), serde_json::json!(true));
 
-        let result = render_template(template, &vars).unwrap();
+        let result = render_template(template, &vars, None).unwrap();
         assert_eq!(result, "User: john, Age: 25, Active: true");
     }
 
@@ -389,7 +406,7 @@ mod tests {
         );
         // db_port not provided, should use default
 
-        let result = render_template(template, &vars).unwrap();
+        let result = render_template(template, &vars, None).unwrap();
         assert_eq!(result, "DB: prod-db, Port: 5432");
     }
 
@@ -403,23 +420,64 @@ mod tests {
 
         // Test capitalize filter
         let template = "{{ text | capitalize }}";
-        let result = render_template(template, &vars).unwrap();
+        let result = render_template(template, &vars, None).unwrap();
         assert_eq!(result, "Hello world");
 
         // Test truncate filter
         let template = "{{ text | truncate(8) }}";
-        let result = render_template(template, &vars).unwrap();
+        let result = render_template(template, &vars, None).unwrap();
         assert_eq!(result, "hello...");
 
         // Test truncate with custom end
         let template = "{{ text | truncate(8, false, '***') }}";
-        let result = render_template(template, &vars).unwrap();
+        let result = render_template(template, &vars, None).unwrap();
         assert_eq!(result, "hello***");
 
         // Test truncate with killwords=true
         let template = "{{ text | truncate(8, true) }}";
-        let result = render_template(template, &vars).unwrap();
+        let result = render_template(template, &vars, None).unwrap();
         assert_eq!(result, "hello...");
+    }
+
+    #[test]
+    fn test_template_include() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        let template_dir = temp_dir.path();
+
+        // Create an included template
+        let included_path = template_dir.join("included.j2");
+        std::fs::write(&included_path, "Included content: {{ var }}").unwrap();
+
+        // Create main template that includes the other
+        let main_template = "Main template\n{% include 'included.j2' %}\nEnd";
+
+        let mut vars = HashMap::new();
+        vars.insert("var".to_string(), serde_json::json!("test_value"));
+
+        let result = render_template(main_template, &vars, Some(template_dir)).unwrap();
+        assert_eq!(result, "Main template\nIncluded content: test_value\nEnd");
+    }
+
+    #[test]
+    fn test_template_import() {
+        use tempfile::TempDir;
+
+        let temp_dir = TempDir::new().unwrap();
+        let template_dir = temp_dir.path();
+
+        // Create a template with macros
+        let macros_path = template_dir.join("macros.j2");
+        std::fs::write(&macros_path, "{% macro greet(name) %}Hello {{ name }}!{% endmacro %}").unwrap();
+
+        // Create main template that imports and uses the macro
+        let main_template = "{% import 'macros.j2' as macros %}{{ macros.greet('World') }}";
+
+        let vars = HashMap::new();
+
+        let result = render_template(main_template, &vars, Some(template_dir)).unwrap();
+        assert_eq!(result, "Hello World!");
     }
 
     #[tokio::test]
@@ -436,6 +494,7 @@ mod tests {
             vars: HashMap::new(),
             backup: false,
             force: false,
+            template_dir: None,
         };
 
         let result = execute_template_task(&task, false).await;

@@ -59,7 +59,8 @@
 - Plugin registry and download manager
 
 ## TODO
-- Implement other missing features such as template composition (include/import) and custom extensions support. Ensure compatibility with Ansible and comprehensive documentation and tests.
+- Now that the `apply` tasks are complete, look at the `facts` and `logs` and determine what task types should exist. Create task prompts in the TODO list that implements these task types with comprehensive documentation and tests in managable pieces.
+- Create task prompts in the TODO list that create, in managable pieces, an extensions/plugins system via the `wasmtime` crate that can create and register task types and template filters and functions.
 - Review the codebase for usage of Rust best-practices and guidelines
 - Review the codebase for safety, security, and production-readiness
 - Ensure comprehensive test coverage
