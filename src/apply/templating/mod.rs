@@ -3,6 +3,7 @@
 pub mod encoding_filters;
 pub mod list_filters;
 pub mod math_filters;
+pub mod path_filters;
 pub mod path_operations;
 pub mod string_filters;
 pub mod tests;
@@ -106,6 +107,7 @@ impl TemplateRegistry {
         encoding_filters::register_encoding_filters(registry);
         math_filters::register_math_filters(registry);
         path_operations::register_path_filters(registry);
+        path_filters::register_path_filters(registry);
     }
 
     /// Initialize the registry with built-in functions

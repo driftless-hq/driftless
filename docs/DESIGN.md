@@ -59,7 +59,6 @@
 - Plugin registry and download manager
 
 ## TODO
-- Implement the following path/filesystem template filters in a new file and ensure they are compatible with the Ansible template filters of the same name and include comprehensive tests and documentation: expanduser, realpath (beyond the current basename/dirname)
 - Implement the following generator template functions in a new file and ensure they are compatible with the Ansible template functions of the same name and include comprehensive tests and documentation: range, random
 - Implement the following utility template functions in a new file and ensure they are compatible with the Ansible template functions of the same name and include comprehensive tests and documentation: hash, uuid, timestamp
 - Ensure the `lookup` template function is fully complete

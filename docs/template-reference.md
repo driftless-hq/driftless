@@ -19,6 +19,71 @@ Driftless uses Jinja2 templating for dynamic configuration values. Templates sup
 
 Filters transform values in templates using the `|` syntax.
 
+### Encoding/Decoding
+
+#### `b64decode`
+
+Decode a base64 encoded string.
+
+**Usage**:
+
+```jinja2
+{{ value | b64decode }}
+```
+
+#### `b64encode`
+
+Encode a string using base64 encoding.
+
+**Usage**:
+
+```jinja2
+{{ value | b64encode }}
+```
+
+#### `from_json`
+
+Parse a JSON string into a value.
+
+**Usage**:
+
+```jinja2
+{{ value | from_json }}
+```
+
+#### `from_yaml`
+
+Parse a YAML string into a value.
+
+**Usage**:
+
+```jinja2
+{{ value | from_yaml }}
+```
+
+#### `to_json`
+
+Serialize a value to JSON string.
+
+**Arguments**:
+
+- `indent`: Number of spaces for indentation (optional)
+
+**Usage**:
+
+```jinja2
+{{ value | to_json(indent) }}
+```
+#### `to_yaml`
+
+Serialize a value to YAML string.
+
+**Usage**:
+
+```jinja2
+{{ value | to_yaml }}
+```
+
 ### List Operations
 
 #### `batch`
@@ -102,6 +167,103 @@ Remove duplicate items from a list
 {{ value | unique }}
 ```
 
+### List/Dict Operations
+
+#### `combine`
+
+Combine multiple dictionaries into one. Later dictionaries override earlier ones.
+
+**Arguments**:
+
+- `dictionaries`: Additional dictionaries to combine
+
+**Usage**:
+
+```jinja2
+{{ value | combine(dictionaries) }}
+```
+#### `dict2items`
+
+Convert a dictionary to a list of items with 'key' and 'value' fields.
+
+**Usage**:
+
+```jinja2
+{{ value | dict2items }}
+```
+
+#### `flatten`
+
+Flatten a nested list structure.
+
+**Usage**:
+
+```jinja2
+{{ value | flatten }}
+```
+
+#### `items2dict`
+
+Convert a list of items with 'key' and 'value' fields back to a dictionary.
+
+**Usage**:
+
+```jinja2
+{{ value | items2dict }}
+```
+
+#### `map`
+
+Apply an attribute or filter to each item in a list.
+
+**Arguments**:
+
+- `attribute`: Attribute name or filter to apply
+
+**Usage**:
+
+```jinja2
+{{ value | map(attribute) }}
+```
+#### `reject`
+
+Reject items from a list that match a test.
+
+**Arguments**:
+
+- `test`: Test to apply (currently supports 'defined' and 'truthy')
+
+**Usage**:
+
+```jinja2
+{{ value | reject(test) }}
+```
+#### `select`
+
+Select items from a list that match a test.
+
+**Arguments**:
+
+- `test`: Test to apply (currently supports 'defined' and 'truthy')
+
+**Usage**:
+
+```jinja2
+{{ value | select(test) }}
+```
+#### `zip`
+
+Zip multiple lists together into a list of tuples.
+
+**Arguments**:
+
+- `lists`: Additional lists to zip with
+
+**Usage**:
+
+```jinja2
+{{ value | zip(lists) }}
+```
 ### Math/Logic Operations
 
 #### `abs`
@@ -185,6 +347,26 @@ Return the directory name of a path
 
 ```jinja2
 {{ value | dirname }}
+```
+
+#### `expanduser`
+
+Expand a path containing a tilde (~) to the user's home directory.
+
+**Usage**:
+
+```jinja2
+{{ value | expanduser }}
+```
+
+#### `realpath`
+
+Return the canonical absolute path, resolving symlinks and relative components.
+
+**Usage**:
+
+```jinja2
+{{ value | realpath }}
 ```
 
 ### String Operations
