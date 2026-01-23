@@ -42,6 +42,25 @@
 //!   }
 //! }
 //! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[collectors]]
+//! type = "memory"
+//! name = "memory"
+//!
+//! [collectors.collect]
+//! total = true
+//! used = true
+//! free = true
+//! available = true
+//! swap = true
+//! percentage = true
+//!
+//! [collectors.thresholds]
+//! usage_warning = 85.0
+//! usage_critical = 95.0
+//! ```
 
 use crate::facts::MemoryCollector;
 use anyhow::Result;

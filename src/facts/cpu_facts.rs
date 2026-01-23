@@ -67,6 +67,30 @@
 //! temp_warning = 70.0
 //! temp_critical = 85.0
 //! ```
+//!
+//! **Output:**
+//! ```text
+//! cpu_count: 4
+//! usage_percent: 45.2
+//! usage_warning: false
+//! usage_critical: false
+//! cores:
+//!   - core_id: 0
+//!     usage_percent: 42.1
+//!     frequency_mhz: 2400
+//!   - core_id: 1
+//!     usage_percent: 48.3
+//!     frequency_mhz: 2400
+//! frequency_mhz: 2400.0
+//! temperature_celsius: null
+//! temperature_available: false
+//! temp_warning: false
+//! temp_critical: false
+//! load_average:
+//!   "1m": 1.25
+//!   "5m": 1.15
+//!   "15m": 1.08
+//! ```
 //! ```
 
 use crate::facts::CpuCollector;
@@ -88,35 +112,68 @@ pub fn collect_cpu_facts(collector: &CpuCollector) -> Result<Value> {
         Value::Number(system.cpus().len().into()),
     );
 
-    // Collect overall CPU usage (simplified)
+    // Collect overall CPU usage
     if collector.collect.usage {
-        // Placeholder for CPU usage - would need proper implementation
-        facts.insert("usage_percent".to_string(), Value::Null);
+        system.refresh_cpu();
+        let usage = system.global_cpu_info().cpu_usage();
+        facts.insert(
+            "usage_percent".to_string(),
+            Value::Number(serde_yaml::Number::from(usage as f64)),
+        );
 
-        // Check thresholds (placeholder)
-        if let Some(_warning) = collector.thresholds.usage_warning {
-            facts.insert("usage_warning".to_string(), Value::Bool(false));
+        // Check thresholds
+        if let Some(warning) = collector.thresholds.usage_warning {
+            let is_warning = usage as f64 >= warning;
+            facts.insert("usage_warning".to_string(), Value::Bool(is_warning));
         }
-        if let Some(_critical) = collector.thresholds.usage_critical {
-            facts.insert("usage_critical".to_string(), Value::Bool(false));
+        if let Some(critical) = collector.thresholds.usage_critical {
+            let is_critical = usage as f64 >= critical;
+            facts.insert("usage_critical".to_string(), Value::Bool(is_critical));
         }
     }
 
-    // Per-core usage (placeholder)
+    // Per-core usage
     if collector.collect.per_core {
-        facts.insert("cores".to_string(), Value::Sequence(Vec::new()));
+        system.refresh_cpu();
+        let mut cores = Vec::new();
+        for (i, cpu) in system.cpus().iter().enumerate() {
+            let mut core_info = HashMap::new();
+            core_info.insert("core_id".to_string(), Value::Number(i.into()));
+            core_info.insert(
+                "usage_percent".to_string(),
+                Value::Number(serde_yaml::Number::from(cpu.cpu_usage() as f64)),
+            );
+            core_info.insert(
+                "frequency_mhz".to_string(),
+                Value::Number(serde_yaml::Number::from(cpu.frequency())),
+            );
+            cores.push(Value::Mapping(
+                core_info
+                    .into_iter()
+                    .map(|(k, v)| (Value::String(k), v))
+                    .collect(),
+            ));
+        }
+        facts.insert("cores".to_string(), Value::Sequence(cores));
     }
 
-    // CPU frequency (placeholder)
+    // CPU frequency (average across all cores)
     if collector.collect.frequency {
-        facts.insert("frequency_mhz".to_string(), Value::Null);
+        system.refresh_cpu();
+        let total_freq: u64 = system.cpus().iter().map(|cpu| cpu.frequency()).sum();
+        let avg_freq = total_freq as f64 / system.cpus().len() as f64;
+        facts.insert(
+            "frequency_mhz".to_string(),
+            Value::Number(serde_yaml::Number::from(avg_freq)),
+        );
     }
 
-    // CPU temperature (placeholder)
+    // CPU temperature (not available in sysinfo crate)
     if collector.collect.temperature {
         facts.insert("temperature_celsius".to_string(), Value::Null);
         facts.insert("temperature_available".to_string(), Value::Bool(false));
 
+        // Threshold checks would be false since no data available
         if let Some(_warning) = collector.thresholds.temp_warning {
             facts.insert("temp_warning".to_string(), Value::Bool(false));
         }
@@ -125,9 +182,31 @@ pub fn collect_cpu_facts(collector: &CpuCollector) -> Result<Value> {
         }
     }
 
-    // Load average (placeholder)
+    // Load average
     if collector.collect.load_average {
-        facts.insert("load_average".to_string(), Value::Null);
+        let load_avg = System::load_average();
+        let mut load_info = HashMap::new();
+        load_info.insert(
+            "1m".to_string(),
+            Value::Number(serde_yaml::Number::from(load_avg.one)),
+        );
+        load_info.insert(
+            "5m".to_string(),
+            Value::Number(serde_yaml::Number::from(load_avg.five)),
+        );
+        load_info.insert(
+            "15m".to_string(),
+            Value::Number(serde_yaml::Number::from(load_avg.fifteen)),
+        );
+        facts.insert(
+            "load_average".to_string(),
+            Value::Mapping(
+                load_info
+                    .into_iter()
+                    .map(|(k, v)| (Value::String(k), v))
+                    .collect(),
+            ),
+        );
     }
 
     // Add base labels if any
@@ -202,7 +281,52 @@ mod tests {
                 .collect();
 
             assert!(keys.contains("cpu_count"));
-            // Note: actual values are placeholders, so we just check structure
+
+            // Check that we have actual values, not null
+            if keys.contains("usage_percent") {
+                let usage_value = map
+                    .get(&Value::String("usage_percent".to_string()))
+                    .unwrap();
+                assert!(!matches!(usage_value, Value::Null));
+                assert!(matches!(usage_value, Value::Number(_)));
+            }
+
+            if keys.contains("cores") {
+                let cores_value = map.get(&Value::String("cores".to_string())).unwrap();
+                if let Value::Sequence(cores) = cores_value {
+                    assert!(!cores.is_empty());
+                    // Check first core has proper structure
+                    if let Some(Value::Mapping(core_map)) = cores.get(0) {
+                        let core_keys: std::collections::HashSet<_> = core_map
+                            .keys()
+                            .filter_map(|k| {
+                                if let Value::String(s) = k {
+                                    Some(s.as_str())
+                                } else {
+                                    None
+                                }
+                            })
+                            .collect();
+                        assert!(core_keys.contains("core_id"));
+                        assert!(core_keys.contains("usage_percent"));
+                        assert!(core_keys.contains("frequency_mhz"));
+                    }
+                }
+            }
+
+            if keys.contains("frequency_mhz") {
+                let freq_value = map
+                    .get(&Value::String("frequency_mhz".to_string()))
+                    .unwrap();
+                assert!(!matches!(freq_value, Value::Null));
+                assert!(matches!(freq_value, Value::Number(_)));
+            }
+
+            if keys.contains("load_average") {
+                let load_value = map.get(&Value::String("load_average".to_string())).unwrap();
+                assert!(!matches!(load_value, Value::Null));
+                assert!(matches!(load_value, Value::Mapping(_)));
+            }
         } else {
             panic!("Expected mapping value");
         }

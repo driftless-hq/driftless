@@ -29,6 +29,18 @@
 //! }
 //! ```
 //!
+//! **TOML Format:**
+//! ```toml
+//! [[collectors]]
+//! type = "command"
+//! name = "uptime"
+//! command = "uptime -p"
+//! format = "text"
+//!
+//! [collectors.labels]
+//! category = "system"
+//! ```
+//!
 //! ## JSON command output parsing
 //!
 //! **YAML Format:**
@@ -54,6 +66,19 @@
 //!     "DOCKER_HOST": "unix:///var/run/docker.sock"
 //!   }
 //! }
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[collectors]]
+//! type = "command"
+//! name = "docker_stats"
+//! command = "docker stats --no-stream --format json"
+//! format = "json"
+//! cwd = "/tmp"
+//!
+//! [collectors.env]
+//! DOCKER_HOST = "unix:///var/run/docker.sock"
 //! ```
 
 use crate::facts::{CommandCollector, CommandOutputFormat};

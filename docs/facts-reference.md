@@ -155,6 +155,89 @@ temp_critical = 85.0
 - `labels` (HashMap<String, String>):
   Additional labels for this collector
 
+**Examples**:
+
+**Basic command output collection**:
+
+**YAML Format**:
+
+```yaml
+type: command
+name: uptime
+command: uptime -p
+format: text
+labels:
+  category: system
+```
+
+**JSON Format**:
+
+```json
+{
+  "type": "command",
+  "name": "uptime",
+  "command": "uptime -p",
+  "format": "text",
+  "labels": {
+    "category": "system"
+  }
+}
+```
+
+**TOML Format**:
+
+```toml
+[[collectors]]
+type = "command"
+name = "uptime"
+command = "uptime -p"
+format = "text"
+[collectors.labels]
+category = "system"
+```
+
+**JSON command output parsing**:
+
+**YAML Format**:
+
+```yaml
+type: command
+name: docker_stats
+command: docker stats --no-stream --format json
+format: json
+cwd: /tmp
+env:
+  DOCKER_HOST: unix:///var/run/docker.sock
+```
+
+**JSON Format**:
+
+```json
+{
+  "type": "command",
+  "name": "docker_stats",
+  "command": "docker stats --no-stream --format json",
+  "format": "json",
+  "cwd": "/tmp",
+  "env": {
+    "DOCKER_HOST": "unix:///var/run/docker.sock"
+  }
+}
+```
+
+**TOML Format**:
+
+```toml
+[[collectors]]
+type = "command"
+name = "docker_stats"
+command = "docker stats --no-stream --format json"
+format = "json"
+cwd = "/tmp"
+[collectors.env]
+DOCKER_HOST = "unix:///var/run/docker.sock"
+```
+
 ### Disk Metrics
 
 #### disk
@@ -192,6 +275,72 @@ temp_critical = 85.0
 - `labels` (HashMap<String, String>):
   Additional labels for this collector
 
+**Examples**:
+
+**Basic disk metrics collection**:
+
+**YAML Format**:
+
+```yaml
+type: disk
+name: disk
+devices: ["/dev/sda", "/dev/sdb"]
+mount_points: ["/", "/home", "/var"]
+collect:
+  total: true
+  used: true
+  free: true
+  available: true
+  percentage: true
+  io: true
+thresholds:
+  usage_warning: 80.0
+  usage_critical: 90.0
+```
+
+**JSON Format**:
+
+```json
+{
+  "type": "disk",
+  "name": "disk",
+  "devices": ["/dev/sda", "/dev/sdb"],
+  "mount_points": ["/", "/home", "/var"],
+  "collect": {
+    "total": true,
+    "used": true,
+    "free": true,
+    "available": true,
+    "percentage": true,
+    "io": true
+  },
+  "thresholds": {
+    "usage_warning": 80.0,
+    "usage_critical": 90.0
+  }
+}
+```
+
+**TOML Format**:
+
+```toml
+[[collectors]]
+type = "disk"
+name = "disk"
+devices = ["/dev/sda", "/dev/sdb"]
+mount_points = ["/", "/home", "/var"]
+[collectors.collect]
+total = true
+used = true
+free = true
+available = true
+percentage = true
+io = true
+[collectors.thresholds]
+usage_warning = 80.0
+usage_critical = 90.0
+```
+
 ### Memory Metrics
 
 #### memory
@@ -222,6 +371,66 @@ temp_critical = 85.0
 
 - `labels` (HashMap<String, String>):
   Additional labels for this collector
+
+**Examples**:
+
+**Basic memory metrics collection**:
+
+**YAML Format**:
+
+```yaml
+type: memory
+name: memory
+collect:
+  total: true
+  used: true
+  free: true
+  available: true
+  swap: true
+  percentage: true
+thresholds:
+  usage_warning: 85.0
+  usage_critical: 95.0
+```
+
+**JSON Format**:
+
+```json
+{
+  "type": "memory",
+  "name": "memory",
+  "collect": {
+    "total": true,
+    "used": true,
+    "free": true,
+    "available": true,
+    "swap": true,
+    "percentage": true
+  },
+  "thresholds": {
+    "usage_warning": 85.0,
+    "usage_critical": 95.0
+  }
+}
+```
+
+**TOML Format**:
+
+```toml
+[[collectors]]
+type = "memory"
+name = "memory"
+[collectors.collect]
+total = true
+used = true
+free = true
+available = true
+swap = true
+percentage = true
+[collectors.thresholds]
+usage_warning = 85.0
+usage_critical = 95.0
+```
 
 ### Network Metrics
 
@@ -254,6 +463,53 @@ temp_critical = 85.0
 - `labels` (HashMap<String, String>):
   Additional labels for this collector
 
+**Examples**:
+
+**Basic network metrics collection**:
+
+**YAML Format**:
+
+```yaml
+type: network
+name: network
+interfaces: ["eth0", "wlan0"]
+collect:
+  bytes: true
+  packets: true
+  errors: true
+  status: true
+```
+
+**JSON Format**:
+
+```json
+{
+  "type": "network",
+  "name": "network",
+  "interfaces": ["eth0", "wlan0"],
+  "collect": {
+    "bytes": true,
+    "packets": true,
+    "errors": true,
+    "status": true
+  }
+}
+```
+
+**TOML Format**:
+
+```toml
+[[collectors]]
+type = "network"
+name = "network"
+interfaces = ["eth0", "wlan0"]
+[collectors.collect]
+bytes = true
+packets = true
+errors = true
+status = true
+```
+
 ### Process Metrics
 
 #### process
@@ -285,6 +541,53 @@ temp_critical = 85.0
 - `labels` (HashMap<String, String>):
   Additional labels for this collector
 
+**Examples**:
+
+**Basic process metrics collection**:
+
+**YAML Format**:
+
+```yaml
+type: process
+name: process
+patterns: ["nginx", "apache", "sshd"]
+collect:
+  count: true
+  cpu: true
+  memory: true
+  status: true
+```
+
+**JSON Format**:
+
+```json
+{
+  "type": "process",
+  "name": "process",
+  "patterns": ["nginx", "apache", "sshd"],
+  "collect": {
+    "count": true,
+    "cpu": true,
+    "memory": true,
+    "status": true
+  }
+}
+```
+
+**TOML Format**:
+
+```toml
+[[collectors]]
+type = "process"
+name = "process"
+patterns = ["nginx", "apache", "sshd"]
+[collectors.collect]
+count = true
+cpu = true
+memory = true
+status = true
+```
+
 ### System Information
 
 #### system
@@ -312,4 +615,54 @@ temp_critical = 85.0
 
 - `labels` (HashMap<String, String>):
   Additional labels for this collector
+
+**Examples**:
+
+**Basic system information collection**:
+
+**YAML Format**:
+
+```yaml
+type: system
+name: system
+collect:
+  hostname: true
+  os: true
+  kernel: true
+  uptime: true
+  boot_time: true
+  arch: true
+```
+
+**JSON Format**:
+
+```json
+{
+  "type": "system",
+  "name": "system",
+  "collect": {
+    "hostname": true,
+    "os": true,
+    "kernel": true,
+    "uptime": true,
+    "boot_time": true,
+    "arch": true
+  }
+}
+```
+
+**TOML Format**:
+
+```toml
+[[collectors]]
+type = "system"
+name = "system"
+[collectors.collect]
+hostname = true
+os = true
+kernel = true
+uptime = true
+boot_time = true
+arch = true
+```
 

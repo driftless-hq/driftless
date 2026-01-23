@@ -428,8 +428,11 @@ fn extract_examples_from_file(content: &str) -> Option<Vec<TaskExample>> {
         let mut description = String::new();
 
         // Look for example sections starting with //! ##
-        if lines[i].starts_with("//! ## ") {
-            description = lines[i].trim_start_matches("//! ## ").to_string();
+        if lines[i].starts_with("//! ##") && !lines[i].starts_with("//! ###") {
+            description = lines[i]
+                .trim_start_matches("//! ##")
+                .trim_start()
+                .to_string();
             found_example = true;
             i += 1; // Move to next line
         }
@@ -784,66 +787,25 @@ fn add_common_facts_fields(docs: &mut HashMap<String, TaskDocumentation>) {
 
 /// Extract logs processor documentation from mod.rs
 fn extract_logs_struct_docs(
-    content: &str,
+    _content: &str,
     docs: &mut HashMap<String, TaskDocumentation>,
     processor_types: &[String],
 ) -> Result<()> {
-    let lines: Vec<&str> = content.lines().collect();
-    let mut i = 0;
-
-    while i < lines.len() {
-        // Look for log struct definitions
-        if lines[i].contains("#[derive") && lines[i + 1].contains("pub struct") {
-            let struct_line = lines[i + 1];
-            if let Some(struct_name) = extract_struct_name(struct_line) {
-                // Check if it's a LogSource or LogOutput struct
-                let processor_type = if struct_name == "LogSource" {
-                    // This is a generic source, skip for now
-                    i += 1;
-                    continue;
-                } else if struct_name == "LogOutput" {
-                    // This is a generic output, skip for now
-                    i += 1;
-                    continue;
-                } else if struct_name.starts_with("Log") && struct_name.ends_with("Source") {
-                    struct_name
-                        .trim_start_matches("Log")
-                        .trim_end_matches("Source")
-                        .to_lowercase()
-                } else if struct_name.starts_with("Log") && struct_name.ends_with("Output") {
-                    struct_name
-                        .trim_start_matches("Log")
-                        .trim_end_matches("Output")
-                        .to_lowercase()
-                } else {
-                    i += 1;
-                    continue;
-                };
-
-                if processor_types.contains(&processor_type) {
-                    let description =
-                        crate::logs::LogsRegistry::get_processor_description(&processor_type);
-                    let mut task_doc = TaskDocumentation {
-                        description,
-                        fields: HashMap::new(),
-                        examples: Vec::new(),
-                        register_outputs: HashMap::new(),
-                    };
-
-                    // Extract field documentation
-                    extract_struct_fields(&lines, &mut i, &mut task_doc.fields)?;
-
-                    docs.insert(processor_type, task_doc);
-                }
-            }
-        }
-        i += 1;
+    // For logs processors, since they are registered dynamically and don't have
+    // individual struct definitions, create documentation entries for all registered types
+    for processor_type in processor_types {
+        let description = crate::logs::LogsRegistry::get_processor_description(processor_type);
+        let task_doc = TaskDocumentation {
+            description,
+            fields: HashMap::new(),
+            examples: Vec::new(),
+            register_outputs: HashMap::new(),
+        };
+        docs.insert(processor_type.clone(), task_doc);
     }
 
     Ok(())
 }
-
-/// Add common fields to all logs processors
 fn add_common_logs_fields(docs: &mut HashMap<String, TaskDocumentation>) {
     for task_doc in docs.values_mut() {
         // Add common log processor fields

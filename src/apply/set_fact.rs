@@ -18,6 +18,29 @@
 //!   value: "1.2.3"
 //!   cacheable: true
 //! ```
+//!
+//! **JSON Format:**
+//! ```json
+//! [
+//!   {
+//!     "type": "set_fact",
+//!     "description": "Set application version",
+//!     "key": "app_version",
+//!     "value": "1.2.3",
+//!     "cacheable": true
+//!   }
+//! ]
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[tasks]]
+//! type = "set_fact"
+//! description = "Set application version"
+//! key = "app_version"
+//! value = "1.2.3"
+//! cacheable = true
+//! ```
 
 use serde::{Deserialize, Serialize};
 

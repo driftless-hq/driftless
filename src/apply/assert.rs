@@ -18,6 +18,29 @@
 //!   success_msg: "Nginx is properly installed"
 //!   fail_msg: "Nginx installation failed"
 //! ```
+//!
+//! **JSON Format:**
+//! ```json
+//! [
+//!   {
+//!     "type": "assert",
+//!     "description": "Verify nginx is installed",
+//!     "that": "'nginx' in installed_packages",
+//!     "success_msg": "Nginx is properly installed",
+//!     "fail_msg": "Nginx installation failed"
+//!   }
+//! ]
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[tasks]]
+//! type = "assert"
+//! description = "Verify nginx is installed"
+//! that = "'nginx' in installed_packages"
+//! success_msg = "Nginx is properly installed"
+//! fail_msg = "Nginx installation failed"
+//! ```
 
 use serde::{Deserialize, Serialize};
 

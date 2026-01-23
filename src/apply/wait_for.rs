@@ -19,6 +19,31 @@
 //!   timeout: 60
 //!   delay: 5
 //! ```
+//!
+//! **JSON Format:**
+//! ```json
+//! [
+//!   {
+//!     "type": "wait_for",
+//!     "description": "Wait for web server to start",
+//!     "host": "localhost",
+//!     "port": 80,
+//!     "timeout": 60,
+//!     "delay": 5
+//!   }
+//! ]
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[tasks]]
+//! type = "wait_for"
+//! description = "Wait for web server to start"
+//! host = "localhost"
+//! port = 80
+//! timeout = 60
+//! delay = 5
+//! ```
 
 use serde::{Deserialize, Serialize};
 

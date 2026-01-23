@@ -45,6 +45,27 @@
 //!   }
 //! }
 //! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[collectors]]
+//! type = "disk"
+//! name = "disk"
+//! devices = ["/dev/sda", "/dev/sdb"]
+//! mount_points = ["/", "/home", "/var"]
+//!
+//! [collectors.collect]
+//! total = true
+//! used = true
+//! free = true
+//! available = true
+//! percentage = true
+//! io = true
+//!
+//! [collectors.thresholds]
+//! usage_warning = 80.0
+//! usage_critical = 90.0
+//! ```
 
 use crate::facts::DiskCollector;
 use anyhow::Result;

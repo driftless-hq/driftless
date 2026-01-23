@@ -1,3 +1,83 @@
+//! Logs processing module
+//!
+//! This module provides functionality for log collection, processing, and shipping.
+//! It supports various sources (files, network) and outputs (files, S3, HTTP, syslog, console).
+//!
+//! # Examples
+//!
+//! ## File log output
+//!
+//! **YAML Format:**
+//! ```yaml
+//! logs:
+//!   - type: file
+//!     path: /var/log/app.log
+//!     format: json
+//!     rotation:
+//!       size: 10MB
+//!       count: 5
+//! ```
+//!
+//! **JSON Format:**
+//! ```json
+//! {
+//!   "logs": [
+//!     {
+//!       "type": "file",
+//!       "path": "/var/log/app.log",
+//!       "format": "json",
+//!       "rotation": {
+//!         "size": "10MB",
+//!         "count": 5
+//!       }
+//!     }
+//!   ]
+//! }
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[logs]]
+//! type = "file"
+//! path = "/var/log/app.log"
+//! format = "json"
+//!
+//! [logs.rotation]
+//! size = "10MB"
+//! count = 5
+//! ```
+//!
+//! ## Console log output
+//!
+//! **YAML Format:**
+//! ```yaml
+//! logs:
+//!   - type: console
+//!     format: text
+//!     level: info
+//! ```
+//!
+//! **JSON Format:**
+//! ```json
+//! {
+//!   "logs": [
+//!     {
+//!       "type": "console",
+//!       "format": "text",
+//!       "level": "info"
+//!     }
+//!   ]
+//! }
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[logs]]
+//! type = "console"
+//! format = "text"
+//! level = "info"
+//! ```
+
 use anyhow::Result;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};

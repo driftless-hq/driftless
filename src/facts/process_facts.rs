@@ -32,6 +32,20 @@
 //!   }
 //! }
 //! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[collectors]]
+//! type = "process"
+//! name = "process"
+//! patterns = ["nginx", "apache", "sshd"]
+//!
+//! [collectors.collect]
+//! count = true
+//! cpu = true
+//! memory = true
+//! status = true
+//! ```
 
 use crate::facts::ProcessCollector;
 use anyhow::Result;

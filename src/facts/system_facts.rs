@@ -35,6 +35,32 @@
 //!   }
 //! }
 //! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[collectors]]
+//! type = "system"
+//! name = "system"
+//!
+//! [collectors.collect]
+//! hostname = true
+//! os = true
+//! kernel = true
+//! uptime = true
+//! boot_time = true
+//! arch = true
+//! ```
+//!
+//! **Output:**
+//! ```yaml
+//! hostname: "myhost.example.com"
+//! os: "linux"
+//! os_family: "unix"
+//! kernel_version: "5.15.0-91-generic"
+//! uptime_seconds: 1234567
+//! boot_time: 1706012345
+//! cpu_arch: "x86_64"
+//! ```
 
 use crate::facts::SystemCollector;
 use anyhow::Result;
@@ -73,19 +99,31 @@ pub fn collect_system_facts(collector: &SystemCollector) -> Result<Value> {
         );
     }
 
-    // Collect kernel version (placeholder)
+    // Collect kernel version
     if collector.collect.kernel {
-        facts.insert("kernel_version".to_string(), Value::Null);
+        if let Some(kernel_version) = System::kernel_version() {
+            facts.insert("kernel_version".to_string(), Value::String(kernel_version));
+        } else {
+            facts.insert("kernel_version".to_string(), Value::Null);
+        }
     }
 
-    // Collect uptime (placeholder)
+    // Collect uptime
     if collector.collect.uptime {
-        facts.insert("uptime_seconds".to_string(), Value::Null);
+        let uptime_seconds = System::uptime();
+        facts.insert(
+            "uptime_seconds".to_string(),
+            Value::Number(serde_yaml::Number::from(uptime_seconds)),
+        );
     }
 
-    // Collect boot time (placeholder)
+    // Collect boot time
     if collector.collect.boot_time {
-        facts.insert("boot_time".to_string(), Value::Null);
+        let boot_time = System::boot_time();
+        facts.insert(
+            "boot_time".to_string(),
+            Value::Number(serde_yaml::Number::from(boot_time)),
+        );
     }
 
     // Collect CPU architecture
@@ -167,6 +205,30 @@ mod tests {
             assert!(keys.contains("os"));
             assert!(keys.contains("os_family"));
             assert!(keys.contains("cpu_arch"));
+
+            // Check that kernel_version is collected and not null
+            if keys.contains("kernel_version") {
+                let kernel_value = map
+                    .get(&Value::String("kernel_version".to_string()))
+                    .unwrap();
+                assert!(!matches!(kernel_value, Value::Null));
+            }
+
+            // Check that uptime_seconds is collected and not null
+            if keys.contains("uptime_seconds") {
+                let uptime_value = map
+                    .get(&Value::String("uptime_seconds".to_string()))
+                    .unwrap();
+                assert!(!matches!(uptime_value, Value::Null));
+                assert!(matches!(uptime_value, Value::Number(_)));
+            }
+
+            // Check that boot_time is collected and not null
+            if keys.contains("boot_time") {
+                let boot_value = map.get(&Value::String("boot_time".to_string())).unwrap();
+                assert!(!matches!(boot_value, Value::Null));
+                assert!(matches!(boot_value, Value::Number(_)));
+            }
         } else {
             panic!("Expected mapping value");
         }

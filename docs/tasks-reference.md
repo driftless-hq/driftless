@@ -8015,6 +8015,45 @@ state = "absent"
 - `when` (Option<String>):
   Optional condition to determine if the task should run
 
+**Examples**:
+
+**Assert a condition**:
+
+**YAML Format**:
+
+```yaml
+- type: assert
+  description: "Verify nginx is installed"
+  that: "'nginx' in installed_packages"
+  success_msg: "Nginx is properly installed"
+  fail_msg: "Nginx installation failed"
+```
+
+**JSON Format**:
+
+```json
+[
+  {
+    "type": "assert",
+    "description": "Verify nginx is installed",
+    "that": "'nginx' in installed_packages",
+    "success_msg": "Nginx is properly installed",
+    "fail_msg": "Nginx installation failed"
+  }
+]
+```
+
+**TOML Format**:
+
+```toml
+[[tasks]]
+type = "assert"
+description = "Verify nginx is installed"
+that = "'nginx' in installed_packages"
+success_msg = "Nginx is properly installed"
+fail_msg = "Nginx installation failed"
+```
+
 #### debug
 
 **Description**: Debug task for displaying information
@@ -8047,6 +8086,42 @@ state = "absent"
 - `when` (Option<String>):
   Optional condition to determine if the task should run
 
+**Examples**:
+
+**Display a debug message**:
+
+**YAML Format**:
+
+```yaml
+- type: debug
+  description: "Show current configuration"
+  msg: "Current web_root: {{ web_root }}"
+  verbosity: normal
+```
+
+**JSON Format**:
+
+```json
+[
+  {
+    "type": "debug",
+    "description": "Show current configuration",
+    "msg": "Current web_root: {{ web_root }}",
+    "verbosity": "normal"
+  }
+]
+```
+
+**TOML Format**:
+
+```toml
+[[tasks]]
+type = "debug"
+description = "Show current configuration"
+msg = "Current web_root: {{ web_root }}"
+verbosity = "normal"
+```
+
 #### fail
 
 **Description**: Fail task for forcing execution failure
@@ -8068,6 +8143,42 @@ state = "absent"
 
 - `when` (Option<String>):
   Optional condition to determine if the task should run
+
+**Examples**:
+
+**Fail with a message**:
+
+**YAML Format**:
+
+```yaml
+- type: fail
+  description: "Stop execution if requirements not met"
+  msg: "System requirements not satisfied"
+  when: "not requirements_met"
+```
+
+**JSON Format**:
+
+```json
+[
+  {
+    "type": "fail",
+    "description": "Stop execution if requirements not met",
+    "msg": "System requirements not satisfied",
+    "when": "not requirements_met"
+  }
+]
+```
+
+**TOML Format**:
+
+```toml
+[[tasks]]
+type = "fail"
+description = "Stop execution if requirements not met"
+msg = "System requirements not satisfied"
+when = "not requirements_met"
+```
 
 #### includerole
 
@@ -8101,6 +8212,56 @@ state = "absent"
 - `when` (Option<String>):
   Optional condition to determine if the task should run
 
+**Examples**:
+
+**Include a role**:
+
+**YAML Format**:
+
+```yaml
+- type: include_role
+  description: "Setup web server"
+  name: webserver
+  when: "webserver_required"
+  vars:
+    port: 8080
+  defaults:
+    document_root: /var/www/html
+```
+
+**JSON Format**:
+
+```json
+[
+  {
+    "type": "include_role",
+    "description": "Setup web server",
+    "name": "webserver",
+    "when": "webserver_required",
+    "vars": {
+      "port": 8080
+    },
+    "defaults": {
+      "document_root": "/var/www/html"
+    }
+  }
+]
+```
+
+**TOML Format**:
+
+```toml
+[[tasks]]
+type = "include_role"
+description = "Setup web server"
+name = "webserver"
+when = "webserver_required"
+[tasks.vars]
+port = 8080
+[tasks.defaults]
+document_root = "/var/www/html"
+```
+
 #### includetasks
 
 **Description**: Include tasks task for modular configurations
@@ -8127,6 +8288,49 @@ state = "absent"
 
 - `when` (Option<String>):
   Optional condition to determine if the task should run
+
+**Examples**:
+
+**Include a task file**:
+
+**YAML Format**:
+
+```yaml
+- type: include_tasks
+  description: "Include common setup tasks"
+  file: common/setup.yml
+  when: "setup_required"
+  vars:
+    app_name: myapp
+```
+
+**JSON Format**:
+
+```json
+[
+  {
+    "type": "include_tasks",
+    "description": "Include common setup tasks",
+    "file": "common/setup.yml",
+    "when": "setup_required",
+    "vars": {
+      "app_name": "myapp"
+    }
+  }
+]
+```
+
+**TOML Format**:
+
+```toml
+[[tasks]]
+type = "include_tasks"
+description = "Include common setup tasks"
+file = "common/setup.yml"
+when = "setup_required"
+[tasks.vars]
+app_name = "myapp"
+```
 
 #### pause
 
@@ -8160,6 +8364,42 @@ state = "absent"
 - `when` (Option<String>):
   Optional condition to determine if the task should run
 
+**Examples**:
+
+**Pause execution**:
+
+**YAML Format**:
+
+```yaml
+- type: pause
+  description: "Wait for services to start"
+  prompt: "Waiting for services to initialize..."
+  seconds: 30
+```
+
+**JSON Format**:
+
+```json
+[
+  {
+    "type": "pause",
+    "description": "Wait for services to start",
+    "prompt": "Waiting for services to initialize...",
+    "seconds": 30
+  }
+]
+```
+
+**TOML Format**:
+
+```toml
+[[tasks]]
+type = "pause"
+description = "Wait for services to start"
+prompt = "Waiting for services to initialize..."
+seconds = 30
+```
+
 #### setfact
 
 **Description**: Set fact task for variable management
@@ -8191,6 +8431,45 @@ state = "absent"
 
 - `when` (Option<String>):
   Optional condition to determine if the task should run
+
+**Examples**:
+
+**Set a fact**:
+
+**YAML Format**:
+
+```yaml
+- type: set_fact
+  description: "Set application version"
+  key: app_version
+  value: "1.2.3"
+  cacheable: true
+```
+
+**JSON Format**:
+
+```json
+[
+  {
+    "type": "set_fact",
+    "description": "Set application version",
+    "key": "app_version",
+    "value": "1.2.3",
+    "cacheable": true
+  }
+]
+```
+
+**TOML Format**:
+
+```toml
+[[tasks]]
+type = "set_fact"
+description = "Set application version"
+key = "app_version"
+value = "1.2.3"
+cacheable = true
+```
 
 #### waitfor
 
@@ -8243,6 +8522,48 @@ state = "absent"
 
 - `when` (Option<String>):
   Optional condition to determine if the task should run
+
+**Examples**:
+
+**Wait for port connectivity**:
+
+**YAML Format**:
+
+```yaml
+- type: wait_for
+  description: "Wait for web server to start"
+  host: localhost
+  port: 80
+  timeout: 60
+  delay: 5
+```
+
+**JSON Format**:
+
+```json
+[
+  {
+    "type": "wait_for",
+    "description": "Wait for web server to start",
+    "host": "localhost",
+    "port": 80,
+    "timeout": 60,
+    "delay": 5
+  }
+]
+```
+
+**TOML Format**:
+
+```toml
+[[tasks]]
+type = "wait_for"
+description = "Wait for web server to start"
+host = "localhost"
+port = 80
+timeout = 60
+delay = 5
+```
 
 ## Facts Collectors (`facts`)
 
@@ -8391,6 +8712,89 @@ temp_critical = 85.0
 - `labels` (HashMap<String, String>):
   Additional labels for this collector
 
+**Examples**:
+
+**Basic command output collection**:
+
+**YAML Format**:
+
+```yaml
+type: command
+name: uptime
+command: uptime -p
+format: text
+labels:
+  category: system
+```
+
+**JSON Format**:
+
+```json
+{
+  "type": "command",
+  "name": "uptime",
+  "command": "uptime -p",
+  "format": "text",
+  "labels": {
+    "category": "system"
+  }
+}
+```
+
+**TOML Format**:
+
+```toml
+[[collectors]]
+type = "command"
+name = "uptime"
+command = "uptime -p"
+format = "text"
+[collectors.labels]
+category = "system"
+```
+
+**JSON command output parsing**:
+
+**YAML Format**:
+
+```yaml
+type: command
+name: docker_stats
+command: docker stats --no-stream --format json
+format: json
+cwd: /tmp
+env:
+  DOCKER_HOST: unix:///var/run/docker.sock
+```
+
+**JSON Format**:
+
+```json
+{
+  "type": "command",
+  "name": "docker_stats",
+  "command": "docker stats --no-stream --format json",
+  "format": "json",
+  "cwd": "/tmp",
+  "env": {
+    "DOCKER_HOST": "unix:///var/run/docker.sock"
+  }
+}
+```
+
+**TOML Format**:
+
+```toml
+[[collectors]]
+type = "command"
+name = "docker_stats"
+command = "docker stats --no-stream --format json"
+format = "json"
+cwd = "/tmp"
+[collectors.env]
+DOCKER_HOST = "unix:///var/run/docker.sock"
+```
+
 ### Disk Metrics
 
 #### disk
@@ -8428,6 +8832,72 @@ temp_critical = 85.0
 - `labels` (HashMap<String, String>):
   Additional labels for this collector
 
+**Examples**:
+
+**Basic disk metrics collection**:
+
+**YAML Format**:
+
+```yaml
+type: disk
+name: disk
+devices: ["/dev/sda", "/dev/sdb"]
+mount_points: ["/", "/home", "/var"]
+collect:
+  total: true
+  used: true
+  free: true
+  available: true
+  percentage: true
+  io: true
+thresholds:
+  usage_warning: 80.0
+  usage_critical: 90.0
+```
+
+**JSON Format**:
+
+```json
+{
+  "type": "disk",
+  "name": "disk",
+  "devices": ["/dev/sda", "/dev/sdb"],
+  "mount_points": ["/", "/home", "/var"],
+  "collect": {
+    "total": true,
+    "used": true,
+    "free": true,
+    "available": true,
+    "percentage": true,
+    "io": true
+  },
+  "thresholds": {
+    "usage_warning": 80.0,
+    "usage_critical": 90.0
+  }
+}
+```
+
+**TOML Format**:
+
+```toml
+[[collectors]]
+type = "disk"
+name = "disk"
+devices = ["/dev/sda", "/dev/sdb"]
+mount_points = ["/", "/home", "/var"]
+[collectors.collect]
+total = true
+used = true
+free = true
+available = true
+percentage = true
+io = true
+[collectors.thresholds]
+usage_warning = 80.0
+usage_critical = 90.0
+```
+
 ### Memory Metrics
 
 #### memory
@@ -8458,6 +8928,66 @@ temp_critical = 85.0
 
 - `labels` (HashMap<String, String>):
   Additional labels for this collector
+
+**Examples**:
+
+**Basic memory metrics collection**:
+
+**YAML Format**:
+
+```yaml
+type: memory
+name: memory
+collect:
+  total: true
+  used: true
+  free: true
+  available: true
+  swap: true
+  percentage: true
+thresholds:
+  usage_warning: 85.0
+  usage_critical: 95.0
+```
+
+**JSON Format**:
+
+```json
+{
+  "type": "memory",
+  "name": "memory",
+  "collect": {
+    "total": true,
+    "used": true,
+    "free": true,
+    "available": true,
+    "swap": true,
+    "percentage": true
+  },
+  "thresholds": {
+    "usage_warning": 85.0,
+    "usage_critical": 95.0
+  }
+}
+```
+
+**TOML Format**:
+
+```toml
+[[collectors]]
+type = "memory"
+name = "memory"
+[collectors.collect]
+total = true
+used = true
+free = true
+available = true
+swap = true
+percentage = true
+[collectors.thresholds]
+usage_warning = 85.0
+usage_critical = 95.0
+```
 
 ### Network Metrics
 
@@ -8490,6 +9020,53 @@ temp_critical = 85.0
 - `labels` (HashMap<String, String>):
   Additional labels for this collector
 
+**Examples**:
+
+**Basic network metrics collection**:
+
+**YAML Format**:
+
+```yaml
+type: network
+name: network
+interfaces: ["eth0", "wlan0"]
+collect:
+  bytes: true
+  packets: true
+  errors: true
+  status: true
+```
+
+**JSON Format**:
+
+```json
+{
+  "type": "network",
+  "name": "network",
+  "interfaces": ["eth0", "wlan0"],
+  "collect": {
+    "bytes": true,
+    "packets": true,
+    "errors": true,
+    "status": true
+  }
+}
+```
+
+**TOML Format**:
+
+```toml
+[[collectors]]
+type = "network"
+name = "network"
+interfaces = ["eth0", "wlan0"]
+[collectors.collect]
+bytes = true
+packets = true
+errors = true
+status = true
+```
+
 ### Process Metrics
 
 #### process
@@ -8521,6 +9098,53 @@ temp_critical = 85.0
 - `labels` (HashMap<String, String>):
   Additional labels for this collector
 
+**Examples**:
+
+**Basic process metrics collection**:
+
+**YAML Format**:
+
+```yaml
+type: process
+name: process
+patterns: ["nginx", "apache", "sshd"]
+collect:
+  count: true
+  cpu: true
+  memory: true
+  status: true
+```
+
+**JSON Format**:
+
+```json
+{
+  "type": "process",
+  "name": "process",
+  "patterns": ["nginx", "apache", "sshd"],
+  "collect": {
+    "count": true,
+    "cpu": true,
+    "memory": true,
+    "status": true
+  }
+}
+```
+
+**TOML Format**:
+
+```toml
+[[collectors]]
+type = "process"
+name = "process"
+patterns = ["nginx", "apache", "sshd"]
+[collectors.collect]
+count = true
+cpu = true
+memory = true
+status = true
+```
+
 ### System Information
 
 #### system
@@ -8549,6 +9173,56 @@ temp_critical = 85.0
 - `labels` (HashMap<String, String>):
   Additional labels for this collector
 
+**Examples**:
+
+**Basic system information collection**:
+
+**YAML Format**:
+
+```yaml
+type: system
+name: system
+collect:
+  hostname: true
+  os: true
+  kernel: true
+  uptime: true
+  boot_time: true
+  arch: true
+```
+
+**JSON Format**:
+
+```json
+{
+  "type": "system",
+  "name": "system",
+  "collect": {
+    "hostname": true,
+    "os": true,
+    "kernel": true,
+    "uptime": true,
+    "boot_time": true,
+    "arch": true
+  }
+}
+```
+
+**TOML Format**:
+
+```toml
+[[collectors]]
+type = "system"
+name = "system"
+[collectors.collect]
+hostname = true
+os = true
+kernel = true
+uptime = true
+boot_time = true
+arch = true
+```
+
 ## Log Sources/Outputs (`logs`)
 
 Log processors handle log collection and forwarding. Each processor corresponds to a specific log source or output destination.
@@ -8561,6 +9235,476 @@ All log processors support common configuration fields for controlling processin
 - **`name`**: Processor name for identification
 
 ### Log Outputs
+
+#### console
+
+**Description**: Output logs to stdout/stderr for debugging
+
+**Required Fields**:
+
+- `name` (String):
+  Processor name for identification
+
+**Optional Fields**:
+
+- `enabled` (bool):
+  Whether this processor is enabled (default: true)
+
+**Examples**:
+
+**File log output**:
+
+**YAML Format**:
+
+```yaml
+logs:
+  - type: file
+    path: /var/log/app.log
+    format: json
+    rotation:
+      size: 10MB
+      count: 5
+```
+
+**JSON Format**:
+
+```json
+{
+  "logs": [
+    {
+      "type": "file",
+      "path": "/var/log/app.log",
+      "format": "json",
+      "rotation": {
+        "size": "10MB",
+        "count": 5
+      }
+    }
+  ]
+}
+```
+
+**TOML Format**:
+
+```toml
+[[logs]]
+type = "file"
+path = "/var/log/app.log"
+format = "json"
+[logs.rotation]
+size = "10MB"
+count = 5
+```
+
+**Console log output**:
+
+**YAML Format**:
+
+```yaml
+logs:
+  - type: console
+    format: text
+    level: info
+```
+
+**JSON Format**:
+
+```json
+{
+  "logs": [
+    {
+      "type": "console",
+      "format": "text",
+      "level": "info"
+    }
+  ]
+}
+```
+
+**TOML Format**:
+
+```toml
+[[logs]]
+type = "console"
+format = "text"
+level = "info"
+```
+
+#### file
+
+**Description**: Write logs to files with rotation and compression
+
+**Required Fields**:
+
+- `name` (String):
+  Processor name for identification
+
+**Optional Fields**:
+
+- `enabled` (bool):
+  Whether this processor is enabled (default: true)
+
+**Examples**:
+
+**File log output**:
+
+**YAML Format**:
+
+```yaml
+logs:
+  - type: file
+    path: /var/log/app.log
+    format: json
+    rotation:
+      size: 10MB
+      count: 5
+```
+
+**JSON Format**:
+
+```json
+{
+  "logs": [
+    {
+      "type": "file",
+      "path": "/var/log/app.log",
+      "format": "json",
+      "rotation": {
+        "size": "10MB",
+        "count": 5
+      }
+    }
+  ]
+}
+```
+
+**TOML Format**:
+
+```toml
+[[logs]]
+type = "file"
+path = "/var/log/app.log"
+format = "json"
+[logs.rotation]
+size = "10MB"
+count = 5
+```
+
+**Console log output**:
+
+**YAML Format**:
+
+```yaml
+logs:
+  - type: console
+    format: text
+    level: info
+```
+
+**JSON Format**:
+
+```json
+{
+  "logs": [
+    {
+      "type": "console",
+      "format": "text",
+      "level": "info"
+    }
+  ]
+}
+```
+
+**TOML Format**:
+
+```toml
+[[logs]]
+type = "console"
+format = "text"
+level = "info"
+```
+
+#### http
+
+**Description**: Send logs to HTTP endpoints with authentication and retry
+
+**Required Fields**:
+
+- `name` (String):
+  Processor name for identification
+
+**Optional Fields**:
+
+- `enabled` (bool):
+  Whether this processor is enabled (default: true)
+
+**Examples**:
+
+**File log output**:
+
+**YAML Format**:
+
+```yaml
+logs:
+  - type: file
+    path: /var/log/app.log
+    format: json
+    rotation:
+      size: 10MB
+      count: 5
+```
+
+**JSON Format**:
+
+```json
+{
+  "logs": [
+    {
+      "type": "file",
+      "path": "/var/log/app.log",
+      "format": "json",
+      "rotation": {
+        "size": "10MB",
+        "count": 5
+      }
+    }
+  ]
+}
+```
+
+**TOML Format**:
+
+```toml
+[[logs]]
+type = "file"
+path = "/var/log/app.log"
+format = "json"
+[logs.rotation]
+size = "10MB"
+count = 5
+```
+
+**Console log output**:
+
+**YAML Format**:
+
+```yaml
+logs:
+  - type: console
+    format: text
+    level: info
+```
+
+**JSON Format**:
+
+```json
+{
+  "logs": [
+    {
+      "type": "console",
+      "format": "text",
+      "level": "info"
+    }
+  ]
+}
+```
+
+**TOML Format**:
+
+```toml
+[[logs]]
+type = "console"
+format = "text"
+level = "info"
+```
+
+#### s3
+
+**Description**: Upload logs to S3 with batching and compression
+
+**Required Fields**:
+
+- `name` (String):
+  Processor name for identification
+
+**Optional Fields**:
+
+- `enabled` (bool):
+  Whether this processor is enabled (default: true)
+
+**Examples**:
+
+**File log output**:
+
+**YAML Format**:
+
+```yaml
+logs:
+  - type: file
+    path: /var/log/app.log
+    format: json
+    rotation:
+      size: 10MB
+      count: 5
+```
+
+**JSON Format**:
+
+```json
+{
+  "logs": [
+    {
+      "type": "file",
+      "path": "/var/log/app.log",
+      "format": "json",
+      "rotation": {
+        "size": "10MB",
+        "count": 5
+      }
+    }
+  ]
+}
+```
+
+**TOML Format**:
+
+```toml
+[[logs]]
+type = "file"
+path = "/var/log/app.log"
+format = "json"
+[logs.rotation]
+size = "10MB"
+count = 5
+```
+
+**Console log output**:
+
+**YAML Format**:
+
+```yaml
+logs:
+  - type: console
+    format: text
+    level: info
+```
+
+**JSON Format**:
+
+```json
+{
+  "logs": [
+    {
+      "type": "console",
+      "format": "text",
+      "level": "info"
+    }
+  ]
+}
+```
+
+**TOML Format**:
+
+```toml
+[[logs]]
+type = "console"
+format = "text"
+level = "info"
+```
+
+#### syslog
+
+**Description**: Send logs to syslog with RFC compliance
+
+**Required Fields**:
+
+- `name` (String):
+  Processor name for identification
+
+**Optional Fields**:
+
+- `enabled` (bool):
+  Whether this processor is enabled (default: true)
+
+**Examples**:
+
+**File log output**:
+
+**YAML Format**:
+
+```yaml
+logs:
+  - type: file
+    path: /var/log/app.log
+    format: json
+    rotation:
+      size: 10MB
+      count: 5
+```
+
+**JSON Format**:
+
+```json
+{
+  "logs": [
+    {
+      "type": "file",
+      "path": "/var/log/app.log",
+      "format": "json",
+      "rotation": {
+        "size": "10MB",
+        "count": 5
+      }
+    }
+  ]
+}
+```
+
+**TOML Format**:
+
+```toml
+[[logs]]
+type = "file"
+path = "/var/log/app.log"
+format = "json"
+[logs.rotation]
+size = "10MB"
+count = 5
+```
+
+**Console log output**:
+
+**YAML Format**:
+
+```yaml
+logs:
+  - type: console
+    format: text
+    level: info
+```
+
+**JSON Format**:
+
+```json
+{
+  "logs": [
+    {
+      "type": "console",
+      "format": "text",
+      "level": "info"
+    }
+  ]
+}
+```
+
+**TOML Format**:
+
+```toml
+[[logs]]
+type = "console"
+format = "text"
+level = "info"
+```
 
 ## Comprehensive Examples
 

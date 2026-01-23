@@ -16,6 +16,27 @@
 //!   msg: "System requirements not satisfied"
 //!   when: "not requirements_met"
 //! ```
+//!
+//! **JSON Format:**
+//! ```json
+//! [
+//!   {
+//!     "type": "fail",
+//!     "description": "Stop execution if requirements not met",
+//!     "msg": "System requirements not satisfied",
+//!     "when": "not requirements_met"
+//!   }
+//! ]
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[tasks]]
+//! type = "fail"
+//! description = "Stop execution if requirements not met"
+//! msg = "System requirements not satisfied"
+//! when = "not requirements_met"
+//! ```
 
 use serde::{Deserialize, Serialize};
 

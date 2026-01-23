@@ -21,7 +21,7 @@ cp docs/logs-reference.md "$TEMP_LOGS" 2>/dev/null || true
 cp docs/template-reference.md "$TEMP_TEMPLATE" 2>/dev/null || true
 
 # Regenerate docs (this will update all files)
-./target/debug/driftless docs --format markdown > /dev/null 2>&1
+./target/debug/driftless docs --format markdown --output-dir docs > /dev/null 2>&1
 
 # Check if task docs are different
 if ! diff -q "$TEMP_TASKS" docs/tasks-reference.md > /dev/null 2>&1; then

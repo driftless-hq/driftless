@@ -23,6 +23,9 @@ pub fn generate_facts_documentation() -> Result<String> {
     // Extract documentation from source code for all facts collector types
     let facts_docs = extract_all_facts_docs()?;
 
+    // Validate that all collectors have complete documentation
+    validate_facts_docs_completeness(&facts_docs)?;
+
     // Add detailed facts collector documentation
     docs.push_str(&generate_facts_section(&facts_docs)?);
 
@@ -43,6 +46,9 @@ pub fn generate_logs_documentation() -> Result<String> {
 
     // Extract documentation from source code for all logs processor types
     let logs_docs = extract_all_logs_docs()?;
+
+    // Validate that all processors have complete documentation
+    validate_logs_docs_completeness(&logs_docs)?;
 
     // Add detailed logs processor documentation
     docs.push_str(&generate_logs_section(&logs_docs)?);
@@ -74,6 +80,11 @@ pub fn generate_task_documentation() -> Result<String> {
     let apply_docs = extract_all_task_docs()?;
     let facts_docs = extract_all_facts_docs()?;
     let logs_docs = extract_all_logs_docs()?;
+
+    // Validate that all components have complete documentation
+    validate_apply_docs_completeness(&apply_docs)?;
+    validate_facts_docs_completeness(&facts_docs)?;
+    validate_logs_docs_completeness(&logs_docs)?;
 
     // Add detailed task type documentation for each component
     docs.push_str(&generate_apply_section(&apply_docs)?);
@@ -232,6 +243,162 @@ fn generate_apply_section(
     }
 
     Ok(section)
+}
+
+/// Validate that all facts collectors have complete documentation
+fn validate_facts_docs_completeness(
+    facts_docs: &std::collections::HashMap<String, TaskDocumentation>,
+) -> Result<(), anyhow::Error> {
+    // Get all registered collector types from the registry
+    let registered_collector_types = crate::facts::FactsRegistry::get_registered_collector_types();
+
+    for collector_type in &registered_collector_types {
+        if let Some(collector_doc) = facts_docs.get(collector_type) {
+            // Check that examples exist
+            if collector_doc.examples.is_empty() {
+                return Err(anyhow::anyhow!(
+                    "Facts collector '{}' has no examples in its documentation",
+                    collector_type
+                ));
+            }
+
+            // Check that each example has all required formats
+            for example in &collector_doc.examples {
+                if example.yaml.trim().is_empty() {
+                    return Err(anyhow::anyhow!(
+                        "Facts collector '{}' example '{}' has empty YAML",
+                        collector_type,
+                        example.description
+                    ));
+                }
+                if example.json.trim().is_empty() {
+                    return Err(anyhow::anyhow!(
+                        "Facts collector '{}' example '{}' has empty JSON",
+                        collector_type,
+                        example.description
+                    ));
+                }
+                if example.toml.trim().is_empty() {
+                    return Err(anyhow::anyhow!(
+                        "Facts collector '{}' example '{}' has empty TOML",
+                        collector_type,
+                        example.description
+                    ));
+                }
+            }
+        } else {
+            return Err(anyhow::anyhow!(
+                "Facts collector '{}' not found in extracted documentation",
+                collector_type
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+/// Validate that all logs processors have complete documentation
+fn validate_logs_docs_completeness(
+    logs_docs: &std::collections::HashMap<String, TaskDocumentation>,
+) -> Result<(), anyhow::Error> {
+    // Get all registered processor types from the registry
+    let registered_processor_types = crate::logs::LogsRegistry::get_registered_processor_types();
+
+    for processor_type in &registered_processor_types {
+        if let Some(processor_doc) = logs_docs.get(processor_type) {
+            // Check that examples exist
+            if processor_doc.examples.is_empty() {
+                return Err(anyhow::anyhow!(
+                    "Logs processor '{}' has no examples in its documentation",
+                    processor_type
+                ));
+            }
+
+            // Check that each example has all required formats
+            for example in &processor_doc.examples {
+                if example.yaml.trim().is_empty() {
+                    return Err(anyhow::anyhow!(
+                        "Logs processor '{}' example '{}' has empty YAML",
+                        processor_type,
+                        example.description
+                    ));
+                }
+                if example.json.trim().is_empty() {
+                    return Err(anyhow::anyhow!(
+                        "Logs processor '{}' example '{}' has empty JSON",
+                        processor_type,
+                        example.description
+                    ));
+                }
+                if example.toml.trim().is_empty() {
+                    return Err(anyhow::anyhow!(
+                        "Logs processor '{}' example '{}' has empty TOML",
+                        processor_type,
+                        example.description
+                    ));
+                }
+            }
+        } else {
+            return Err(anyhow::anyhow!(
+                "Logs processor '{}' not found in extracted documentation",
+                processor_type
+            ));
+        }
+    }
+
+    Ok(())
+}
+
+/// Validate that all apply tasks have complete documentation
+fn validate_apply_docs_completeness(
+    apply_docs: &std::collections::HashMap<String, TaskDocumentation>,
+) -> Result<(), anyhow::Error> {
+    // Get all registered task types from the registry
+    let registered_task_types = crate::apply::TaskRegistry::get_registered_task_types();
+
+    for task_type in &registered_task_types {
+        if let Some(task_doc) = apply_docs.get(task_type) {
+            // Check that examples exist
+            if task_doc.examples.is_empty() {
+                return Err(anyhow::anyhow!(
+                    "Apply task '{}' has no examples in its documentation",
+                    task_type
+                ));
+            }
+
+            // Check that each example has all required formats
+            for example in &task_doc.examples {
+                if example.yaml.trim().is_empty() {
+                    return Err(anyhow::anyhow!(
+                        "Apply task '{}' example '{}' has empty YAML",
+                        task_type,
+                        example.description
+                    ));
+                }
+                if example.json.trim().is_empty() {
+                    return Err(anyhow::anyhow!(
+                        "Apply task '{}' example '{}' has empty JSON",
+                        task_type,
+                        example.description
+                    ));
+                }
+                if example.toml.trim().is_empty() {
+                    return Err(anyhow::anyhow!(
+                        "Apply task '{}' example '{}' has empty TOML",
+                        task_type,
+                        example.description
+                    ));
+                }
+            }
+        } else {
+            return Err(anyhow::anyhow!(
+                "Apply task '{}' not found in extracted documentation",
+                task_type
+            ));
+        }
+    }
+
+    Ok(())
 }
 
 /// Generate detailed documentation for all facts collector types

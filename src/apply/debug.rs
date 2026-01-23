@@ -17,6 +17,27 @@
 //!   msg: "Current web_root: {{ web_root }}"
 //!   verbosity: normal
 //! ```
+//!
+//! **JSON Format:**
+//! ```json
+//! [
+//!   {
+//!     "type": "debug",
+//!     "description": "Show current configuration",
+//!     "msg": "Current web_root: {{ web_root }}",
+//!     "verbosity": "normal"
+//!   }
+//! ]
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[tasks]]
+//! type = "debug"
+//! description = "Show current configuration"
+//! msg = "Current web_root: {{ web_root }}"
+//! verbosity = "normal"
+//! ```
 
 use serde::{Deserialize, Serialize};
 

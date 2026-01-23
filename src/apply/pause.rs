@@ -17,6 +17,27 @@
 //!   prompt: "Waiting for services to initialize..."
 //!   seconds: 30
 //! ```
+//!
+//! **JSON Format:**
+//! ```json
+//! [
+//!   {
+//!     "type": "pause",
+//!     "description": "Wait for services to start",
+//!     "prompt": "Waiting for services to initialize...",
+//!     "seconds": 30
+//!   }
+//! ]
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[tasks]]
+//! type = "pause"
+//! description = "Wait for services to start"
+//! prompt = "Waiting for services to initialize..."
+//! seconds = 30
+//! ```
 
 use serde::{Deserialize, Serialize};
 

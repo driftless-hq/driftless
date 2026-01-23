@@ -19,6 +19,33 @@
 //!   vars:
 //!     app_name: myapp
 //! ```
+//!
+//! **JSON Format:**
+//! ```json
+//! [
+//!   {
+//!     "type": "include_tasks",
+//!     "description": "Include common setup tasks",
+//!     "file": "common/setup.yml",
+//!     "when": "setup_required",
+//!     "vars": {
+//!       "app_name": "myapp"
+//!     }
+//!   }
+//! ]
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[tasks]]
+//! type = "include_tasks"
+//! description = "Include common setup tasks"
+//! file = "common/setup.yml"
+//! when = "setup_required"
+//!
+//! [tasks.vars]
+//! app_name = "myapp"
+//! ```
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

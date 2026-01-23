@@ -32,6 +32,20 @@
 //!   }
 //! }
 //! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[collectors]]
+//! type = "network"
+//! name = "network"
+//! interfaces = ["eth0", "wlan0"]
+//!
+//! [collectors.collect]
+//! bytes = true
+//! packets = true
+//! errors = true
+//! status = true
+//! ```
 
 use crate::facts::NetworkCollector;
 use anyhow::Result;

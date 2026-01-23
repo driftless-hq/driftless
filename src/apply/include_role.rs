@@ -21,6 +21,39 @@
 //!   defaults:
 //!     document_root: /var/www/html
 //! ```
+//!
+//! **JSON Format:**
+//! ```json
+//! [
+//!   {
+//!     "type": "include_role",
+//!     "description": "Setup web server",
+//!     "name": "webserver",
+//!     "when": "webserver_required",
+//!     "vars": {
+//!       "port": 8080
+//!     },
+//!     "defaults": {
+//!       "document_root": "/var/www/html"
+//!     }
+//!   }
+//! ]
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[tasks]]
+//! type = "include_role"
+//! description = "Setup web server"
+//! name = "webserver"
+//! when = "webserver_required"
+//!
+//! [tasks.vars]
+//! port = 8080
+//!
+//! [tasks.defaults]
+//! document_root = "/var/www/html"
+//! ```
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
