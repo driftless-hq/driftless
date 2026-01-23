@@ -4,15 +4,18 @@ on:
   push:
     branches: [ main, master ]
     paths:
-      - 'src/apply/**'
+      - 'src/**'
       - 'docs/**'
-      - 'build.rs'
+      - 'Cargo.toml'
+      - 'scripts/generate-docs.sh'
   pull_request:
     branches: [ main, master ]
     paths:
-      - 'src/apply/**'
+      - 'src/**'
       - 'docs/**'
-      - 'build.rs'
+      - 'Cargo.toml'
+      - 'scripts/generate-docs.sh'
+  workflow_dispatch:
 
 jobs:
   docs:
@@ -21,53 +24,62 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
 
     - name: Setup Rust
       uses: actions-rust-lang/setup-rust-toolchain@v1
       with:
+        toolchain: stable
         components: rust-docs
 
+    - name: Cache dependencies
+      uses: Swatinem/rust-cache@v2
+
     - name: Build project
-      run: cargo build --release
+      run: cargo build
 
     - name: Generate documentation
       run: |
-        # Generate task documentation (using correct paths)
-        ./target/release/driftless docs --format markdown --output docs/tasks-reference.md
+        # Make script executable and run it
+        chmod +x ./scripts/generate-docs.sh
+        ./scripts/generate-docs.sh --output-dir docs
 
-        # Generate Rust API documentation
-        cargo doc --no-deps --document-private-items
+    - name: Generate Rust API documentation
+      run: cargo doc --no-deps --document-private-items
 
     - name: Upload documentation artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: documentation
+        name: documentation-${{ github.sha }}
         path: |
           docs/
           target/doc/
+        retention-days: 30
 
     - name: Commit generated documentation (main branch only)
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
         git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
+        git config --local user.name "github-actions[bot]"
 
         # Check if docs have changed
-        if git diff --quiet docs/tasks-reference.md docs/schema/apply-config.schema.json docs/examples/; then
+        if git diff --quiet docs/tasks-reference.md docs/facts-reference.md docs/logs-reference.md docs/template-reference.md 2>/dev/null; then
           echo "No documentation changes detected"
         else
-          git add docs/tasks-reference.md docs/schema/apply-config.schema.json docs/examples/
-          git commit -m "docs: update generated documentation [skip ci]" || echo "No changes to commit"
+          git add docs/tasks-reference.md docs/facts-reference.md docs/logs-reference.md docs/template-reference.md
+          git commit -m "docs: update generated documentation [skip ci]" --allow-empty || echo "No changes to commit"
           git push
         fi
 
     - name: Deploy to GitHub Pages (main branch only)
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      uses: peaceiris/actions-gh-pages@v3
+      uses: peaceiris/actions-gh-pages@v4
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         publish_dir: ./target/doc
         destination_dir: api
+        keep_files: false
 
     - name: Comment on PR with documentation links
       if: github.event_name == 'pull_request'
@@ -76,6 +88,7 @@ jobs:
         script: |
           const { issue: { number: issue_number }, repo: { owner, repo } } = context;
           const runId = context.runId;
+          const sha = context.sha;
 
           github.rest.issues.createComment({
             issue_number,
@@ -84,11 +97,14 @@ jobs:
             body: `📚 **Documentation Generated**
 
             View the generated documentation:
-            - [Task Reference](https://github.com/${owner}/${repo}/actions/runs/${runId}#artifacts)
-            - [API Documentation](https://github.com/${owner}/${repo}/actions/runs/${runId}#artifacts)
+            - [📄 Task Reference & Examples](https://github.com/${owner}/${repo}/actions/runs/${runId}#artifacts)
+            - [🔧 API Documentation](https://github.com/${owner}/${repo}/actions/runs/${runId}#artifacts)
 
-            The documentation includes:
+            **What's included:**
             - Complete task reference with examples
-            - JSON schema for validation
-            - Rust API documentation`
+            - Facts, logs, and template documentation
+            - Comprehensive Rust API documentation
+            - Usage examples and best practices
+
+            _Documentation is automatically updated on main branch pushes._`
           });
