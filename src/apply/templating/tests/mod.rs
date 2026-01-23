@@ -1,6 +1,7 @@
 //! Test modules for templating functionality
 
 mod encoding_tests;
+mod generator_tests;
 mod list_tests;
 mod math_tests;
 mod path_filters_tests;

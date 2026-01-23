@@ -540,6 +540,37 @@ Return the length of a string, list, or object
 
 Functions perform operations and return values in templates.
 
+### Generator Functions
+
+#### `random`
+
+Generate random numbers.
+
+**Arguments**:
+
+- `max` (int): The maximum value (exclusive) or minimum value if second arg provided
+- `max` (int): The maximum value (exclusive)
+
+**Usage**:
+
+```jinja2
+{{ random(max, max) }}
+```
+#### `range`
+
+Generate a sequence of numbers.
+
+**Arguments**:
+
+- `end_or_start` (int): The end value (exclusive) for single arg, or start value for multiple args
+- `end` (int): The end value (exclusive)
+- `step` (int): The step value (optional, defaults to 1)
+
+**Usage**:
+
+```jinja2
+{{ range(end_or_start, end, step) }}
+```
 ### Lookup Functions
 
 #### `lookup`
