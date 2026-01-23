@@ -78,18 +78,27 @@ jobs:
         # Copy Rust API docs to api subdirectory
         cp -r target/doc gh-pages-deploy/api
         
-        # Copy markdown docs to docs subdirectory
+        # Copy markdown docs to docs subdirectory if they exist
         mkdir -p gh-pages-deploy/docs
-        cp docs/*.md gh-pages-deploy/docs/ || true
+        if ls docs/*.md 1> /dev/null 2>&1; then
+          cp docs/*.md gh-pages-deploy/docs/
+          echo "Copied markdown documentation files"
+        else
+          echo "Warning: No markdown documentation files found in docs/"
+        fi
+        
+        # Determine the crate name from Cargo.toml
+        CRATE_NAME=$(grep '^name = ' Cargo.toml | head -1 | sed 's/name = "\(.*\)"/\1/')
+        echo "Detected crate name: $CRATE_NAME"
         
         # Create a simple index.html that redirects to API docs
-        cat > gh-pages-deploy/index.html << 'EOF'
+        cat > gh-pages-deploy/index.html << EOF
         <!DOCTYPE html>
         <html>
         <head>
             <meta charset="utf-8">
             <title>Driftless Documentation</title>
-            <meta http-equiv="refresh" content="0; url=api/driftless/">
+            <meta http-equiv="refresh" content="0; url=api/${CRATE_NAME}/">
             <style>
                 body {
                     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
@@ -128,7 +137,7 @@ jobs:
                 <p>Redirecting to API documentation...</p>
                 <p>If you are not redirected automatically, use the links below:</p>
                 <div>
-                    <a href="api/driftless/">API Documentation</a>
+                    <a href="api/${CRATE_NAME}/">API Documentation</a>
                 </div>
             </div>
         </body>
