@@ -59,7 +59,6 @@
 - Plugin registry and download manager
 
 ## TODO
-- Implement the following utility template functions in a new file and ensure they are compatible with the Ansible template functions of the same name and include comprehensive tests and documentation: hash, uuid, timestamp
 - Ensure the `lookup` template function is fully complete
 - Identify any template features, filters, or functions implemented in Ansible that have not yet been implemented in this codebase
 - Review the codebase for usage of Rust best-practices and guidelines

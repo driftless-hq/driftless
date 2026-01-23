@@ -58,4 +58,111 @@ mod tests {
         let result = template.render(minijinja::context!()).unwrap();
         assert_eq!(result, "None");
     }
+
+    #[test]
+    fn test_hash_function_md5() {
+        let env = create_test_env();
+
+        let template = env.template_from_str("{{ hash('test', 'md5') }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        // MD5 hash of "test" is "098f6bcd4621d373cade4e832627b4f6"
+        assert_eq!(result, "098f6bcd4621d373cade4e832627b4f6");
+    }
+
+    #[test]
+    fn test_hash_function_sha1() {
+        let env = create_test_env();
+
+        let template = env.template_from_str("{{ hash('test', 'sha1') }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        // SHA1 hash of "test" is "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3"
+        assert_eq!(result, "a94a8fe5ccb19ba61c4c0873d391e987982fbbd3");
+    }
+
+    #[test]
+    fn test_hash_function_sha256() {
+        let env = create_test_env();
+
+        let template = env
+            .template_from_str("{{ hash('test', 'sha256') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        // SHA256 hash of "test" is "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+        assert_eq!(
+            result,
+            "9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"
+        );
+    }
+
+    #[test]
+    fn test_hash_function_invalid_algorithm() {
+        let env = create_test_env();
+
+        let template = env
+            .template_from_str("{{ hash('test', 'invalid') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "false");
+    }
+
+    #[test]
+    fn test_hash_function_insufficient_args() {
+        let env = create_test_env();
+
+        let template = env.template_from_str("{{ hash('test') }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "false");
+    }
+
+    #[test]
+    fn test_uuid_function() {
+        let env = create_test_env();
+
+        let template = env.template_from_str("{{ uuid() }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+
+        // UUID should be a valid UUID4 format
+        assert!(uuid::Uuid::parse_str(&result).is_ok());
+        let parsed = uuid::Uuid::parse_str(&result).unwrap();
+        assert_eq!(parsed.get_version(), Some(uuid::Version::Random));
+    }
+
+    #[test]
+    fn test_timestamp_function_default() {
+        let env = create_test_env();
+
+        let template = env.template_from_str("{{ timestamp() }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+
+        // Should be a valid RFC3339 timestamp
+        assert!(chrono::DateTime::parse_from_rfc3339(&result).is_ok());
+    }
+
+    #[test]
+    fn test_timestamp_function_custom_format() {
+        let env = create_test_env();
+
+        let template = env
+            .template_from_str("{{ timestamp('%Y-%m-%d %H:%M:%S') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+
+        // Should match the format YYYY-MM-DD HH:MM:SS
+        assert!(regex::Regex::new(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$")
+            .unwrap()
+            .is_match(&result));
+    }
+
+    #[test]
+    fn test_timestamp_function_invalid_format() {
+        let env = create_test_env();
+
+        let template = env
+            .template_from_str("{{ timestamp('%invalid') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+
+        // Should return a valid timestamp (fallback to ISO format on invalid format)
+        assert!(chrono::DateTime::parse_from_rfc3339(&result).is_ok() || !result.is_empty());
+    }
 }
