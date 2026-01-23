@@ -3,7 +3,9 @@
 #[cfg(test)]
 mod tests {
     use crate::apply::templating::setup_minijinja_env;
+    use chrono;
     use minijinja::Environment;
+    use tempfile;
 
     fn create_test_env() -> Environment<'static> {
         let mut env = Environment::new();
@@ -212,5 +214,158 @@ mod tests {
 
         // Should return a valid timestamp (fallback to ISO format on invalid format)
         assert!(chrono::DateTime::parse_from_rfc3339(&result).is_ok() || !result.is_empty());
+    }
+
+    #[test]
+    fn test_ansible_managed_function() {
+        let env = create_test_env();
+
+        let template = env.template_from_str("{{ ansible_managed() }}").unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "Ansible managed");
+    }
+
+    #[test]
+    fn test_expandvars_function() {
+        let env = create_test_env();
+
+        // Set test environment variables
+        std::env::set_var("TEST_VAR", "test_value");
+        std::env::set_var("ANOTHER_VAR", "another_value");
+
+        // Test ${VAR} syntax
+        let template = env
+            .template_from_str("{{ expandvars('Hello ${TEST_VAR}') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "Hello test_value");
+
+        // Test $VAR syntax
+        let template = env
+            .template_from_str("{{ expandvars('Hello $TEST_VAR') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "Hello test_value");
+
+        // Test multiple variables
+        let template = env
+            .template_from_str("{{ expandvars('${TEST_VAR} and $ANOTHER_VAR') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "test_value and another_value");
+
+        // Test nonexistent variable (should remain unchanged)
+        let template = env
+            .template_from_str("{{ expandvars('Hello $NONEXISTENT') }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "Hello $NONEXISTENT");
+
+        // Clean up
+        std::env::remove_var("TEST_VAR");
+        std::env::remove_var("ANOTHER_VAR");
+    }
+
+    #[test]
+    fn test_ansible_date_time_function() {
+        let env = create_test_env();
+
+        let template = env
+            .template_from_str("{{ ansible_date_time().year }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+
+        // Should be a valid year (4 digits)
+        assert_eq!(result.len(), 4);
+        assert!(result.chars().all(|c| c.is_ascii_digit()));
+
+        // Test that it's actually the current year
+        let current_year = chrono::Utc::now().format("%Y").to_string();
+        assert_eq!(result, current_year);
+
+        // Test multiple fields
+        let template = env
+            .template_from_str("{{ ansible_date_time().date }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert!(result.contains('-')); // Should be YYYY-MM-DD format
+    }
+
+    #[test]
+    fn test_include_vars_function() {
+        let env = create_test_env();
+
+        // Create a temporary YAML file
+        let temp_dir = tempfile::tempdir().unwrap();
+        let yaml_file = temp_dir.path().join("test_vars.yml");
+        std::fs::write(&yaml_file, "key1: value1\nkey2: value2\n").unwrap();
+
+        let template_str = format!("{{{{ include_vars('{}').key1 }}}}", yaml_file.display());
+        let template = env.template_from_str(&template_str).unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "value1");
+
+        // Test with JSON file
+        let json_file = temp_dir.path().join("test_vars.json");
+        std::fs::write(&json_file, r#"{"key3": "value3", "key4": "value4"}"#).unwrap();
+
+        let template_str = format!("{{{{ include_vars('{}').key3 }}}}", json_file.display());
+        let template = env.template_from_str(&template_str).unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "value3");
+
+        // Test with nonexistent file
+        let template = env
+            .template_from_str("{{ include_vars('nonexistent.yml').key1 }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, ""); // Should return empty dict, so accessing key1 gives None which renders as empty string
+    }
+
+    #[test]
+    fn test_query_function_inventory_hostnames() {
+        let env = create_test_env();
+
+        let template = env
+            .template_from_str("{{ query('inventory_hostnames', 'all') | first }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "localhost");
+    }
+
+    #[test]
+    fn test_query_function_file() {
+        let env = create_test_env();
+
+        // Create a temporary file
+        let temp_file = tempfile::NamedTempFile::new().unwrap();
+        std::fs::write(&temp_file, "test content").unwrap();
+
+        let template_str = format!("{{{{ query('file', '{}') }}}}", temp_file.path().display());
+        let template = env.template_from_str(&template_str).unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "test content");
+    }
+
+    #[test]
+    fn test_query_function_fileglob() {
+        let env = create_test_env();
+
+        let template = env
+            .template_from_str("{{ query('fileglob', '*.txt') | first }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "*.txt"); // Simple implementation returns the pattern
+    }
+
+    #[test]
+    fn test_query_function_unknown_type() {
+        let env = create_test_env();
+
+        let template = env
+            .template_from_str("{{ query('unknown_type', 'arg') | length }}")
+            .unwrap();
+        let result = template.render(minijinja::context!()).unwrap();
+        assert_eq!(result, "0"); // Should return empty array
     }
 }

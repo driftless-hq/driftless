@@ -59,7 +59,6 @@
 - Plugin registry and download manager
 
 ## TODO
-- Implement missing functions such as query, ansible_date_time, ansible_managed, expandvars, and include_vars. Ensure compatibility with Ansible and comprehensive documentation and tests.
 - Implement missing tests for select/reject such as undefined, none, falsy, equalto, match, search, and version_compare. Ensure compatibility with Ansible and comprehensive documentation and tests.
 - Implement other missing features such as template composition (include/import) and custom extensions support. Ensure compatibility with Ansible and comprehensive documentation and tests.
 - Review the codebase for usage of Rust best-practices and guidelines

@@ -881,6 +881,39 @@ Return the directory name of a path
 ```
 ### Utility Functions
 
+#### `ansible_date_time`
+
+Return current date/time information in Ansible format
+
+**Usage**:
+
+```jinja2
+{{ ansible_date_time() }}
+```
+
+#### `ansible_managed`
+
+Return a string indicating the file is managed by Ansible
+
+**Usage**:
+
+```jinja2
+{{ ansible_managed() }}
+```
+
+#### `expandvars`
+
+Expand environment variables in a string
+
+**Arguments**:
+
+- `string` (string): The string containing environment variables to expand
+
+**Usage**:
+
+```jinja2
+{{ expandvars(string) }}
+```
 #### `hash`
 
 Return the hash of a string using the specified algorithm
@@ -894,6 +927,19 @@ Return the hash of a string using the specified algorithm
 
 ```jinja2
 {{ hash(value, algorithm) }}
+```
+#### `include_vars`
+
+Include variables from files (YAML, JSON, etc.)
+
+**Arguments**:
+
+- `file` (string): Path to the file containing variables
+
+**Usage**:
+
+```jinja2
+{{ include_vars(file) }}
 ```
 #### `length`
 
@@ -909,6 +955,20 @@ Return the length of a string, array, or object
 {{ length('hello') }}
 {{ length(items) }}
 {{ length(my_object) }}
+```
+#### `query`
+
+Query various sources for data (inventory, files, etc.)
+
+**Arguments**:
+
+- `query_type` (string): The type of query (inventory_hostnames, file, etc.)
+- `query_args` (any): Arguments for the query
+
+**Usage**:
+
+```jinja2
+{{ query(query_type, query_args) }}
 ```
 #### `timestamp`
 
