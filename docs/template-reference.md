@@ -27,8 +27,8 @@ Batch items in a list into groups of a specified size
 
 **Arguments**:
 
-- `size: integer - Size of each batch`
-- `fill_with: any (optional) - Value to fill incomplete batches`
+- `size` (integer): Size of each batch
+- `fill_with` (any): Value to fill incomplete batches (optional)
 
 **Usage**:
 
@@ -51,7 +51,7 @@ Join a list of strings with a separator
 
 **Arguments**:
 
-- `separator: string (optional) - String to join with (default: empty string)`
+- `separator` (string): String to join with (optional, default: empty string)
 
 **Usage**:
 
@@ -84,8 +84,8 @@ Sort items in a list
 
 **Arguments**:
 
-- `reverse: boolean (optional) - Sort in reverse order (default: false)`
-- `case_sensitive: boolean (optional) - Case sensitive sorting for strings (default: true)`
+- `reverse` (boolean): Sort in reverse order (optional, default: false)
+- `case_sensitive` (boolean): Case sensitive sorting for strings (optional, default: true)
 
 **Usage**:
 
@@ -102,6 +102,69 @@ Remove duplicate items from a list
 {{ value | unique }}
 ```
 
+### Math/Logic Operations
+
+#### `abs`
+
+Return the absolute value of a number
+
+**Usage**:
+
+```jinja2
+{{ value | abs }}
+```
+
+#### `bool`
+
+Convert value to boolean
+
+**Usage**:
+
+```jinja2
+{{ value | bool }}
+```
+
+#### `random`
+
+Return a random number, optionally within a specified range
+
+**Arguments**:
+
+- `start` (integer): The starting value of the range (optional)
+- `end` (integer): The ending value of the range (optional)
+
+**Usage**:
+
+```jinja2
+{{ value | random(start, end) }}
+```
+#### `round`
+
+Round a number to a given precision (default 0 decimal places)
+
+**Arguments**:
+
+- `precision` (integer): The number of decimal places to round to (optional, default: 0)
+
+**Usage**:
+
+```jinja2
+{{ value | round(precision) }}
+```
+#### `ternary`
+
+Return one of two values based on condition (true_val if condition is true, false_val if false)
+
+**Arguments**:
+
+- `true_val` (any): The value to return if the condition is true
+- `false_val` (any): The value to return if the condition is false
+
+**Usage**:
+
+```jinja2
+{{ value | ternary(true_val, false_val) }}
+```
 ### Path Operations
 
 #### `basename`
@@ -142,8 +205,8 @@ Center a string in a field of given width
 
 **Arguments**:
 
-- `width: integer - Width of the field`
-- `fillchar: string (optional) - Character to fill with (default: space)`
+- `width` (integer): Width of the field
+- `fillchar` (string): Character to fill with (optional, default: space)
 
 **Usage**:
 
@@ -156,8 +219,8 @@ Indent each line of a string
 
 **Arguments**:
 
-- `width: integer - Number of spaces to indent`
-- `indentfirst: boolean (optional) - Whether to indent the first line (default: false)`
+- `width` (integer): Number of spaces to indent (optional, default: 0)
+- `indentfirst` (boolean): Whether to indent the first line (optional, default: false)
 
 **Usage**:
 
@@ -170,8 +233,8 @@ Left-justify a string in a field of given width
 
 **Arguments**:
 
-- `width: integer - Width of the field`
-- `fillchar: string (optional) - Character to fill with (default: space)`
+- `width` (integer): Width of the field
+- `fillchar` (string): Character to fill with (optional, default: space)
 
 **Usage**:
 
@@ -204,8 +267,8 @@ Right-justify a string in a field of given width
 
 **Arguments**:
 
-- `width: integer - Width of the field`
-- `fillchar: string (optional) - Character to fill with (default: space)`
+- `width` (integer): Width of the field
+- `fillchar` (string): Character to fill with (optional, default: space)
 
 **Usage**:
 
@@ -248,9 +311,9 @@ Truncate a string to a specified length
 
 **Arguments**:
 
-- `length: integer - Maximum length of the resulting string`
-- `killwords: boolean (optional) - If true, truncate at character boundary; if false, try to truncate at word boundary`
-- `end: string (optional) - String to append when truncation occurs (default: "...")`
+- `length` (integer): Maximum length of the resulting string
+- `killwords` (boolean): If true, truncate at character boundary; if false, try to truncate at word boundary (optional, default: false)
+- `end` (string): String to append when truncation occurs (optional, default: "...")
 
 **Usage**:
 
@@ -303,8 +366,8 @@ Look up values from various sources (env, file, etc.)
 
 **Arguments**:
 
-- `type: string - The lookup type (currently only 'env' is supported)`
-- `key: string - The key to look up`
+- `type` (string): The lookup type (currently only 'env' is supported)
+- `key` (string): The key to look up
 
 **Usage**:
 
@@ -320,7 +383,7 @@ Return the basename of a path
 
 **Arguments**:
 
-- `path: string - The path to extract the basename from`
+- `path` (string): The path to extract the basename from
 
 **Usage**:
 
@@ -334,7 +397,7 @@ Return the directory name of a path
 
 **Arguments**:
 
-- `path: string - The path to extract the directory name from`
+- `path` (string): The path to extract the directory name from
 
 **Usage**:
 
@@ -350,7 +413,7 @@ Return the length of a string, array, or object
 
 **Arguments**:
 
-- `value: any - The value to get the length of (string, array, or object)`
+- `value` (any): The value to get the length of (string, array, or object)
 
 **Usage**:
 

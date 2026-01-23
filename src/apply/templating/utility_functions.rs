@@ -16,7 +16,7 @@ pub fn register_utility_functions(
         "length",
         "Return the length of a string, array, or object",
         "Utility Functions",
-        vec!["value: any - The value to get the length of (string, array, or object)".to_string()],
+        vec![("value".to_string(), "any: The value to get the length of (string, array, or object)".to_string())],
         Arc::new(|args: &[JinjaValue]| {
             args.first()
                 .map(|v| JinjaValue::from(v.len().unwrap_or(0) as i64))
@@ -30,8 +30,8 @@ pub fn register_utility_functions(
         "Look up values from various sources (env, file, etc.)",
         "Lookup Functions",
         vec![
-            "type: string - The lookup type (currently only 'env' is supported)".to_string(),
-            "key: string - The key to look up".to_string(),
+            ("type".to_string(), "string: The lookup type (currently only 'env' is supported)".to_string()),
+            ("key".to_string(), "string: The key to look up".to_string()),
         ],
         Arc::new(|args| {
             if args.len() >= 2 {

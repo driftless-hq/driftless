@@ -63,9 +63,9 @@ pub fn register_string_filters(
         "Truncate a string to a specified length",
         "String Operations",
         vec![
-            "length: integer - Maximum length of the resulting string".to_string(),
-            "killwords: boolean (optional) - If true, truncate at character boundary; if false, try to truncate at word boundary".to_string(),
-            "end: string (optional) - String to append when truncation occurs (default: \"...\")".to_string(),
+            ("length".to_string(), "integer: Maximum length of the resulting string".to_string()),
+            ("killwords".to_string(), "boolean: If true, truncate at character boundary; if false, try to truncate at word boundary (optional, default: false)".to_string()),
+            ("end".to_string(), "string: String to append when truncation occurs (optional, default: \"...\")".to_string()),
         ],
         Arc::new(|value, args| {
             let s = value.as_str().unwrap_or("");
@@ -145,8 +145,14 @@ pub fn register_string_filters(
         "Center a string in a field of given width",
         "String Operations",
         vec![
-            "width: integer - Width of the field".to_string(),
-            "fillchar: string (optional) - Character to fill with (default: space)".to_string(),
+            (
+                "width".to_string(),
+                "integer: Width of the field".to_string(),
+            ),
+            (
+                "fillchar".to_string(),
+                "string: Character to fill with (optional, default: space)".to_string(),
+            ),
         ],
         Arc::new(|value, args| {
             let s = value.as_str().unwrap_or("");
@@ -180,8 +186,14 @@ pub fn register_string_filters(
         "Left-justify a string in a field of given width",
         "String Operations",
         vec![
-            "width: integer - Width of the field".to_string(),
-            "fillchar: string (optional) - Character to fill with (default: space)".to_string(),
+            (
+                "width".to_string(),
+                "integer: Width of the field".to_string(),
+            ),
+            (
+                "fillchar".to_string(),
+                "string: Character to fill with (optional, default: space)".to_string(),
+            ),
         ],
         Arc::new(|value, args| {
             let s = value.as_str().unwrap_or("");
@@ -208,8 +220,14 @@ pub fn register_string_filters(
         "Right-justify a string in a field of given width",
         "String Operations",
         vec![
-            "width: integer - Width of the field".to_string(),
-            "fillchar: string (optional) - Character to fill with (default: space)".to_string(),
+            (
+                "width".to_string(),
+                "integer: Width of the field".to_string(),
+            ),
+            (
+                "fillchar".to_string(),
+                "string: Character to fill with (optional, default: space)".to_string(),
+            ),
         ],
         Arc::new(|value, args| {
             let s = value.as_str().unwrap_or("");
@@ -236,9 +254,14 @@ pub fn register_string_filters(
         "Indent each line of a string",
         "String Operations",
         vec![
-            "width: integer - Number of spaces to indent".to_string(),
-            "indentfirst: boolean (optional) - Whether to indent the first line (default: false)"
-                .to_string(),
+            (
+                "width".to_string(),
+                "integer: Number of spaces to indent (optional, default: 0)".to_string(),
+            ),
+            (
+                "indentfirst".to_string(),
+                "boolean: Whether to indent the first line (optional, default: false)".to_string(),
+            ),
         ],
         Arc::new(|value, args| {
             let s = value.as_str().unwrap_or("");
@@ -408,10 +431,10 @@ pub fn register_string_filters(
         "join",
         "Join a list of strings with a separator",
         "List Operations",
-        vec![
-            "separator: string (optional) - String to join with (default: empty string)"
-                .to_string(),
-        ],
+        vec![(
+            "separator".to_string(),
+            "string: String to join with (optional, default: empty string)".to_string(),
+        )],
         Arc::new(|value, args| {
             let separator = args.first().and_then(|v| v.as_str()).unwrap_or("");
 
@@ -453,14 +476,22 @@ pub fn register_string_filters(
         "Sort items in a list",
         "List Operations",
         vec![
-            "reverse: boolean (optional) - Sort in reverse order (default: false)".to_string(),
-            "case_sensitive: boolean (optional) - Case sensitive sorting for strings (default: true)".to_string(),
+            (
+                "reverse".to_string(),
+                "boolean: Sort in reverse order (optional, default: false)".to_string(),
+            ),
+            (
+                "case_sensitive".to_string(),
+                "boolean: Case sensitive sorting for strings (optional, default: true)".to_string(),
+            ),
         ],
         Arc::new(|value, args| {
-            let reverse = args.first()
+            let reverse = args
+                .first()
                 .map(|v| v.is_true() || v.as_str() == Some("true"))
                 .unwrap_or(false);
-            let case_sensitive = args.get(1)
+            let case_sensitive = args
+                .get(1)
                 .map(|v| v.is_true() || v.as_str() == Some("true"))
                 .unwrap_or(true);
 
@@ -544,8 +575,14 @@ pub fn register_string_filters(
         "Batch items in a list into groups of a specified size",
         "List Operations",
         vec![
-            "size: integer - Size of each batch".to_string(),
-            "fill_with: any (optional) - Value to fill incomplete batches".to_string(),
+            (
+                "size".to_string(),
+                "integer: Size of each batch".to_string(),
+            ),
+            (
+                "fill_with".to_string(),
+                "any: Value to fill incomplete batches (optional)".to_string(),
+            ),
         ],
         Arc::new(|value, args| {
             let size = args.first().and_then(|v| v.as_i64()).unwrap_or(1) as usize;

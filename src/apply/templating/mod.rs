@@ -1,5 +1,6 @@
 //! Shared templating utilities for minijinja setup and rendering
 
+pub mod math_filters;
 pub mod path_operations;
 pub mod string_filters;
 pub mod tests;
@@ -23,7 +24,7 @@ pub struct TemplateFilterEntry {
     pub name: String,
     pub description: String,
     pub category: String,
-    pub arguments: Vec<String>,
+    pub arguments: Vec<(String, String)>,
     pub filter_fn: TemplateFilterFn,
 }
 
@@ -34,7 +35,7 @@ pub struct TemplateFunctionEntry {
     pub name: String,
     pub description: String,
     pub category: String,
-    pub arguments: Vec<String>,
+    pub arguments: Vec<(String, String)>,
     pub function_fn: TemplateFunctionFn,
 }
 
@@ -64,7 +65,7 @@ impl TemplateRegistry {
         name: &str,
         description: &str,
         category: &str,
-        arguments: Vec<String>,
+        arguments: Vec<(String, String)>,
         filter_fn: TemplateFilterFn,
     ) {
         let entry = TemplateFilterEntry {
@@ -83,7 +84,7 @@ impl TemplateRegistry {
         name: &str,
         description: &str,
         category: &str,
-        arguments: Vec<String>,
+        arguments: Vec<(String, String)>,
         function_fn: TemplateFunctionFn,
     ) {
         let entry = TemplateFunctionEntry {
@@ -99,6 +100,7 @@ impl TemplateRegistry {
     /// Initialize the registry with built-in filters
     pub fn initialize_builtin_filters(registry: &mut HashMap<String, TemplateFilterEntry>) {
         string_filters::register_string_filters(registry);
+        math_filters::register_math_filters(registry);
         path_operations::register_path_filters(registry);
     }
 
@@ -145,13 +147,13 @@ impl TemplateRegistry {
     }
 
     /// Get filter arguments
-    pub fn get_filter_arguments(name: &str) -> Option<Vec<String>> {
+    pub fn get_filter_arguments(name: &str) -> Option<Vec<(String, String)>> {
         let registry = TEMPLATE_FILTER_REGISTRY.read().unwrap();
         registry.get(name).map(|e| e.arguments.clone())
     }
 
     /// Get function arguments
-    pub fn get_function_arguments(name: &str) -> Option<Vec<String>> {
+    pub fn get_function_arguments(name: &str) -> Option<Vec<(String, String)>> {
         let registry = TEMPLATE_FUNCTION_REGISTRY.read().unwrap();
         registry.get(name).map(|e| e.arguments.clone())
     }
@@ -162,7 +164,7 @@ impl TemplateRegistry {
         name: &str,
         description: &str,
         category: &str,
-        arguments: Vec<String>,
+        arguments: Vec<(String, String)>,
         filter_fn: TemplateFilterFn,
     ) {
         let mut registry = TEMPLATE_FILTER_REGISTRY.write().unwrap();
@@ -182,7 +184,7 @@ impl TemplateRegistry {
         name: &str,
         description: &str,
         category: &str,
-        arguments: Vec<String>,
+        arguments: Vec<(String, String)>,
         function_fn: TemplateFunctionFn,
     ) {
         let mut registry = TEMPLATE_FUNCTION_REGISTRY.write().unwrap();

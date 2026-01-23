@@ -664,8 +664,17 @@ fn generate_filters_section() -> Result<String> {
                 {
                     if !arguments.is_empty() {
                         section.push_str("**Arguments**:\n\n");
-                        for arg in &arguments {
-                            section.push_str(&format!("- `{}`\n", arg));
+                        for (arg_name, arg_desc) in &arguments {
+                            if let Some(colon_pos) = arg_desc.find(':') {
+                                let type_part = &arg_desc[..colon_pos];
+                                let desc_part = &arg_desc[colon_pos + 1..].trim_start();
+                                section.push_str(&format!(
+                                    "- `{}` ({}): {}\n",
+                                    arg_name, type_part, desc_part
+                                ));
+                            } else {
+                                section.push_str(&format!("- `{}`: {}\n", arg_name, arg_desc));
+                            }
                         }
                         section.push('\n');
                     }
@@ -689,7 +698,7 @@ fn generate_filters_section() -> Result<String> {
                                 // For other filters, use parameter names
                                 let param_names: Vec<&str> = arguments
                                     .iter()
-                                    .map(|arg| arg.split(':').next().unwrap_or(arg))
+                                    .map(|(name, _)| name.as_str())
                                     .collect();
                                 format!("```jinja2\n{{{{ value | {}({}) }}}}\n```", filter_name, param_names.join(", "))
                             }
@@ -755,8 +764,17 @@ fn generate_functions_section() -> Result<String> {
                 {
                     if !arguments.is_empty() {
                         section.push_str("**Arguments**:\n\n");
-                        for arg in &arguments {
-                            section.push_str(&format!("- `{}`\n", arg));
+                        for (name, description) in &arguments {
+                            if let Some(colon_pos) = description.find(':') {
+                                let type_part = &description[..colon_pos];
+                                let desc_part = &description[colon_pos + 1..].trim_start();
+                                section.push_str(&format!(
+                                    "- `{}` ({}): {}\n",
+                                    name, type_part, desc_part
+                                ));
+                            } else {
+                                section.push_str(&format!("- `{}`: {}\n", name, description));
+                            }
                         }
                         section.push('\n');
                     }
@@ -785,7 +803,7 @@ fn generate_functions_section() -> Result<String> {
                                 // For other functions, use parameter names
                                 let param_names: Vec<&str> = arguments
                                     .iter()
-                                    .map(|arg| arg.split(':').next().unwrap_or(arg))
+                                    .map(|(name, _)| name.as_str())
                                     .collect();
                                 format!("```jinja2\n{{{{ {}({}) }}}}\n```", function_name, param_names.join(", "))
                             }
