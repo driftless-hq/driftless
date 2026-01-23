@@ -80,6 +80,188 @@
 //! [collectors.env]
 //! DOCKER_HOST = "unix:///var/run/docker.sock"
 //! ```
+//!
+//! **Output:**
+//! ```yaml
+//! command: "docker stats --no-stream --format json"
+//! exit_code: 0
+//! output:
+//!   - container: "web_server"
+//!     cpu_percent: "5.2"
+//!     memory_usage: "128MiB / 1GiB"
+//!     net_io: "1.2kB / 3.4kB"
+//!   - container: "database"
+//!     cpu_percent: "2.1"
+//!     memory_usage: "256MiB / 2GiB"
+//!     net_io: "500B / 1.2kB"
+//! labels:
+//!   category: monitoring
+//! ```
+//!
+//! ## Key-value command output parsing
+//!
+//! **YAML Format:**
+//! ```yaml
+//! type: command
+//! name: system_info
+//! command: echo "hostname=$(hostname)\nos_version=$(cat /etc/os-release | grep PRETTY_NAME | cut -d'=' -f2 | tr -d '\"')\nuptime=$(uptime -p)"
+//! format: key_value
+//! labels:
+//!   category: system
+//! ```
+//!
+//! **JSON Format:**
+//! ```json
+//! {
+//!   "type": "command",
+//!   "name": "system_info",
+//!   "command": "echo \"hostname=$(hostname)\\nos_version=$(cat /etc/os-release | grep PRETTY_NAME | cut -d'=' -f2 | tr -d '\\\"')\\nuptime=$(uptime -p)\"",
+//!   "format": "key_value",
+//!   "labels": {
+//!     "category": "system"
+//!   }
+//! }
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[collectors]]
+//! type = "command"
+//! name = "system_info"
+//! command = "echo \"hostname=$(hostname)\\nos_version=$(cat /etc/os-release | grep PRETTY_NAME | cut -d'=' -f2 | tr -d '\\\"')\\nuptime=$(uptime -p)\""
+//! format = "key_value"
+//!
+//! [collectors.labels]
+//! category = "system"
+//! ```
+//!
+//! **Output:**
+//! ```yaml
+//! command: "echo \"hostname=$(hostname)\\nos_version=$(cat /etc/os-release | grep PRETTY_NAME | cut -d'=' -f2 | tr -d '\\\"')\\nuptime=$(uptime -p)\""
+//! exit_code: 0
+//! output:
+//!   hostname: "web-server-01"
+//!   os_version: "Ubuntu 22.04.3 LTS"
+//!   uptime: "up 2 weeks, 3 days, 4 hours"
+//! labels:
+//!   category: system
+//! ```
+//!
+//! ## Text command output (default)
+//!
+//! **YAML Format:**
+//! ```yaml
+//! type: command
+//! name: disk_usage
+//! command: df -h /
+//! format: text
+//! labels:
+//!   category: storage
+//! ```
+//!
+//! **JSON Format:**
+//! ```json
+//! {
+//!   "type": "command",
+//!   "name": "disk_usage",
+//!   "command": "df -h /",
+//!   "format": "text",
+//!   "labels": {
+//!     "category": "storage"
+//!   }
+//! }
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[collectors]]
+//! type = "command"
+//! name = "disk_usage"
+//! command = "df -h /"
+//! format = "text"
+//!
+//! [collectors.labels]
+//! category = "storage"
+//! ```
+//!
+//! **Output:**
+//! ```yaml
+//! command: "df -h /"
+//! exit_code: 0
+//! stdout: |
+//!   Filesystem      Size  Used Avail Use% Mounted on
+//!   /dev/sda1        50G   15G   33G  31% /
+//! labels:
+//!   category: storage
+//! ```
+//!
+//! ## Command with environment variables and working directory
+//!
+//! **YAML Format:**
+//! ```yaml
+//! type: command
+//! name: custom_script
+//! command: ./check_service.sh
+//! format: json
+//! cwd: /opt/myapp
+//! env:
+//!   SERVICE_NAME: myapp
+//!   LOG_LEVEL: info
+//! labels:
+//!   category: application
+//! ```
+//!
+//! **JSON Format:**
+//! ```json
+//! {
+//!   "type": "command",
+//!   "name": "custom_script",
+//!   "command": "./check_service.sh",
+//!   "format": "json",
+//!   "cwd": "/opt/myapp",
+//!   "env": {
+//!     "SERVICE_NAME": "myapp",
+//!     "LOG_LEVEL": "info"
+//!   },
+//!   "labels": {
+//!     "category": "application"
+//!   }
+//! }
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[collectors]]
+//! type = "command"
+//! name = "custom_script"
+//! command = "./check_service.sh"
+//! format = "json"
+//! cwd = "/opt/myapp"
+//!
+//! [collectors.env]
+//! SERVICE_NAME = "myapp"
+//! LOG_LEVEL = "info"
+//!
+//! [collectors.labels]
+//! category = "application"
+//! ```
+//!
+//! **Output:**
+//! ```yaml
+//! command: "./check_service.sh"
+//! exit_code: 0
+//! output:
+//!   service_status: "running"
+//!   uptime_seconds: 3600
+//!   version: "1.2.3"
+//!   health_checks:
+//!     - name: "database"
+//!       status: "ok"
+//!     - name: "cache"
+//!       status: "ok"
+//! labels:
+//!   category: application
+//! ```
 
 use crate::facts::{CommandCollector, CommandOutputFormat};
 use anyhow::Result;
@@ -118,8 +300,14 @@ pub fn collect_command_facts(collector: &CommandCollector) -> Result<Value> {
     let output = cmd.output()?;
 
     // Store basic command information
-    facts.insert("command".to_string(), Value::String(collector.command.clone()));
-    facts.insert("exit_code".to_string(), Value::Number(output.status.code().unwrap_or(-1).into()));
+    facts.insert(
+        "command".to_string(),
+        Value::String(collector.command.clone()),
+    );
+    facts.insert(
+        "exit_code".to_string(),
+        Value::Number(output.status.code().unwrap_or(-1).into()),
+    );
 
     // Process stdout based on format
     let stdout_str = String::from_utf8_lossy(&output.stdout);
@@ -136,7 +324,10 @@ pub fn collect_command_facts(collector: &CommandCollector) -> Result<Value> {
                 Err(_) => {
                     // Fallback to text if JSON parsing fails
                     facts.insert("stdout".to_string(), Value::String(stdout_str.to_string()));
-                    facts.insert("parse_error".to_string(), Value::String("Failed to parse as JSON".to_string()));
+                    facts.insert(
+                        "parse_error".to_string(),
+                        Value::String("Failed to parse as JSON".to_string()),
+                    );
                 }
             }
         }
@@ -145,12 +336,21 @@ pub fn collect_command_facts(collector: &CommandCollector) -> Result<Value> {
             let mut parsed = HashMap::new();
             for line in stdout_str.lines() {
                 if let Some((key, value)) = line.split_once('=') {
-                    parsed.insert(key.trim().to_string(), Value::String(value.trim().to_string()));
+                    parsed.insert(
+                        key.trim().to_string(),
+                        Value::String(value.trim().to_string()),
+                    );
                 }
             }
-            facts.insert("output".to_string(), Value::Mapping(
-                parsed.into_iter().map(|(k, v)| (Value::String(k), v)).collect()
-            ));
+            facts.insert(
+                "output".to_string(),
+                Value::Mapping(
+                    parsed
+                        .into_iter()
+                        .map(|(k, v)| (Value::String(k), v))
+                        .collect(),
+                ),
+            );
         }
     }
 
@@ -166,9 +366,15 @@ pub fn collect_command_facts(collector: &CommandCollector) -> Result<Value> {
         for (key, value) in &collector.labels {
             labels.insert(key.clone(), Value::String(value.clone()));
         }
-        facts.insert("labels".to_string(), Value::Mapping(
-            labels.into_iter().map(|(k, v)| (Value::String(k), v)).collect()
-        ));
+        facts.insert(
+            "labels".to_string(),
+            Value::Mapping(
+                labels
+                    .into_iter()
+                    .map(|(k, v)| (Value::String(k), v))
+                    .collect(),
+            ),
+        );
     }
 
     // Add base labels if any
@@ -177,20 +383,29 @@ pub fn collect_command_facts(collector: &CommandCollector) -> Result<Value> {
         for (key, value) in &collector.base.labels {
             base_labels.insert(key.clone(), Value::String(value.clone()));
         }
-        facts.insert("base_labels".to_string(), Value::Mapping(
-            base_labels.into_iter().map(|(k, v)| (Value::String(k), v)).collect()
-        ));
+        facts.insert(
+            "base_labels".to_string(),
+            Value::Mapping(
+                base_labels
+                    .into_iter()
+                    .map(|(k, v)| (Value::String(k), v))
+                    .collect(),
+            ),
+        );
     }
 
     Ok(Value::Mapping(
-        facts.into_iter().map(|(k, v)| (Value::String(k), v)).collect()
+        facts
+            .into_iter()
+            .map(|(k, v)| (Value::String(k), v))
+            .collect(),
     ))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::facts::{CommandCollector, BaseCollector, CommandOutputFormat};
+    use crate::facts::{BaseCollector, CommandCollector, CommandOutputFormat};
     use std::collections::HashMap;
 
     #[test]
@@ -214,8 +429,15 @@ mod tests {
 
         let value = result.unwrap();
         if let Value::Mapping(map) = value {
-            let keys: std::collections::HashSet<_> = map.keys()
-                .filter_map(|k| if let Value::String(s) = k { Some(s.as_str()) } else { None })
+            let keys: std::collections::HashSet<_> = map
+                .keys()
+                .filter_map(|k| {
+                    if let Value::String(s) = k {
+                        Some(s.as_str())
+                    } else {
+                        None
+                    }
+                })
                 .collect();
 
             assert!(keys.contains("command"));
@@ -251,8 +473,15 @@ mod tests {
 
         let value = result.unwrap();
         if let Value::Mapping(map) = value {
-            let keys: std::collections::HashSet<_> = map.keys()
-                .filter_map(|k| if let Value::String(s) = k { Some(s.as_str()) } else { None })
+            let keys: std::collections::HashSet<_> = map
+                .keys()
+                .filter_map(|k| {
+                    if let Value::String(s) = k {
+                        Some(s.as_str())
+                    } else {
+                        None
+                    }
+                })
                 .collect();
 
             assert!(keys.contains("labels"));
@@ -284,8 +513,15 @@ mod tests {
 
         let value = result.unwrap();
         if let Value::Mapping(map) = value {
-            let keys: std::collections::HashSet<_> = map.keys()
-                .filter_map(|k| if let Value::String(s) = k { Some(s.as_str()) } else { None })
+            let keys: std::collections::HashSet<_> = map
+                .keys()
+                .filter_map(|k| {
+                    if let Value::String(s) = k {
+                        Some(s.as_str())
+                    } else {
+                        None
+                    }
+                })
                 .collect();
 
             assert!(keys.contains("output"));
@@ -319,8 +555,15 @@ mod tests {
 
         let value = result.unwrap();
         if let Value::Mapping(map) = value {
-            let keys: std::collections::HashSet<_> = map.keys()
-                .filter_map(|k| if let Value::String(s) = k { Some(s.as_str()) } else { None })
+            let keys: std::collections::HashSet<_> = map
+                .keys()
+                .filter_map(|k| {
+                    if let Value::String(s) = k {
+                        Some(s.as_str())
+                    } else {
+                        None
+                    }
+                })
                 .collect();
 
             assert!(keys.contains("stdout"));
@@ -392,13 +635,23 @@ mod tests {
 
         let value = result.unwrap();
         if let Value::Mapping(map) = value {
-            let keys: std::collections::HashSet<_> = map.keys()
-                .filter_map(|k| if let Value::String(s) = k { Some(s.as_str()) } else { None })
+            let keys: std::collections::HashSet<_> = map
+                .keys()
+                .filter_map(|k| {
+                    if let Value::String(s) = k {
+                        Some(s.as_str())
+                    } else {
+                        None
+                    }
+                })
                 .collect();
 
             // The JSON parsing might fail due to trailing newline from echo,
             // so we accept either successful parsing (output key) or fallback (stdout + parse_error)
-            assert!(keys.contains("output") || (keys.contains("stdout") && keys.contains("parse_error")));
+            assert!(
+                keys.contains("output")
+                    || (keys.contains("stdout") && keys.contains("parse_error"))
+            );
             assert!(keys.contains("command"));
         } else {
             panic!("Expected mapping value");

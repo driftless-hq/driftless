@@ -55,6 +55,8 @@ pub struct TaskExample {
     pub json: String,
     /// TOML format example
     pub toml: String,
+    /// Output format example
+    pub output: String,
 }
 
 /// Extract documentation for all tasks
@@ -603,9 +605,40 @@ fn extract_examples_from_file(content: &str) -> Option<Vec<TaskExample>> {
             }
             i += 1; // Skip the closing ```
 
+            // Skip to **Output:** or another header
+            while i < lines.len()
+                && !lines[i].contains("**Output:**")
+                && !lines[i].contains("//! ## ")
+            {
+                i += 1;
+            }
+
+            let mut output_lines = Vec::new();
+            if i < lines.len() && lines[i].contains("**Output:**") {
+                i += 1; // Skip the **Output:** line
+
+                // Skip the opening ```yaml line
+                if i < lines.len() && lines[i].starts_with("//! ```") {
+                    i += 1;
+                }
+
+                // Extract output block
+                while i < lines.len() && !lines[i].starts_with("//! ```") {
+                    if lines[i].starts_with("//!") {
+                        let line = lines[i].trim_start_matches("//!").trim_end();
+                        if !line.is_empty() || output_lines.is_empty() {
+                            output_lines.push(line.to_string());
+                        }
+                    }
+                    i += 1;
+                }
+                i += 1; // Skip the closing ```
+            }
+
             let yaml = yaml_lines.join("\n");
             let json = json_lines.join("\n");
             let toml = toml_lines.join("\n");
+            let output = output_lines.join("\n");
 
             if !yaml.is_empty() && !json.is_empty() && !toml.is_empty() {
                 examples.push(TaskExample {
@@ -613,7 +646,13 @@ fn extract_examples_from_file(content: &str) -> Option<Vec<TaskExample>> {
                     yaml,
                     json,
                     toml,
+                    output,
                 });
+            }
+
+            // Skip to the next example or end of file
+            while i < lines.len() && !lines[i].starts_with("//! ##") {
+                i += 1;
             }
         } else {
             i += 1;

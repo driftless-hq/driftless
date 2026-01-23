@@ -236,6 +236,13 @@ fn generate_apply_section(
                         section.push_str("```toml\n");
                         section.push_str(&example.toml);
                         section.push_str("\n```\n\n");
+
+                        if !example.output.is_empty() {
+                            section.push_str("**Output**:\n\n");
+                            section.push_str("```yaml\n");
+                            section.push_str(&example.output);
+                            section.push_str("\n```\n\n");
+                        }
                     }
                 }
             }
@@ -525,6 +532,13 @@ fn generate_facts_section(
                         section.push_str("```toml\n");
                         section.push_str(&example.toml);
                         section.push_str("\n```\n\n");
+
+                        if !example.output.is_empty() {
+                            section.push_str("**Output**:\n\n");
+                            section.push_str("```yaml\n");
+                            section.push_str(&example.output);
+                            section.push_str("\n```\n\n");
+                        }
                     }
                 }
             }
@@ -653,6 +667,13 @@ fn generate_logs_section(
                         section.push_str("```toml\n");
                         section.push_str(&example.toml);
                         section.push_str("\n```\n\n");
+
+                        if !example.output.is_empty() {
+                            section.push_str("**Output**:\n\n");
+                            section.push_str("```yaml\n");
+                            section.push_str(&example.output);
+                            section.push_str("\n```\n\n");
+                        }
                     }
                 }
             }

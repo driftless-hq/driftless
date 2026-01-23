@@ -133,8 +133,25 @@ async fn main() -> anyhow::Result<()> {
                         );
                     }
 
-                    // TODO: Implement actual facts collection and export
-                    println!("Facts collection started...");
+                    // Create and run the facts orchestrator
+                    match facts::FactsOrchestrator::new(config) {
+                        Ok(orchestrator) => {
+                            println!("Facts orchestrator created successfully");
+                            println!("Starting facts collection...");
+
+                            // For now, run a single collection cycle
+                            // In agent mode, this would run continuously
+                            if let Err(e) = orchestrator.collect_and_export().await {
+                                eprintln!("Error during facts collection: {}", e);
+                                std::process::exit(1);
+                            }
+                            println!("Facts collection completed successfully");
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to create facts orchestrator: {}", e);
+                            std::process::exit(1);
+                        }
+                    }
                 }
                 Err(e) => {
                     eprintln!("Failed to load facts configuration: {}", e);

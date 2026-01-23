@@ -59,14 +59,7 @@
 - Plugin registry and download manager
 
 ## TODO
-- **Facts Collection Tasks** - Implement system metrics collection task types, ensuring to include comprehensive documentation and tests:
-  - **Memory Metrics Task**: Ensure `src/facts/memory_facts.rs` supports total/used/free/available memory, swap usage, and percentage calculations. Include memory pressure monitoring.
-  - **Disk Metrics Task**: Ensure `src/facts/disk_facts.rs` supports disk space monitoring, I/O statistics, and mount point filtering. Include disk usage thresholds and alerts.
-  - **Network Metrics Task**: Ensure `src/facts/network_facts.rs` supports interface statistics, bytes/packets/errors tracking, and network status monitoring.
-  - **Process Metrics Task**: Ensure `src/facts/process_facts.rs` supports process counting, CPU/memory per process, and process status monitoring with pattern matching.
-  - **Command Facts Task**: Ensure `src/facts/command_facts.rs` supports executing custom commands and parsing their output (text, JSON, key-value formats) and is not redundant with similar `apply` tasks.
-  - **Facts Orchestrator**: Create `src/facts/facts.rs` to orchestrate all fact collectors with scheduling, aggregation, and export capabilities.
-- **Log Collection Tasks** - Implement log processing task types:
+- **Log Collection Tasks** - Implement log processing task types, ensuring to include comprehensive documentation and tests:
   - **File Log Source Task**: Ensure `src/logs/file_log_source.rs` for tailing log files with rotation handling, encoding support, and multiline log processing.
   - **Log Parser Tasks**: Ensure `src/logs/log_parsers.rs` with parsers for plain text, JSON, key-value, Apache/Nginx logs, syslog, and custom regex patterns.
   - **Log Filter Tasks**: Ensure `src/logs/log_filters.rs` with include/exclude patterns, field matching, rate limiting, and content-based filtering.

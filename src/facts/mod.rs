@@ -11,6 +11,7 @@ mod cpu_facts;
 mod disk_facts;
 mod memory_facts;
 mod network_facts;
+mod orchestrator;
 mod process_facts;
 mod system_facts;
 
@@ -255,7 +256,12 @@ impl FactsRegistry {
         }
     }
 }
-#[derive(Debug, Clone, Serialize, Deserialize)]
+
+// Public exports
+#[allow(unused)]
+pub use orchestrator::{FactsOrchestrator, FactsExporter, PrometheusExporter, S3Exporter, FileExporter};
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct FactsConfig {
     /// Global settings for facts collection
     #[serde(default)]
