@@ -97,7 +97,7 @@ mod tests {
             base: BaseCollector {
                 name: "disk".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels: HashMap::new(),
             },
             devices: vec!["/dev/sda".to_string()],
@@ -138,7 +138,7 @@ mod tests {
             base: BaseCollector {
                 name: "disk".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels: HashMap::new(),
             },
             devices: vec!["/dev/sda".to_string(), "/dev/sdb".to_string()],
@@ -171,7 +171,7 @@ mod tests {
             base: BaseCollector {
                 name: "disk".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels,
             },
             devices: vec![],
@@ -202,7 +202,7 @@ mod tests {
             base: BaseCollector {
                 name: "disk".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels: HashMap::new(),
             },
             devices: vec![], // No device filter

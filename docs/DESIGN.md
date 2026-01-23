@@ -59,7 +59,6 @@
 - Plugin registry and download manager
 
 ## TODO
-- Like the `apply` tasks, `facts` and `logs` need a documentation generator to output a file similar to `docs/tasks-reference.md`, but called `docs/facts-reference.md` and `docs/logs-references.md`. Documentation should be comprehensive and include descriptions for all arguments.
 - **Facts Collection Tasks** - Implement system metrics collection task types:
   - **System Facts Task**: Create `src/facts/system_facts.rs` with hostname, OS info, kernel version, uptime, boot time, and CPU architecture collection. Include comprehensive tests and documentation.
   - **CPU Metrics Task**: Create `src/facts/cpu_facts.rs` with CPU usage, per-core metrics, frequency, temperature, and load average collection. Include threshold monitoring and alerting.

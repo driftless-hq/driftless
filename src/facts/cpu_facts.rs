@@ -11,6 +11,7 @@
 //! ```yaml
 //! type: cpu
 //! name: cpu
+//! poll_interval: 30
 //! collect:
 //!   usage: true
 //!   per_core: true
@@ -29,6 +30,7 @@
 //! {
 //!   "type": "cpu",
 //!   "name": "cpu",
+//!   "poll_interval": 30,
 //!   "collect": {
 //!     "usage": true,
 //!     "per_core": true,
@@ -43,6 +45,28 @@
 //!     "temp_critical": 85.0
 //!   }
 //! }
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[collectors]]
+//! type = "cpu"
+//! name = "cpu"
+//! poll_interval = 30
+//!
+//! [collectors.collect]
+//! usage = true
+//! per_core = true
+//! frequency = true
+//! temperature = true
+//! load_average = true
+//!
+//! [collectors.thresholds]
+//! usage_warning = 80.0
+//! usage_critical = 95.0
+//! temp_warning = 70.0
+//! temp_critical = 85.0
+//! ```
 //! ```
 
 use crate::facts::CpuCollector;
@@ -143,7 +167,7 @@ mod tests {
             base: BaseCollector {
                 name: "cpu".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels: HashMap::new(),
             },
             collect: CpuCollectOptions {
@@ -190,7 +214,7 @@ mod tests {
             base: BaseCollector {
                 name: "cpu".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels: HashMap::new(),
             },
             collect: CpuCollectOptions {
@@ -242,7 +266,7 @@ mod tests {
             base: BaseCollector {
                 name: "cpu".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels,
             },
             collect: CpuCollectOptions::default(),
@@ -277,7 +301,7 @@ mod tests {
             base: BaseCollector {
                 name: "cpu".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels: HashMap::new(),
             },
             collect: CpuCollectOptions {

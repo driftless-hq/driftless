@@ -8246,7 +8246,16 @@ state = "absent"
 
 ## Facts Collectors (`facts`)
 
-Facts collectors gather system metrics and inventory information. These collectors run at specified intervals to provide monitoring data.
+Facts collectors gather system metrics and inventory information. Each collector corresponds to a specific type of system information or metric.
+
+### Collector Configuration
+
+All facts collectors support common configuration fields for controlling collection behavior:
+
+- **`name`**: Collector name (used for metric names)
+- **`enabled`**: Whether this collector is enabled (default: true)
+- **`poll_interval`**: Poll interval in seconds (how often to collect this metric)
+- **`labels`**: Additional labels for this collector
 
 ### CPU Metrics
 
@@ -8265,6 +8274,9 @@ Facts collectors gather system metrics and inventory information. These collecto
 - `name` (String):
   Collector name (used for metric names)
 
+- `poll_interval` (u64):
+  Poll interval in seconds (how often to collect this metric)
+
 - `thresholds` (CpuThresholds):
   Thresholds for alerts
 
@@ -8276,8 +8288,71 @@ Facts collectors gather system metrics and inventory information. These collecto
 - `labels` (HashMap<String, String>):
   Additional labels for this collector
 
-- `poll_interval` (Option<u64>):
-  Poll interval override in seconds
+**Examples**:
+
+**Basic CPU metrics collection**:
+
+**YAML Format**:
+
+```yaml
+type: cpu
+name: cpu
+poll_interval: 30
+collect:
+  usage: true
+  per_core: true
+  frequency: true
+  temperature: true
+  load_average: true
+thresholds:
+  usage_warning: 80.0
+  usage_critical: 95.0
+  temp_warning: 70.0
+  temp_critical: 85.0
+```
+
+**JSON Format**:
+
+```json
+{
+  "type": "cpu",
+  "name": "cpu",
+  "poll_interval": 30,
+  "collect": {
+    "usage": true,
+    "per_core": true,
+    "frequency": true,
+    "temperature": true,
+    "load_average": true
+  },
+  "thresholds": {
+    "usage_warning": 80.0,
+    "usage_critical": 95.0,
+    "temp_warning": 70.0,
+    "temp_critical": 85.0
+  }
+}
+```
+
+**TOML Format**:
+
+```toml
+[[collectors]]
+type = "cpu"
+name = "cpu"
+poll_interval = 30
+[collectors.collect]
+usage = true
+per_core = true
+frequency = true
+temperature = true
+load_average = true
+[collectors.thresholds]
+usage_warning = 80.0
+usage_critical = 95.0
+temp_warning = 70.0
+temp_critical = 85.0
+```
 
 ### Command Output
 
@@ -8302,6 +8377,9 @@ Facts collectors gather system metrics and inventory information. These collecto
 - `name` (String):
   Collector name (used for metric names)
 
+- `poll_interval` (u64):
+  Poll interval in seconds (how often to collect this metric)
+
 **Optional Fields**:
 
 - `cwd` (Option<String>):
@@ -8312,9 +8390,6 @@ Facts collectors gather system metrics and inventory information. These collecto
 
 - `labels` (HashMap<String, String>):
   Additional labels for this collector
-
-- `poll_interval` (Option<u64>):
-  Poll interval override in seconds
 
 ### Disk Metrics
 
@@ -8339,6 +8414,9 @@ Facts collectors gather system metrics and inventory information. These collecto
 - `name` (String):
   Collector name (used for metric names)
 
+- `poll_interval` (u64):
+  Poll interval in seconds (how often to collect this metric)
+
 - `thresholds` (DiskThresholds):
   Thresholds for alerts
 
@@ -8349,9 +8427,6 @@ Facts collectors gather system metrics and inventory information. These collecto
 
 - `labels` (HashMap<String, String>):
   Additional labels for this collector
-
-- `poll_interval` (Option<u64>):
-  Poll interval override in seconds
 
 ### Memory Metrics
 
@@ -8370,6 +8445,9 @@ Facts collectors gather system metrics and inventory information. These collecto
 - `name` (String):
   Collector name (used for metric names)
 
+- `poll_interval` (u64):
+  Poll interval in seconds (how often to collect this metric)
+
 - `thresholds` (MemoryThresholds):
   Thresholds for alerts
 
@@ -8380,9 +8458,6 @@ Facts collectors gather system metrics and inventory information. These collecto
 
 - `labels` (HashMap<String, String>):
   Additional labels for this collector
-
-- `poll_interval` (Option<u64>):
-  Poll interval override in seconds
 
 ### Network Metrics
 
@@ -8404,6 +8479,9 @@ Facts collectors gather system metrics and inventory information. These collecto
 - `name` (String):
   Collector name (used for metric names)
 
+- `poll_interval` (u64):
+  Poll interval in seconds (how often to collect this metric)
+
 **Optional Fields**:
 
 - `enabled` (bool):
@@ -8411,9 +8489,6 @@ Facts collectors gather system metrics and inventory information. These collecto
 
 - `labels` (HashMap<String, String>):
   Additional labels for this collector
-
-- `poll_interval` (Option<u64>):
-  Poll interval override in seconds
 
 ### Process Metrics
 
@@ -8435,6 +8510,9 @@ Facts collectors gather system metrics and inventory information. These collecto
 - `patterns` (Vec<String>):
   Process name patterns to monitor (empty = all processes)
 
+- `poll_interval` (u64):
+  Poll interval in seconds (how often to collect this metric)
+
 **Optional Fields**:
 
 - `enabled` (bool):
@@ -8442,9 +8520,6 @@ Facts collectors gather system metrics and inventory information. These collecto
 
 - `labels` (HashMap<String, String>):
   Additional labels for this collector
-
-- `poll_interval` (Option<u64>):
-  Poll interval override in seconds
 
 ### System Information
 
@@ -8463,6 +8538,9 @@ Facts collectors gather system metrics and inventory information. These collecto
 - `name` (String):
   Collector name (used for metric names)
 
+- `poll_interval` (u64):
+  Poll interval in seconds (how often to collect this metric)
+
 **Optional Fields**:
 
 - `enabled` (bool):
@@ -8471,28 +8549,18 @@ Facts collectors gather system metrics and inventory information. These collecto
 - `labels` (HashMap<String, String>):
   Additional labels for this collector
 
-- `poll_interval` (Option<u64>):
-  Poll interval override in seconds
-
 ## Log Sources/Outputs (`logs`)
 
-Log sources and outputs handle log collection and forwarding. Sources tail log files while outputs forward logs to various destinations.
+Log processors handle log collection and forwarding. Each processor corresponds to a specific log source or output destination.
 
-**Note**: Log collection is not yet implemented. This section will be populated when log collection functionality is added.
+### Processor Configuration
 
-### Planned Components
+All log processors support common configuration fields for controlling processing behavior:
 
-#### Sources
-- **file**: Tail local log files
-- **journald**: Systemd journal collection
-- **syslog**: Syslog message collection
+- **`enabled`**: Whether this processor is enabled (default: true)
+- **`name`**: Processor name for identification
 
-#### Outputs
-- **file**: Write to local files
-- **http**: Forward via HTTP/HTTPS
-- **s3**: Store in Amazon S3
-- **elasticsearch**: Send to Elasticsearch
-- **syslog**: Forward to syslog
+### Log Outputs
 
 ## Comprehensive Examples
 

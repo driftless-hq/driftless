@@ -88,7 +88,7 @@ impl MetricsCollector {
     fn get_collector_interval(&self, collector: &Collector) -> u64 {
         use crate::facts::Collector::*;
 
-        let collector_interval = match collector {
+        match collector {
             System(c) => c.base.poll_interval,
             Cpu(c) => c.base.poll_interval,
             Memory(c) => c.base.poll_interval,
@@ -96,9 +96,7 @@ impl MetricsCollector {
             Network(c) => c.base.poll_interval,
             Process(c) => c.base.poll_interval,
             Command(c) => c.base.poll_interval,
-        };
-
-        collector_interval.unwrap_or(self.config.global.poll_interval)
+        }
     }
 }
 
@@ -158,7 +156,7 @@ mod tests {
                     base: BaseCollector {
                         name: "system".to_string(),
                         enabled: true,
-                        poll_interval: None,
+                        poll_interval: 60,
                         labels: HashMap::new(),
                     },
                     collect: Default::default(),
@@ -186,7 +184,7 @@ mod tests {
                     base: BaseCollector {
                         name: "system".to_string(),
                         enabled: true,
-                        poll_interval: None,
+                        poll_interval: 60,
                         labels: HashMap::new(),
                     },
                     collect: Default::default(),
@@ -200,6 +198,6 @@ mod tests {
 
         assert!(collector.is_collector_enabled(test_collector));
         assert_eq!(collector.get_collector_name(test_collector), "system");
-        assert_eq!(collector.get_collector_interval(test_collector), 30);
+        assert_eq!(collector.get_collector_interval(test_collector), 60);
     }
 }

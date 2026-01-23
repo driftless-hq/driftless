@@ -36,12 +36,12 @@ enum Commands {
     Logs,
     /// Generate documentation
     Docs {
-        /// Output format (markdown, json, html)
+        /// Output format (markdown)
         #[arg(short, long, default_value = "markdown")]
         format: String,
-        /// Output file path
-        #[arg(short, long)]
-        output: Option<PathBuf>,
+        /// Output directory for documentation files
+        #[arg(long, default_value = ".")]
+        output_dir: String,
     },
     /// Run in agent mode (continuous monitoring)
     Agent {
@@ -180,42 +180,51 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
         }
-        Commands::Docs { format, output } => {
+        Commands::Docs { format, output_dir } => {
             println!("Generating documentation in {} format...", format);
 
             match format.as_str() {
                 "markdown" => {
                     // Generate task documentation
                     let task_docs = docs::generate_task_documentation()?;
-                    let task_output_path = PathBuf::from("docs/tasks-reference.md");
+                    let task_output_path = PathBuf::from(&output_dir).join("tasks-reference.md");
                     std::fs::write(&task_output_path, task_docs)?;
                     println!(
                         "Task documentation generated: {}",
                         task_output_path.display()
                     );
 
+                    // Generate facts documentation
+                    let facts_docs = docs::generate_facts_documentation()?;
+                    let facts_output_path = PathBuf::from(&output_dir).join("facts-reference.md");
+                    std::fs::write(&facts_output_path, facts_docs)?;
+                    println!(
+                        "Facts documentation generated: {}",
+                        facts_output_path.display()
+                    );
+
+                    // Generate logs documentation
+                    let logs_docs = docs::generate_logs_documentation()?;
+                    let logs_output_path = PathBuf::from(&output_dir).join("logs-reference.md");
+                    std::fs::write(&logs_output_path, logs_docs)?;
+                    println!(
+                        "Logs documentation generated: {}",
+                        logs_output_path.display()
+                    );
+
                     // Generate template documentation
                     let template_docs = docs::generate_template_documentation()?;
-                    let template_output_path = PathBuf::from("docs/template-reference.md");
+                    let template_output_path =
+                        PathBuf::from(&output_dir).join("template-reference.md");
                     std::fs::write(&template_output_path, template_docs)?;
                     println!(
                         "Template documentation generated: {}",
                         template_output_path.display()
                     );
-
-                    if output.is_some() {
-                        println!("Note: Output path parameter is ignored for markdown format. Documentation is generated to docs/ directory.");
-                    }
-                }
-                "json" => {
-                    let schema = docs::generate_json_schema()?;
-                    let output_path = output.unwrap_or_else(|| PathBuf::from("docs/schema.json"));
-                    std::fs::write(&output_path, schema)?;
-                    println!("JSON schema generated: {}", output_path.display());
                 }
                 _ => {
                     eprintln!(
-                        "Unsupported format: {}. Supported formats: markdown, json",
+                        "Unsupported format: {}. Supported formats: markdown",
                         format
                     );
                     std::process::exit(1);

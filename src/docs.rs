@@ -8,6 +8,48 @@ use crate::doc_extractor::{
 };
 use anyhow::Result;
 
+/// Generate documentation for all available facts collectors
+pub fn generate_facts_documentation() -> Result<String> {
+    let mut docs = String::from("# Driftless Facts Reference\n\n");
+    docs.push_str("Comprehensive reference for all available facts collectors in Driftless.\n\n");
+    docs.push_str("This documentation is auto-generated from the Rust source code.\n\n");
+
+    docs.push_str("## Overview\n\n");
+    docs.push_str("Facts collectors gather system metrics and inventory information. ");
+    docs.push_str(
+        "Each collector corresponds to a specific type of system information or metric.\n\n",
+    );
+
+    // Extract documentation from source code for all facts collector types
+    let facts_docs = extract_all_facts_docs()?;
+
+    // Add detailed facts collector documentation
+    docs.push_str(&generate_facts_section(&facts_docs)?);
+
+    Ok(docs)
+}
+
+/// Generate documentation for all available log processors
+pub fn generate_logs_documentation() -> Result<String> {
+    let mut docs = String::from("# Driftless Logs Reference\n\n");
+    docs.push_str(
+        "Comprehensive reference for all available log sources and outputs in Driftless.\n\n",
+    );
+    docs.push_str("This documentation is auto-generated from the Rust source code.\n\n");
+
+    docs.push_str("## Overview\n\n");
+    docs.push_str("Log processors handle log collection and forwarding. ");
+    docs.push_str("Each processor corresponds to a specific log source or output destination.\n\n");
+
+    // Extract documentation from source code for all logs processor types
+    let logs_docs = extract_all_logs_docs()?;
+
+    // Add detailed logs processor documentation
+    docs.push_str(&generate_logs_section(&logs_docs)?);
+
+    Ok(docs)
+}
+
 /// Generate documentation for all available configuration operations
 pub fn generate_task_documentation() -> Result<String> {
     let mut docs = String::from("# Driftless Configuration Reference\n\n");
@@ -168,6 +210,267 @@ fn generate_apply_section(
                 if !task_doc.examples.is_empty() {
                     section.push_str("**Examples**:\n\n");
                     for example in &task_doc.examples {
+                        section.push_str(&format!("**{}**:\n\n", example.description));
+                        section.push_str("**YAML Format**:\n\n");
+                        section.push_str("```yaml\n");
+                        section.push_str(&example.yaml);
+                        section.push_str("\n```\n\n");
+
+                        section.push_str("**JSON Format**:\n\n");
+                        section.push_str("```json\n");
+                        section.push_str(&example.json);
+                        section.push_str("\n```\n\n");
+
+                        section.push_str("**TOML Format**:\n\n");
+                        section.push_str("```toml\n");
+                        section.push_str(&example.toml);
+                        section.push_str("\n```\n\n");
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(section)
+}
+
+/// Generate detailed documentation for all facts collector types
+fn generate_facts_section(
+    facts_docs: &std::collections::HashMap<String, TaskDocumentation>,
+) -> Result<String> {
+    let mut section = String::from("## Facts Collectors (`facts`)\n\n");
+    section.push_str("Facts collectors gather system metrics and inventory information. ");
+    section.push_str(
+        "Each collector corresponds to a specific type of system information or metric.\n\n",
+    );
+
+    section.push_str("### Collector Configuration\n\n");
+    section.push_str(
+        "All facts collectors support common configuration fields for controlling collection behavior:\n\n",
+    );
+    section.push_str("- **`name`**: Collector name (used for metric names)\n");
+    section.push_str("- **`enabled`**: Whether this collector is enabled (default: true)\n");
+    section.push_str(
+        "- **`poll_interval`**: Poll interval in seconds (how often to collect this metric)\n",
+    );
+    section.push_str("- **`labels`**: Additional labels for this collector\n\n");
+
+    // Get all registered collector types from the registry
+    let registered_collector_types = crate::facts::FactsRegistry::get_registered_collector_types();
+
+    // Group collectors by category dynamically
+    let mut categories = std::collections::HashMap::new();
+
+    for collector_type in &registered_collector_types {
+        let category = crate::facts::FactsRegistry::get_collector_category(collector_type);
+        categories
+            .entry(category)
+            .or_insert_with(Vec::new)
+            .push(collector_type.clone());
+    }
+
+    // Sort categories and collectors within categories
+    let mut sorted_categories: Vec<_> = categories.into_iter().collect();
+    sorted_categories.sort_by(|a, b| a.0.cmp(&b.0));
+
+    for (category_name, mut collector_types) in sorted_categories {
+        collector_types.sort();
+        section.push_str(&format!("### {}\n\n", category_name));
+
+        for collector_type in collector_types {
+            if let Some(collector_doc) = facts_docs.get(&collector_type) {
+                section.push_str(&format!("#### {}\n\n", collector_type));
+                section.push_str(&format!(
+                    "**Description**: {}\n\n",
+                    collector_doc.description
+                ));
+
+                if !collector_doc.fields.is_empty() {
+                    // Collect and sort fields: required first, then alphabetical
+                    let mut required_fields = Vec::new();
+                    let mut optional_fields = Vec::new();
+
+                    for field in collector_doc.fields.values() {
+                        if field.required {
+                            required_fields.push(field.clone());
+                        } else {
+                            optional_fields.push(field.clone());
+                        }
+                    }
+
+                    // Sort each group alphabetically by field name
+                    required_fields.sort_by(|a, b| a.name.cmp(&b.name));
+                    optional_fields.sort_by(|a, b| a.name.cmp(&b.name));
+
+                    // Display required fields first
+                    if !required_fields.is_empty() {
+                        section.push_str("**Required Fields**:\n\n");
+                        for field in &required_fields {
+                            section
+                                .push_str(&format!("- `{}` ({}):\n", field.name, field.field_type));
+                            // Indent each line of the description
+                            for line in field.description.lines() {
+                                if !line.trim().is_empty() {
+                                    section.push_str(&format!("  {}\n", line));
+                                } else {
+                                    section.push('\n');
+                                }
+                            }
+                            section.push('\n');
+                        }
+                    }
+
+                    // Display optional fields second
+                    if !optional_fields.is_empty() {
+                        section.push_str("**Optional Fields**:\n\n");
+                        for field in &optional_fields {
+                            section
+                                .push_str(&format!("- `{}` ({}):\n", field.name, field.field_type));
+                            // Indent each line of the description
+                            for line in field.description.lines() {
+                                if !line.trim().is_empty() {
+                                    section.push_str(&format!("  {}\n", line));
+                                } else {
+                                    section.push('\n');
+                                }
+                            }
+                            section.push('\n');
+                        }
+                    }
+                }
+
+                // Add examples if available
+                if !collector_doc.examples.is_empty() {
+                    section.push_str("**Examples**:\n\n");
+                    for example in &collector_doc.examples {
+                        section.push_str(&format!("**{}**:\n\n", example.description));
+                        section.push_str("**YAML Format**:\n\n");
+                        section.push_str("```yaml\n");
+                        section.push_str(&example.yaml);
+                        section.push_str("\n```\n\n");
+
+                        section.push_str("**JSON Format**:\n\n");
+                        section.push_str("```json\n");
+                        section.push_str(&example.json);
+                        section.push_str("\n```\n\n");
+
+                        section.push_str("**TOML Format**:\n\n");
+                        section.push_str("```toml\n");
+                        section.push_str(&example.toml);
+                        section.push_str("\n```\n\n");
+                    }
+                }
+            }
+        }
+    }
+
+    Ok(section)
+}
+
+/// Generate detailed documentation for all logs processor types
+fn generate_logs_section(
+    logs_docs: &std::collections::HashMap<String, TaskDocumentation>,
+) -> Result<String> {
+    let mut section = String::from("## Log Sources/Outputs (`logs`)\n\n");
+    section.push_str("Log processors handle log collection and forwarding. ");
+    section
+        .push_str("Each processor corresponds to a specific log source or output destination.\n\n");
+
+    section.push_str("### Processor Configuration\n\n");
+    section.push_str(
+        "All log processors support common configuration fields for controlling processing behavior:\n\n",
+    );
+    section.push_str("- **`enabled`**: Whether this processor is enabled (default: true)\n");
+    section.push_str("- **`name`**: Processor name for identification\n\n");
+
+    // Get all registered processor types from the registry
+    let registered_processor_types = crate::logs::LogsRegistry::get_registered_processor_types();
+
+    // Group processors by category dynamically
+    let mut categories = std::collections::HashMap::new();
+
+    for processor_type in &registered_processor_types {
+        let category = crate::logs::LogsRegistry::get_processor_category(processor_type);
+        categories
+            .entry(category)
+            .or_insert_with(Vec::new)
+            .push(processor_type.clone());
+    }
+
+    // Sort categories and processors within categories
+    let mut sorted_categories: Vec<_> = categories.into_iter().collect();
+    sorted_categories.sort_by(|a, b| a.0.cmp(&b.0));
+
+    for (category_name, mut processor_types) in sorted_categories {
+        processor_types.sort();
+        section.push_str(&format!("### {}\n\n", category_name));
+
+        for processor_type in processor_types {
+            if let Some(processor_doc) = logs_docs.get(&processor_type) {
+                section.push_str(&format!("#### {}\n\n", processor_type));
+                section.push_str(&format!(
+                    "**Description**: {}\n\n",
+                    processor_doc.description
+                ));
+
+                if !processor_doc.fields.is_empty() {
+                    // Collect and sort fields: required first, then alphabetical
+                    let mut required_fields = Vec::new();
+                    let mut optional_fields = Vec::new();
+
+                    for field in processor_doc.fields.values() {
+                        if field.required {
+                            required_fields.push(field.clone());
+                        } else {
+                            optional_fields.push(field.clone());
+                        }
+                    }
+
+                    // Sort each group alphabetically by field name
+                    required_fields.sort_by(|a, b| a.name.cmp(&b.name));
+                    optional_fields.sort_by(|a, b| a.name.cmp(&b.name));
+
+                    // Display required fields first
+                    if !required_fields.is_empty() {
+                        section.push_str("**Required Fields**:\n\n");
+                        for field in &required_fields {
+                            section
+                                .push_str(&format!("- `{}` ({}):\n", field.name, field.field_type));
+                            // Indent each line of the description
+                            for line in field.description.lines() {
+                                if !line.trim().is_empty() {
+                                    section.push_str(&format!("  {}\n", line));
+                                } else {
+                                    section.push('\n');
+                                }
+                            }
+                            section.push('\n');
+                        }
+                    }
+
+                    // Display optional fields second
+                    if !optional_fields.is_empty() {
+                        section.push_str("**Optional Fields**:\n\n");
+                        for field in &optional_fields {
+                            section
+                                .push_str(&format!("- `{}` ({}):\n", field.name, field.field_type));
+                            // Indent each line of the description
+                            for line in field.description.lines() {
+                                if !line.trim().is_empty() {
+                                    section.push_str(&format!("  {}\n", line));
+                                } else {
+                                    section.push('\n');
+                                }
+                            }
+                            section.push('\n');
+                        }
+                    }
+                }
+
+                // Add examples if available
+                if !processor_doc.examples.is_empty() {
+                    section.push_str("**Examples**:\n\n");
+                    for example in &processor_doc.examples {
                         section.push_str(&format!("**{}**:\n\n", example.description));
                         section.push_str("**YAML Format**:\n\n");
                         section.push_str("```yaml\n");
@@ -372,309 +675,6 @@ fn generate_examples_section(
     section.push_str("state = \"started\"\n");
     section.push_str("enabled = true\n");
     section.push_str("```\n\n");
-
-    Ok(section)
-}
-
-/// Generate JSON schema for configuration validation
-pub fn generate_json_schema() -> Result<String> {
-    let mut schema = serde_json::Map::new();
-
-    schema.insert(
-        "$schema".to_string(),
-        serde_json::Value::String("http://json-schema.org/draft-07/schema#".to_string()),
-    );
-    schema.insert(
-        "title".to_string(),
-        serde_json::Value::String("Driftless Configuration".to_string()),
-    );
-    schema.insert(
-        "description".to_string(),
-        serde_json::Value::String(
-            "Configuration schema for Driftless configuration management".to_string(),
-        ),
-    );
-    schema.insert(
-        "type".to_string(),
-        serde_json::Value::String("object".to_string()),
-    );
-
-    let mut properties = serde_json::Map::new();
-
-    // Variables
-    let mut vars_schema = serde_json::Map::new();
-    vars_schema.insert(
-        "type".to_string(),
-        serde_json::Value::String("object".to_string()),
-    );
-    vars_schema.insert(
-        "description".to_string(),
-        serde_json::Value::String("Variables available to all tasks".to_string()),
-    );
-    vars_schema.insert(
-        "additionalProperties".to_string(),
-        serde_json::Value::Bool(true),
-    );
-    properties.insert("vars".to_string(), serde_json::Value::Object(vars_schema));
-
-    // Tasks
-    let mut tasks_schema = serde_json::Map::new();
-    tasks_schema.insert(
-        "type".to_string(),
-        serde_json::Value::String("array".to_string()),
-    );
-    tasks_schema.insert(
-        "description".to_string(),
-        serde_json::Value::String("List of configuration operations to execute".to_string()),
-    );
-    tasks_schema.insert(
-        "items".to_string(),
-        serde_json::Value::Object(generate_task_schema()),
-    );
-    properties.insert("tasks".to_string(), serde_json::Value::Object(tasks_schema));
-
-    schema.insert(
-        "properties".to_string(),
-        serde_json::Value::Object(properties),
-    );
-
-    let required = vec![serde_json::Value::String("tasks".to_string())];
-    schema.insert("required".to_string(), serde_json::Value::Array(required));
-
-    Ok(serde_json::to_string_pretty(&schema)?)
-}
-
-/// Generate schema for individual tasks
-fn generate_task_schema() -> serde_json::Map<String, serde_json::Value> {
-    let mut task_schema = serde_json::Map::new();
-    task_schema.insert(
-        "type".to_string(),
-        serde_json::Value::String("object".to_string()),
-    );
-
-    let mut properties = serde_json::Map::new();
-
-    // Common fields
-    let mut description_schema = serde_json::Map::new();
-    description_schema.insert(
-        "type".to_string(),
-        serde_json::Value::String("string".to_string()),
-    );
-    description_schema.insert(
-        "description".to_string(),
-        serde_json::Value::String("Human-readable description of the task's purpose".to_string()),
-    );
-    properties.insert(
-        "description".to_string(),
-        serde_json::Value::Object(description_schema),
-    );
-
-    // Common fields
-    let mut register_schema = serde_json::Map::new();
-    register_schema.insert(
-        "type".to_string(),
-        serde_json::Value::String("string".to_string()),
-    );
-    register_schema.insert(
-        "description".to_string(),
-        serde_json::Value::String(
-            "Optional variable name to register the task result in".to_string(),
-        ),
-    );
-    properties.insert(
-        "register".to_string(),
-        serde_json::Value::Object(register_schema),
-    );
-
-    let mut when_schema = serde_json::Map::new();
-    when_schema.insert(
-        "type".to_string(),
-        serde_json::Value::String("string".to_string()),
-    );
-    when_schema.insert(
-        "description".to_string(),
-        serde_json::Value::String(
-            "Optional condition to determine if the task should run".to_string(),
-        ),
-    );
-    properties.insert("when".to_string(), serde_json::Value::Object(when_schema));
-
-    // Task type discriminator
-    let mut type_schema = serde_json::Map::new();
-    type_schema.insert(
-        "type".to_string(),
-        serde_json::Value::String("string".to_string()),
-    );
-    type_schema.insert(
-        "description".to_string(),
-        serde_json::Value::String("The type of configuration operation".to_string()),
-    );
-
-    let mut registered_task_types = crate::apply::TaskRegistry::get_registered_task_types();
-    registered_task_types.sort();
-
-    let enum_values = registered_task_types
-        .into_iter()
-        .map(serde_json::Value::String)
-        .collect();
-
-    type_schema.insert("enum".to_string(), serde_json::Value::Array(enum_values));
-    properties.insert("type".to_string(), serde_json::Value::Object(type_schema));
-
-    task_schema.insert(
-        "properties".to_string(),
-        serde_json::Value::Object(properties),
-    );
-
-    let required = vec![serde_json::Value::String("type".to_string())];
-    task_schema.insert("required".to_string(), serde_json::Value::Array(required));
-
-    task_schema
-}
-
-/// Generate detailed documentation for all facts collectors
-fn generate_facts_section(
-    facts_docs: &std::collections::HashMap<String, TaskDocumentation>,
-) -> Result<String> {
-    let mut section = String::from("## Facts Collectors (`facts`)\n\n");
-    section.push_str("Facts collectors gather system metrics and inventory information. ");
-    section.push_str("These collectors run at specified intervals to provide monitoring data.\n\n");
-
-    // Get all registered collector types from the registry
-    let registered_collector_types = crate::facts::FactsRegistry::get_registered_collector_types();
-
-    // Group collectors by category dynamically
-    let mut categories = std::collections::HashMap::new();
-
-    for collector_type in &registered_collector_types {
-        let category = crate::facts::FactsRegistry::get_collector_category(collector_type);
-        categories
-            .entry(category)
-            .or_insert_with(Vec::new)
-            .push(collector_type.clone());
-    }
-
-    // Sort categories and collectors within categories
-    let mut sorted_categories: Vec<_> = categories.into_iter().collect();
-    sorted_categories.sort_by(|a, b| a.0.cmp(&b.0));
-
-    for (category_name, mut collector_types) in sorted_categories {
-        collector_types.sort();
-        section.push_str(&format!("### {}\n\n", category_name));
-
-        for collector_type in collector_types {
-            if let Some(collector_doc) = facts_docs.get(&collector_type) {
-                section.push_str(&format!("#### {}\n\n", collector_type));
-                section.push_str(&format!("**Description**: {}\n\n", collector_doc.description));
-
-                if !collector_doc.fields.is_empty() {
-                    // Collect and sort fields: required first, then alphabetical
-                    let mut required_fields = Vec::new();
-                    let mut optional_fields = Vec::new();
-
-                    for field in collector_doc.fields.values() {
-                        if field.required {
-                            required_fields.push(field.clone());
-                        } else {
-                            optional_fields.push(field.clone());
-                        }
-                    }
-
-                    // Sort each group alphabetically by field name
-                    required_fields.sort_by(|a, b| a.name.cmp(&b.name));
-                    optional_fields.sort_by(|a, b| a.name.cmp(&b.name));
-
-                    // Display required fields first
-                    if !required_fields.is_empty() {
-                        section.push_str("**Required Fields**:\n\n");
-                        for field in &required_fields {
-                            section
-                                .push_str(&format!("- `{}` ({}):\n", field.name, field.field_type));
-                            // Indent each line of the description
-                            for line in field.description.lines() {
-                                if !line.trim().is_empty() {
-                                    section.push_str(&format!("  {}\n", line));
-                                } else {
-                                    section.push('\n');
-                                }
-                            }
-                            section.push('\n');
-                        }
-                    }
-
-                    // Display optional fields second
-                    if !optional_fields.is_empty() {
-                        section.push_str("**Optional Fields**:\n\n");
-                        for field in &optional_fields {
-                            section
-                                .push_str(&format!("- `{}` ({}):\n", field.name, field.field_type));
-                            // Indent each line of the description
-                            for line in field.description.lines() {
-                                if !line.trim().is_empty() {
-                                    section.push_str(&format!("  {}\n", line));
-                                } else {
-                                    section.push('\n');
-                                }
-                            }
-                            section.push('\n');
-                        }
-                    }
-                }
-
-                // Add examples if available
-                if !collector_doc.examples.is_empty() {
-                    section.push_str("**Examples**:\n\n");
-                    for example in &collector_doc.examples {
-                        section.push_str(&format!("**{}**:\n\n", example.description));
-                        section.push_str("**YAML Format**:\n\n");
-                        section.push_str("```yaml\n");
-                        section.push_str(&example.yaml);
-                        section.push_str("\n```\n\n");
-
-                        section.push_str("**JSON Format**:\n\n");
-                        section.push_str("```json\n");
-                        section.push_str(&example.json);
-                        section.push_str("\n```\n\n");
-
-                        section.push_str("**TOML Format**:\n\n");
-                        section.push_str("```toml\n");
-                        section.push_str(&example.toml);
-                        section.push_str("\n```\n\n");
-                    }
-                }
-            }
-        }
-    }
-
-    Ok(section)
-}
-
-/// Generate detailed documentation for all logs sources and outputs
-fn generate_logs_section(
-    _logs_docs: &std::collections::HashMap<String, TaskDocumentation>,
-) -> Result<String> {
-    let mut section = String::from("## Log Sources/Outputs (`logs`)\n\n");
-    section.push_str("Log sources and outputs handle log collection and forwarding. ");
-    section
-        .push_str("Sources tail log files while outputs forward logs to various destinations.\n\n");
-
-    section.push_str("**Note**: Log collection is not yet implemented. ");
-    section
-        .push_str("This section will be populated when log collection functionality is added.\n\n");
-
-    // Placeholder for future logs documentation
-    section.push_str("### Planned Components\n\n");
-    section.push_str("#### Sources\n");
-    section.push_str("- **file**: Tail local log files\n");
-    section.push_str("- **journald**: Systemd journal collection\n");
-    section.push_str("- **syslog**: Syslog message collection\n\n");
-
-    section.push_str("#### Outputs\n");
-    section.push_str("- **file**: Write to local files\n");
-    section.push_str("- **http**: Forward via HTTP/HTTPS\n");
-    section.push_str("- **s3**: Store in Amazon S3\n");
-    section.push_str("- **elasticsearch**: Send to Elasticsearch\n");
-    section.push_str("- **syslog**: Forward to syslog\n\n");
 
     Ok(section)
 }

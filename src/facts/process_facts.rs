@@ -91,7 +91,7 @@ mod tests {
             base: BaseCollector {
                 name: "process".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels: HashMap::new(),
             },
             patterns: vec!["nginx".to_string(), "apache".to_string()],
@@ -126,7 +126,7 @@ mod tests {
             base: BaseCollector {
                 name: "process".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels: HashMap::new(),
             },
             patterns: vec!["sshd".to_string(), "systemd".to_string(), "bash".to_string()],
@@ -157,7 +157,7 @@ mod tests {
             base: BaseCollector {
                 name: "process".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels,
             },
             patterns: vec![],
@@ -186,7 +186,7 @@ mod tests {
             base: BaseCollector {
                 name: "process".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels: HashMap::new(),
             },
             patterns: vec![], // No pattern filter
@@ -214,7 +214,7 @@ mod tests {
             base: BaseCollector {
                 name: "process".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels: HashMap::new(),
             },
             patterns: vec!["nginx".to_string()],

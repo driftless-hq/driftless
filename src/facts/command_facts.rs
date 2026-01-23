@@ -174,7 +174,7 @@ mod tests {
             base: BaseCollector {
                 name: "test_command".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels: HashMap::new(),
             },
             command: "echo 'Hello World'".to_string(),
@@ -211,7 +211,7 @@ mod tests {
             base: BaseCollector {
                 name: "labeled_command".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels: HashMap::new(),
             },
             command: "echo 'test'".to_string(),
@@ -244,7 +244,7 @@ mod tests {
             base: BaseCollector {
                 name: "kv_command".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels: HashMap::new(),
             },
             command: "echo 'key1=value1\nkey2=value2'".to_string(),
@@ -279,7 +279,7 @@ mod tests {
             base: BaseCollector {
                 name: "env_command".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels: HashMap::new(),
             },
             command: "echo $TEST_VAR".to_string(),
@@ -311,7 +311,7 @@ mod tests {
             base: BaseCollector {
                 name: "empty_command".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels: HashMap::new(),
             },
             command: "".to_string(),
@@ -331,7 +331,7 @@ mod tests {
             base: BaseCollector {
                 name: "invalid_command".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels: HashMap::new(),
             },
             command: "nonexistent_command_xyz".to_string(),
@@ -352,7 +352,7 @@ mod tests {
             base: BaseCollector {
                 name: "json_command".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels: HashMap::new(),
             },
             command: "echo '{\"key\": \"value\", \"number\": 42}'".to_string(),

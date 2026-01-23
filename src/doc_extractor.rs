@@ -125,6 +125,9 @@ pub fn extract_all_facts_docs() -> Result<HashMap<String, TaskDocumentation>> {
         extract_facts_struct_docs(&content, &mut docs, &registered_collector_types)?;
     }
 
+    // Extract examples from implementation files
+    extract_facts_examples_from_files(&mut docs)?;
+
     // Add common fields to all facts collectors
     add_common_facts_fields(&mut docs);
 
@@ -143,6 +146,9 @@ pub fn extract_all_logs_docs() -> Result<HashMap<String, TaskDocumentation>> {
     if let Ok(content) = fs::read_to_string(file_path) {
         extract_logs_struct_docs(&content, &mut docs, &registered_processor_types)?;
     }
+
+    // Extract examples from implementation files
+    extract_logs_examples_from_files(&mut docs)?;
 
     // Add common fields to all logs processors
     add_common_logs_fields(&mut docs);
@@ -618,6 +624,54 @@ fn extract_examples_from_file(content: &str) -> Option<Vec<TaskExample>> {
     }
 }
 
+/// Extract examples from facts implementation files
+fn extract_facts_examples_from_files(docs: &mut HashMap<String, TaskDocumentation>) -> Result<()> {
+    // Get all registered collector types from the registry
+    let registered_collector_types = crate::facts::FactsRegistry::get_registered_collector_types();
+
+    // Generate file paths from collector types using the filename mapping
+    let collector_files: Vec<(String, String)> = registered_collector_types
+        .iter()
+        .map(|collector_type| {
+            let filename = crate::facts::FactsRegistry::get_collector_filename(collector_type);
+            let file_path = format!("src/facts/{}.rs", filename);
+            (collector_type.clone(), file_path)
+        })
+        .collect();
+
+    for (collector_type, file_path) in collector_files {
+        if let Ok(content) = fs::read_to_string(&file_path) {
+            if let Some(examples) = extract_examples_from_file(&content) {
+                if let Some(collector_doc) = docs.get_mut(&collector_type) {
+                    collector_doc.examples = examples;
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Extract examples from logs implementation files
+fn extract_logs_examples_from_files(docs: &mut HashMap<String, TaskDocumentation>) -> Result<()> {
+    // Get all registered processor types from the registry
+    let _registered_processor_types = crate::logs::LogsRegistry::get_registered_processor_types();
+
+    // For logs, all processors are currently in mod.rs, so we check that file
+    let file_path = "src/logs/mod.rs";
+    if let Ok(content) = fs::read_to_string(file_path) {
+        if let Some(examples) = extract_examples_from_file(&content) {
+            // Since logs examples are not specific to processor types yet,
+            // we'll add them to all processor docs for now
+            for processor_doc in docs.values_mut() {
+                processor_doc.examples = examples.clone();
+            }
+        }
+    }
+
+    Ok(())
+}
+
 /// Extract facts collector documentation from mod.rs
 fn extract_facts_struct_docs(
     content: &str,
@@ -636,7 +690,8 @@ fn extract_facts_struct_docs(
                 if struct_name.ends_with("Collector") {
                     let collector_type = struct_name.trim_end_matches("Collector").to_lowercase();
                     if collector_types.contains(&collector_type) {
-                        let description = crate::facts::FactsRegistry::get_collector_description(&collector_type);
+                        let description =
+                            crate::facts::FactsRegistry::get_collector_description(&collector_type);
                         let mut task_doc = TaskDocumentation {
                             description,
                             fields: HashMap::new(),
@@ -708,9 +763,10 @@ fn add_common_facts_fields(docs: &mut HashMap<String, TaskDocumentation>) {
             "poll_interval".to_string(),
             FieldDocumentation {
                 name: "poll_interval".to_string(),
-                field_type: "Option<u64>".to_string(),
-                required: false,
-                description: "Poll interval override in seconds".to_string(),
+                field_type: "u64".to_string(),
+                required: true,
+                description: "Poll interval in seconds (how often to collect this metric)"
+                    .to_string(),
             },
         );
 
@@ -750,16 +806,23 @@ fn extract_logs_struct_docs(
                     i += 1;
                     continue;
                 } else if struct_name.starts_with("Log") && struct_name.ends_with("Source") {
-                    struct_name.trim_start_matches("Log").trim_end_matches("Source").to_lowercase()
+                    struct_name
+                        .trim_start_matches("Log")
+                        .trim_end_matches("Source")
+                        .to_lowercase()
                 } else if struct_name.starts_with("Log") && struct_name.ends_with("Output") {
-                    struct_name.trim_start_matches("Log").trim_end_matches("Output").to_lowercase()
+                    struct_name
+                        .trim_start_matches("Log")
+                        .trim_end_matches("Output")
+                        .to_lowercase()
                 } else {
                     i += 1;
                     continue;
                 };
 
                 if processor_types.contains(&processor_type) {
-                    let description = crate::logs::LogsRegistry::get_processor_description(&processor_type);
+                    let description =
+                        crate::logs::LogsRegistry::get_processor_description(&processor_type);
                     let mut task_doc = TaskDocumentation {
                         description,
                         fields: HashMap::new(),

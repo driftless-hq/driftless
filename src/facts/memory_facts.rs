@@ -146,7 +146,7 @@ mod tests {
             base: BaseCollector {
                 name: "memory".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels: HashMap::new(),
             },
             collect: MemoryCollectOptions {
@@ -189,7 +189,7 @@ mod tests {
             base: BaseCollector {
                 name: "memory".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels: HashMap::new(),
             },
             collect: MemoryCollectOptions {
@@ -232,7 +232,7 @@ mod tests {
             base: BaseCollector {
                 name: "memory".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels,
             },
             collect: MemoryCollectOptions::default(),
@@ -260,7 +260,7 @@ mod tests {
             base: BaseCollector {
                 name: "memory".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels: HashMap::new(),
             },
             collect: MemoryCollectOptions {

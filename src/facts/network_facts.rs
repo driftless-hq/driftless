@@ -84,7 +84,7 @@ mod tests {
             base: BaseCollector {
                 name: "network".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels: HashMap::new(),
             },
             interfaces: vec!["eth0".to_string(), "wlan0".to_string()],
@@ -117,7 +117,7 @@ mod tests {
             base: BaseCollector {
                 name: "network".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels: HashMap::new(),
             },
             interfaces: vec!["lo".to_string(), "eth0".to_string(), "docker0".to_string()],
@@ -148,7 +148,7 @@ mod tests {
             base: BaseCollector {
                 name: "network".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels,
             },
             interfaces: vec![],
@@ -177,7 +177,7 @@ mod tests {
             base: BaseCollector {
                 name: "network".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels: HashMap::new(),
             },
             interfaces: vec![], // No interface filter
@@ -205,7 +205,7 @@ mod tests {
             base: BaseCollector {
                 name: "network".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels: HashMap::new(),
             },
             interfaces: vec!["eth0".to_string()],

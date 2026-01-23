@@ -133,7 +133,7 @@ mod tests {
             base: BaseCollector {
                 name: "system".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels: HashMap::new(),
             },
             collect: SystemCollectOptions {
@@ -182,7 +182,7 @@ mod tests {
             base: BaseCollector {
                 name: "system".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels,
             },
             collect: SystemCollectOptions {
@@ -225,7 +225,7 @@ mod tests {
             base: BaseCollector {
                 name: "system".to_string(),
                 enabled: true,
-                poll_interval: None,
+                poll_interval: 60,
                 labels: HashMap::new(),
             },
             collect: SystemCollectOptions {

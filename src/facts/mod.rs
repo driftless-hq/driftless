@@ -319,9 +319,8 @@ pub struct BaseCollector {
     /// Whether this collector is enabled
     #[serde(default = "default_true")]
     pub enabled: bool,
-    /// Poll interval override (seconds)
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub poll_interval: Option<u64>,
+    /// Poll interval in seconds (how often to collect this metric, default: 60)
+    pub poll_interval: u64,
     /// Additional labels for this collector
     #[serde(default)]
     pub labels: HashMap<String, String>,
@@ -714,6 +713,7 @@ mod tests {
 type: cpu
 name: cpu
 enabled: true
+poll_interval: 60
 collect:
   usage: true
   per_core: true
@@ -744,6 +744,7 @@ thresholds:
         let yaml = r#"
 type: memory
 name: memory
+poll_interval: 60
 collect:
   total: true
   used: true
