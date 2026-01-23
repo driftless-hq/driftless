@@ -126,7 +126,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cargo/bin/cargo-audit
-        key: ${{ runner.os }}-cargo-audit-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-audit-v1
         restore-keys: |
           ${{ runner.os }}-cargo-audit-
 
@@ -156,7 +156,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cargo/bin/cargo-udeps
-        key: ${{ runner.os }}-cargo-udeps-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-udeps-v1
         restore-keys: |
           ${{ runner.os }}-cargo-udeps-
 
@@ -187,7 +187,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cargo/bin/cargo-outdated
-        key: ${{ runner.os }}-cargo-outdated-${{ hashFiles('**/Cargo.lock') }}
+        key: ${{ runner.os }}-cargo-outdated-v1
         restore-keys: |
           ${{ runner.os }}-cargo-outdated-
 
