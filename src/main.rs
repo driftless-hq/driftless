@@ -226,9 +226,13 @@ async fn main() -> anyhow::Result<()> {
 
             match format.as_str() {
                 "markdown" => {
+                    // Create reference directory if it doesn't exist
+                    let reference_dir = PathBuf::from(&output_dir).join("reference");
+                    std::fs::create_dir_all(&reference_dir)?;
+
                     // Generate task documentation
                     let task_docs = docs::generate_task_documentation()?;
-                    let task_output_path = PathBuf::from(&output_dir).join("tasks-reference.md");
+                    let task_output_path = reference_dir.join("tasks-reference.md");
                     std::fs::write(&task_output_path, task_docs)?;
                     println!(
                         "Task documentation generated: {}",
@@ -237,7 +241,7 @@ async fn main() -> anyhow::Result<()> {
 
                     // Generate facts documentation
                     let facts_docs = docs::generate_facts_documentation()?;
-                    let facts_output_path = PathBuf::from(&output_dir).join("facts-reference.md");
+                    let facts_output_path = reference_dir.join("facts-reference.md");
                     std::fs::write(&facts_output_path, facts_docs)?;
                     println!(
                         "Facts documentation generated: {}",
@@ -246,7 +250,7 @@ async fn main() -> anyhow::Result<()> {
 
                     // Generate logs documentation
                     let logs_docs = docs::generate_logs_documentation()?;
-                    let logs_output_path = PathBuf::from(&output_dir).join("logs-reference.md");
+                    let logs_output_path = reference_dir.join("logs-reference.md");
                     std::fs::write(&logs_output_path, logs_docs)?;
                     println!(
                         "Logs documentation generated: {}",
@@ -255,8 +259,7 @@ async fn main() -> anyhow::Result<()> {
 
                     // Generate template documentation
                     let template_docs = docs::generate_template_documentation()?;
-                    let template_output_path =
-                        PathBuf::from(&output_dir).join("template-reference.md");
+                    let template_output_path = reference_dir.join("template-reference.md");
                     std::fs::write(&template_output_path, template_docs)?;
                     println!(
                         "Template documentation generated: {}",

@@ -9,8 +9,6 @@ src = "docs"
 build-dir = "book"
 create-missing = false
 
-[preprocessor.autosummary]
-
 [output.html]
 default-theme = "ayu"
 preferred-dark-theme = "ayu"

@@ -2,9 +2,9 @@
 
 The complete Rust API documentation is available in the generated rustdoc:
 
-**[View Rust API Documentation →](../api/driftless/index.html)**
+**[View Rust API Documentation →](https://driftless-hq.github.io/driftless/api/driftless/)**
 
-> **Note**: The API documentation is generated from the Rust source code in the `driftless` crate. If you don't see the API docs, ensure the documentation has been built by running `cargo doc --no-deps`.
+> **Note**: The API documentation is generated from the Rust source code in the `driftless` crate. The documentation is automatically built and deployed via CI/CD.
 
 This documentation includes:
 - Complete API reference for all public modules
