@@ -9,7 +9,9 @@ src = "docs"
 build-dir = "book"
 create-missing = false
 
-[preprocessor.autosummary]
+# [preprocessor.autosummary]
+# NOTE: mdbook-autosummary is currently not working properly
+# SUMMARY.md is maintained manually for now
 
 [output.html]
 default-theme = "ayu"

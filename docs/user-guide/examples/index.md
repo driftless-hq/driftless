@@ -13,6 +13,18 @@ This directory contains example configurations for common Driftless agent use ca
 - Prometheus metrics endpoint
 - 1-minute collection intervals
 
+#### agent-basic-monitoring.yml
+```yaml
+{{#include agent-basic-monitoring.yml}}
+```
+
+#### facts-basic-monitoring.yml
+```yaml
+{{#include facts-basic-monitoring.yml}}
+```
+
+---
+
 ### Log Aggregation Agent
 **Files**: `agent-log-aggregation.yml`, `logs-comprehensive.yml`
 **Purpose**: Comprehensive log collection from multiple sources with forwarding to various destinations
@@ -21,6 +33,18 @@ This directory contains example configurations for common Driftless agent use ca
 - Multi-source log collection (nginx, system, application, Docker)
 - Multiple output destinations (S3, ELK stack, syslog, local files)
 - Compression and batching for efficiency
+
+#### agent-log-aggregation.yml
+```yaml
+{{#include agent-log-aggregation.yml}}
+```
+
+#### logs-comprehensive.yml
+```yaml
+{{#include logs-comprehensive.yml}}
+```
+
+---
 
 ### Configuration Enforcement Agent
 **Files**: `agent-config-enforcement.yml`, `apply-config-enforcement.yml`
@@ -33,6 +57,18 @@ This directory contains example configurations for common Driftless agent use ca
 - System security settings
 - Automated security monitoring
 
+#### agent-config-enforcement.yml
+```yaml
+{{#include agent-config-enforcement.yml}}
+```
+
+#### apply-config-enforcement.yml
+```yaml
+{{#include apply-config-enforcement.yml}}
+```
+
+---
+
 ### Production-Ready Agent
 **Files**: `agent-production.yml`, `facts-production.yml`, `logs-production.yml`, `apply-production.yml`
 **Purpose**: Complete production deployment combining monitoring, logging, and configuration enforcement
@@ -44,6 +80,28 @@ This directory contains example configurations for common Driftless agent use ca
 - Security hardening
 - Backup and disaster recovery
 - TLS encryption for log forwarding
+
+#### agent-production.yml
+```yaml
+{{#include agent-production.yml}}
+```
+
+#### facts-production.yml
+```yaml
+{{#include facts-production.yml}}
+```
+
+#### logs-production.yml
+```yaml
+{{#include logs-production.yml}}
+```
+
+#### apply-production.yml
+```yaml
+{{#include apply-production.yml}}
+```
+
+---
 
 ## Configuration File Structure
 

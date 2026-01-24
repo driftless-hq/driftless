@@ -115,6 +115,49 @@ format = "text"
 level = "info"
 ```
 
+**Syslog log output**:
+
+**YAML Format**:
+
+```yaml
+logs:
+  - type: syslog
+    facility: local0
+    severity: info
+    tag: driftless
+    server: 127.0.0.1:514
+    protocol: udp
+```
+
+**JSON Format**:
+
+```json
+{
+  "logs": [
+    {
+      "type": "syslog",
+      "facility": "local0",
+      "severity": "info",
+      "tag": "driftless",
+      "server": "127.0.0.1:514",
+      "protocol": "udp"
+    }
+  ]
+}
+```
+
+**TOML Format**:
+
+```toml
+[[logs]]
+type = "syslog"
+facility = "local0"
+severity = "info"
+tag = "driftless"
+server = "127.0.0.1:514"
+protocol = "udp"
+```
+
 #### file
 
 **Description**: Write logs to files with rotation and compression
@@ -207,6 +250,49 @@ logs:
 type = "console"
 format = "text"
 level = "info"
+```
+
+**Syslog log output**:
+
+**YAML Format**:
+
+```yaml
+logs:
+  - type: syslog
+    facility: local0
+    severity: info
+    tag: driftless
+    server: 127.0.0.1:514
+    protocol: udp
+```
+
+**JSON Format**:
+
+```json
+{
+  "logs": [
+    {
+      "type": "syslog",
+      "facility": "local0",
+      "severity": "info",
+      "tag": "driftless",
+      "server": "127.0.0.1:514",
+      "protocol": "udp"
+    }
+  ]
+}
+```
+
+**TOML Format**:
+
+```toml
+[[logs]]
+type = "syslog"
+facility = "local0"
+severity = "info"
+tag = "driftless"
+server = "127.0.0.1:514"
+protocol = "udp"
 ```
 
 #### http
@@ -303,6 +389,49 @@ format = "text"
 level = "info"
 ```
 
+**Syslog log output**:
+
+**YAML Format**:
+
+```yaml
+logs:
+  - type: syslog
+    facility: local0
+    severity: info
+    tag: driftless
+    server: 127.0.0.1:514
+    protocol: udp
+```
+
+**JSON Format**:
+
+```json
+{
+  "logs": [
+    {
+      "type": "syslog",
+      "facility": "local0",
+      "severity": "info",
+      "tag": "driftless",
+      "server": "127.0.0.1:514",
+      "protocol": "udp"
+    }
+  ]
+}
+```
+
+**TOML Format**:
+
+```toml
+[[logs]]
+type = "syslog"
+facility = "local0"
+severity = "info"
+tag = "driftless"
+server = "127.0.0.1:514"
+protocol = "udp"
+```
+
 #### s3
 
 **Description**: Upload logs to S3 with batching and compression
@@ -397,6 +526,49 @@ format = "text"
 level = "info"
 ```
 
+**Syslog log output**:
+
+**YAML Format**:
+
+```yaml
+logs:
+  - type: syslog
+    facility: local0
+    severity: info
+    tag: driftless
+    server: 127.0.0.1:514
+    protocol: udp
+```
+
+**JSON Format**:
+
+```json
+{
+  "logs": [
+    {
+      "type": "syslog",
+      "facility": "local0",
+      "severity": "info",
+      "tag": "driftless",
+      "server": "127.0.0.1:514",
+      "protocol": "udp"
+    }
+  ]
+}
+```
+
+**TOML Format**:
+
+```toml
+[[logs]]
+type = "syslog"
+facility = "local0"
+severity = "info"
+tag = "driftless"
+server = "127.0.0.1:514"
+protocol = "udp"
+```
+
 #### syslog
 
 **Description**: Send logs to syslog with RFC compliance
@@ -489,5 +661,48 @@ logs:
 type = "console"
 format = "text"
 level = "info"
+```
+
+**Syslog log output**:
+
+**YAML Format**:
+
+```yaml
+logs:
+  - type: syslog
+    facility: local0
+    severity: info
+    tag: driftless
+    server: 127.0.0.1:514
+    protocol: udp
+```
+
+**JSON Format**:
+
+```json
+{
+  "logs": [
+    {
+      "type": "syslog",
+      "facility": "local0",
+      "severity": "info",
+      "tag": "driftless",
+      "server": "127.0.0.1:514",
+      "protocol": "udp"
+    }
+  ]
+}
+```
+
+**TOML Format**:
+
+```toml
+[[logs]]
+type = "syslog"
+facility = "local0"
+severity = "info"
+tag = "driftless"
+server = "127.0.0.1:514"
+protocol = "udp"
 ```
 
