@@ -284,9 +284,7 @@ mod tests {
 
             // Check that we have actual values, not null
             if keys.contains("usage_percent") {
-                let usage_value = map
-                    .get(Value::String("usage_percent".to_string()))
-                    .unwrap();
+                let usage_value = map.get(Value::String("usage_percent".to_string())).unwrap();
                 assert!(!matches!(usage_value, Value::Null));
                 assert!(matches!(usage_value, Value::Number(_)));
             }
@@ -315,9 +313,7 @@ mod tests {
             }
 
             if keys.contains("frequency_mhz") {
-                let freq_value = map
-                    .get(Value::String("frequency_mhz".to_string()))
-                    .unwrap();
+                let freq_value = map.get(Value::String("frequency_mhz".to_string())).unwrap();
                 assert!(!matches!(freq_value, Value::Null));
                 assert!(matches!(freq_value, Value::Number(_)));
             }

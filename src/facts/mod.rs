@@ -79,7 +79,9 @@ impl FactsRegistry {
     }
 
     /// Initialize the registry with built-in facts collectors
-    pub(crate) fn initialize_builtin_collectors(registry: &mut HashMap<String, FactsRegistryEntry>) {
+    pub(crate) fn initialize_builtin_collectors(
+        registry: &mut HashMap<String, FactsRegistryEntry>,
+    ) {
         // System facts collector
         FactsRegistry::register(
             registry,
