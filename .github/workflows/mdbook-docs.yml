@@ -1,0 +1,81 @@
+name: Deploy mdBook Documentation
+
+on:
+  push:
+    branches: [ main, master ]
+    paths:
+      - 'src/**'
+      - 'docs/**'
+      - 'book-src/**'
+      - 'book.toml'
+      - 'Cargo.toml'
+      - 'README.md'
+      - '.github/workflows/mdbook-docs.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: stable
+        components: rust-docs
+
+    - name: Cache Rust dependencies
+      uses: Swatinem/rust-cache@v2
+
+    - name: Install mdBook
+      run: |
+        mkdir -p ~/.cargo/bin
+        curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.40/mdbook-v0.4.40-x86_64-unknown-linux-gnu.tar.gz | tar -xz --directory=~/.cargo/bin
+        chmod +x ~/.cargo/bin/mdbook
+        
+    - name: Verify mdBook installation
+      run: mdbook --version
+
+    - name: Build Rust API documentation
+      run: cargo doc --no-deps --workspace
+
+    - name: Build mdBook
+      run: mdbook build
+
+    - name: Integrate Rust API docs into mdBook output
+      run: |
+        # Copy Rust API documentation into the book output
+        mkdir -p book/api
+        cp -r target/doc/* book/api/
+        
+        # Ensure .nojekyll exists to disable Jekyll processing
+        touch book/.nojekyll
+
+    - name: Setup GitHub Pages
+      uses: actions/configure-pages@v5
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: './book'
+
+    - name: Deploy to GitHub Pages
+      id: deployment
+      uses: actions/deploy-pages@v4
