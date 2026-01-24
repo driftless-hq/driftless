@@ -130,7 +130,7 @@ jobs:
 
     - name: Install cargo-audit
       run: |
-        if ! command -v cargo-audit &> /dev/null; then
+        if ! command -v cargo-audit > /dev/null 2>&1; then
           cargo install cargo-audit --locked
         fi
       timeout-minutes: 15
@@ -162,7 +162,7 @@ jobs:
 
     - name: Install cargo-udeps
       run: |
-        if ! command -v cargo-udeps &> /dev/null; then
+        if ! command -v cargo-udeps > /dev/null 2>&1; then
           cargo install cargo-udeps --locked
         fi
       timeout-minutes: 15
@@ -194,7 +194,7 @@ jobs:
 
     - name: Install cargo-outdated
       run: |
-        if ! command -v cargo-outdated &> /dev/null; then
+        if ! command -v cargo-outdated > /dev/null 2>&1; then
           cargo install cargo-outdated --locked
         fi
       timeout-minutes: 15

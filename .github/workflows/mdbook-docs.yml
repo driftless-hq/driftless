@@ -53,12 +53,10 @@ jobs:
       with:
         path: ~/.cargo/bin/mdbook-autosummary
         key: ${{ runner.os }}-mdbook-autosummary-v0.1.9
-        restore-keys: |
-          ${{ runner.os }}-mdbook-autosummary-
 
     - name: Install mdbook-autosummary
       run: |
-        if ! command -v mdbook-autosummary &> /dev/null; then
+        if ! command -v mdbook-autosummary > /dev/null 2>&1; then
           cargo install mdbook-autosummary --version 0.1.9 --locked
         fi
       timeout-minutes: 15
