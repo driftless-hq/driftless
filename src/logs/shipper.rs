@@ -3,7 +3,7 @@
 //! This module handles the collection and shipping of logs as defined
 //! in the logs schema.
 
-use crate::logs::{LogsConfig, LogSource, LogOutput};
+use crate::logs::{LogOutput, LogSource, LogsConfig};
 use anyhow::Result;
 use std::collections::HashMap;
 use tokio::sync::mpsc;
@@ -21,8 +21,11 @@ impl LogShipper {
 
     /// Start the log shipping process
     pub async fn start(&self) -> Result<()> {
-        println!("Starting log shipping with {} sources and {} outputs",
-                 self.config.sources.len(), self.config.outputs.len());
+        println!(
+            "Starting log shipping with {} sources and {} outputs",
+            self.config.sources.len(),
+            self.config.outputs.len()
+        );
 
         // Create channels for log processing pipeline
         let (_log_tx, mut _log_rx) = mpsc::channel::<LogEntry>(1000);
@@ -64,7 +67,12 @@ impl LogShipper {
 
         // Check that we have at least one enabled source and output
         let enabled_sources = self.config.sources.iter().filter(|s| s.enabled).count();
-        let enabled_outputs = self.config.outputs.iter().filter(|o| self.is_output_enabled(o)).count();
+        let enabled_outputs = self
+            .config
+            .outputs
+            .iter()
+            .filter(|o| self.is_output_enabled(o))
+            .count();
 
         if enabled_sources == 0 {
             return Err(anyhow::anyhow!("No enabled log sources configured"));
@@ -77,12 +85,17 @@ impl LogShipper {
         // Validate source configurations
         for source in &self.config.sources {
             if source.enabled && source.paths.is_empty() {
-                return Err(anyhow::anyhow!("Source '{}' has no paths configured", source.name));
+                return Err(anyhow::anyhow!(
+                    "Source '{}' has no paths configured",
+                    source.name
+                ));
             }
         }
 
-        println!("Configuration validated: {} sources, {} outputs",
-                 enabled_sources, enabled_outputs);
+        println!(
+            "Configuration validated: {} sources, {} outputs",
+            enabled_sources, enabled_outputs
+        );
         Ok(())
     }
 
@@ -166,8 +179,11 @@ impl FileTailer {
 
     /// Start tailing the configured files
     pub async fn start_tailing(&self) -> Result<()> {
-        println!("Starting to tail {} files for source: {}",
-                 self.source.paths.len(), self.source.name);
+        println!(
+            "Starting to tail {} files for source: {}",
+            self.source.paths.len(),
+            self.source.name
+        );
 
         // TODO: Implement actual file watching and tailing
         // This would use notify crate for file changes and tokio for async processing
@@ -183,7 +199,7 @@ impl FileTailer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::logs::{LogsConfig, LogSource, LogOutput, FileOutput};
+    use crate::logs::{FileOutput, LogOutput, LogSource, LogsConfig};
 
     #[tokio::test]
     async fn test_log_entry_creation() {
