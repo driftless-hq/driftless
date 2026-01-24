@@ -37,7 +37,8 @@ jobs:
     
     - name: Install yq for YAML parsing
       run: |
-        sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+        YQ_VERSION="v4.40.5"
+        sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64
         sudo chmod +x /usr/local/bin/yq
         yq --version
     
@@ -62,11 +63,11 @@ jobs:
         HAS_ISSUES=$(yq '.repository.has_issues' "$SETTINGS_FILE")
         HAS_WIKI=$(yq '.repository.has_wiki' "$SETTINGS_FILE")
         HAS_PROJECTS=$(yq '.repository.has_projects' "$SETTINGS_FILE")
-        DELETE_BRANCH_ON_MERGE=$(yq '.repository.delete_branch_on_merge' "$SETTINGS_FILE")
-        ALLOW_SQUASH_MERGE=$(yq '.repository.allow_squash_merge' "$SETTINGS_FILE")
-        ALLOW_MERGE_COMMIT=$(yq '.repository.allow_merge_commit' "$SETTINGS_FILE")
-        ALLOW_REBASE_MERGE=$(yq '.repository.allow_rebase_merge' "$SETTINGS_FILE")
-        ALLOW_AUTO_MERGE=$(yq '.repository.allow_auto_merge' "$SETTINGS_FILE")
+        DELETE_BRANCH_ON_MERGE=$(yq '.merge.delete_branch_on_merge' "$SETTINGS_FILE")
+        ALLOW_SQUASH_MERGE=$(yq '.merge.allow_squash_merge' "$SETTINGS_FILE")
+        ALLOW_MERGE_COMMIT=$(yq '.merge.allow_merge_commit' "$SETTINGS_FILE")
+        ALLOW_REBASE_MERGE=$(yq '.merge.allow_rebase_merge' "$SETTINGS_FILE")
+        ALLOW_AUTO_MERGE=$(yq '.merge.allow_auto_merge' "$SETTINGS_FILE")
         
         # Update repository settings
         gh api \
@@ -161,14 +162,14 @@ jobs:
         gh api \
           --method PUT \
           -H "Accept: application/vnd.github+json" \
-          "/repos/$REPO/vulnerability-alerts" || echo "Note: Vulnerability alerts may already be enabled or require different permissions"
+          "/repos/$REPO/vulnerability-alerts" || echo "Note: Failed to enable vulnerability alerts. This may require admin permissions or the feature may already be enabled. Check repository settings to verify current state."
         
         # Enable automated security fixes
         echo "Enabling automated security fixes..."
         gh api \
           --method PUT \
           -H "Accept: application/vnd.github+json" \
-          "/repos/$REPO/automated-security-fixes" || echo "Note: Automated security fixes may already be enabled or require different permissions"
+          "/repos/$REPO/automated-security-fixes" || echo "Note: Failed to enable automated security fixes. This may require admin permissions or the feature may already be enabled. Check repository settings to verify current state."
         
         echo "========================================="
         echo "✓ All repository settings applied successfully"

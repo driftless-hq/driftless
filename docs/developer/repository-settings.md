@@ -154,6 +154,6 @@ To manually apply settings without pushing to `main`:
 
 ## Related Documentation
 
-- [Branch Protection Setup Guide](../.github/BRANCH_PROTECTION.md)
+- [Branch Protection Setup Guide](../../.github/BRANCH_PROTECTION.md)
 - [GitHub Docs: Managing Branch Protection](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches)
 - [GitHub Docs: Repository Settings API](https://docs.github.com/en/rest/repos/repos)
