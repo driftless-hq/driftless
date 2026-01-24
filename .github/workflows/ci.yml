@@ -82,18 +82,10 @@ jobs:
       with:
         toolchain: stable
 
-    - name: Cache cargo-audit
-      uses: actions/cache@v4
-      with:
-        path: ~/.cargo/bin/cargo-audit
-        key: ${{ runner.os }}-cargo-audit-v1
-
     - name: Install cargo-audit
-      run: |
-        if ! command -v cargo-audit > /dev/null 2>&1; then
-          cargo install cargo-audit --locked
-        fi
-      timeout-minutes: 15
+      uses: taiki-e/install-action@v2
+      with:
+        tool: cargo-audit
 
     - name: Run security audit
       run: cargo audit
@@ -115,18 +107,10 @@ jobs:
     - name: Cache Rust dependencies
       uses: Swatinem/rust-cache@v2
 
-    - name: Cache cargo-udeps
-      uses: actions/cache@v4
-      with:
-        path: ~/.cargo/bin/cargo-udeps
-        key: ${{ runner.os }}-cargo-udeps-v1
-
     - name: Install cargo-udeps
-      run: |
-        if ! command -v cargo-udeps > /dev/null 2>&1; then
-          cargo install cargo-udeps --locked
-        fi
-      timeout-minutes: 15
+      uses: taiki-e/install-action@v2
+      with:
+        tool: cargo-udeps
 
     - name: Run unused dependencies check
       run: cargo +nightly udeps --all-targets
@@ -144,18 +128,10 @@ jobs:
       with:
         toolchain: stable
 
-    - name: Cache cargo-outdated
-      uses: actions/cache@v4
-      with:
-        path: ~/.cargo/bin/cargo-outdated
-        key: ${{ runner.os }}-cargo-outdated-v1
-
     - name: Install cargo-outdated
-      run: |
-        if ! command -v cargo-outdated > /dev/null 2>&1; then
-          cargo install cargo-outdated --locked
-        fi
-      timeout-minutes: 15
+      uses: taiki-e/install-action@v2
+      with:
+        tool: cargo-outdated
 
     - name: Check for outdated dependencies
       run: cargo outdated --root-deps-only --exit-code 1

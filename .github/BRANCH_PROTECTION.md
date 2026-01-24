@@ -43,8 +43,10 @@ Enable the following settings:
    - `Test (ubuntu-latest, amd64, 1.92)`
    - `Security Audit`
    - `Unused Dependencies`
+   - `Outdated Dependencies`
+   - `Build Documentation`
    
-   Note: The other platform tests have `skip_tests: true` so they won't run, and jobs like `Outdated Dependencies` only run on schedule, `Coverage` only runs on push to main, and `Release` only runs on push to main.
+   Note: The `Coverage` job only runs on push to main (not on PRs). The `Deploy to GitHub Pages` job only runs on push to main (not on PRs).
 
 3. **Require conversation resolution before merging**
    - ✅ Check this box (optional but recommended)
@@ -80,14 +82,15 @@ The following CI jobs MUST pass for every PR:
 | Test (ubuntu-latest, amd64, stable) | Tests on Linux with stable Rust | Always on PR |
 | Test (ubuntu-latest, amd64, beta) | Tests on Linux with beta Rust | Always on PR |
 | Test (ubuntu-latest, amd64, 1.92) | Tests on Linux with MSRV (Rust 1.92) | Always on PR |
-| Security Audit | Checks for security vulnerabilities in dependencies | Always on PR |
+| Security Audit | Checks for security vulnerabilities in dependencies (advisory) | Always on PR |
 | Unused Dependencies | Detects unused dependencies | Always on PR |
+| Outdated Dependencies | Checks for outdated dependencies (advisory) | Always on PR |
+| Build Documentation | Validates documentation builds successfully | Always on PR |
 
 The following jobs run conditionally and should NOT be added as required checks:
-- `Outdated Dependencies`: Only runs on schedule or manual trigger
 - `Coverage`: Only runs on push to main
-- `Release`: Only runs on push to main
-- Platform tests with `skip_tests: true`: Don't actually run
+- `Deploy to GitHub Pages`: Only runs on push to main
+- `Release`: Only runs on version tags or manual trigger
 
 ## Troubleshooting
 
@@ -114,3 +117,55 @@ The following jobs run conditionally and should NOT be added as required checks:
 - [GitHub Docs: About protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)
 - [GitHub Docs: Managing a branch protection rule](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/managing-a-branch-protection-rule)
 - [GitHub Docs: About required status checks](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/about-status-checks#types-of-status-checks-on-github)
+
+## GitHub Pages Setup
+
+For the `Deploy to GitHub Pages` job to work, you need to configure GitHub Pages in the repository settings:
+
+### Initial Setup
+
+1. Go to **Settings** > **Pages**
+2. Under **Build and deployment**:
+   - **Source**: Select "GitHub Actions"
+3. The deployment will happen automatically when code is pushed to the main branch
+
+### Permissions
+
+The workflow uses OIDC authentication which requires:
+- `pages: write` permission (to deploy)
+- `id-token: write` permission (to verify deployment origin)
+
+Both permissions are correctly configured in the workflow.
+
+### Troubleshooting GitHub Pages Deployment
+
+#### Issue: Deploy job shows "action_required" or fails
+
+**Possible Causes:**
+1. GitHub Pages is not enabled or not set to use "GitHub Actions" as the source
+2. The repository environment "github-pages" requires manual approval
+3. The deployment needs to be approved by a repository administrator
+
+**Solutions:**
+
+1. **Verify GitHub Pages is configured correctly:**
+   - Go to **Settings** > **Pages**
+   - Ensure **Source** is set to "GitHub Actions" (not "Deploy from a branch")
+   - Save if you made any changes
+
+2. **Check environment protection rules:**
+   - Go to **Settings** > **Environments** > **github-pages**
+   - If "Required reviewers" is enabled, deployments will need manual approval
+   - Either approve pending deployments or disable required reviewers if not needed
+
+3. **Verify permissions:**
+   - The workflow has the correct permissions configured
+   - Check that GitHub Actions has permission to deploy to Pages in repository settings
+
+4. **First deployment:**
+   - The first deployment to GitHub Pages might require manual approval or configuration
+   - After the first successful deployment, subsequent deployments should work automatically
+
+5. **Re-run the workflow:**
+   - Sometimes the first run fails due to environment setup
+   - Try re-running the failed workflow after verifying the settings above

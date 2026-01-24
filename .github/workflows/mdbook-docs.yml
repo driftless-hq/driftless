@@ -39,18 +39,10 @@ jobs:
       with:
         mdbook-version: '0.4.40'
 
-    - name: Cache mdbook-autosummary
-      uses: actions/cache@v4
-      with:
-        path: ~/.cargo/bin/mdbook-autosummary
-        key: ${{ runner.os }}-mdbook-autosummary-v0.1.9
-
     - name: Install mdbook-autosummary
-      run: |
-        if ! command -v mdbook-autosummary > /dev/null 2>&1; then
-          cargo install mdbook-autosummary --version 0.1.9 --locked
-        fi
-      timeout-minutes: 15
+      uses: taiki-e/install-action@v2
+      with:
+        tool: mdbook-autosummary@0.1.9
 
     - name: Verify mdBook installation
       run: mdbook --version && mdbook-autosummary version
