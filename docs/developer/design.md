@@ -92,6 +92,7 @@ The [nix crate](https://github.com/nix-rust/nix) provides Rust bindings to *nix 
 - Create task prompts in the TODO list that adds support for macOS and Windows operating systems
 - Review usages of `dead_code` and `unused_imports` to silence warnings and determine if code should be used or cleaned up
 - Review the codebase for usage of Rust best-practices and guidelines
-- Review the codebase for safety, security, and production-readiness
-- Ensure comprehensive test coverage
-- Review the README.md and validate information is accurate. Look for cleanup and reorganization opportunities.
+- Review the codebase for safety and security vulnerabilities and apply mitigations as needed
+- Ensure comprehensive test coverage and cleanup any clippy warnings
+- Review the generated and manual documentation in the `docs/` directory and validate information is accurate against the current codebase. Look for cleanup, clarification, expansion, and reorganization opportunities.
+- Perform a final review of the entire codebase, documentation, and project structure to ensure consistency, quality, and readiness for production use.
