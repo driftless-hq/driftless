@@ -25,7 +25,7 @@ impl LogShipper {
                  self.config.sources.len(), self.config.outputs.len());
 
         // Create channels for log processing pipeline
-        let (log_tx, mut log_rx) = mpsc::channel(1000);
+        let (_log_tx, mut _log_rx) = mpsc::channel::<LogEntry>(1000);
 
         // TODO: Start file tailing tasks for each source
         // TODO: Start output forwarding tasks
@@ -76,10 +76,8 @@ impl LogShipper {
 
         // Validate source configurations
         for source in &self.config.sources {
-            if source.enabled {
-                if source.paths.is_empty() {
-                    return Err(anyhow::anyhow!("Source '{}' has no paths configured", source.name));
-                }
+            if source.enabled && source.paths.is_empty() {
+                return Err(anyhow::anyhow!("Source '{}' has no paths configured", source.name));
             }
         }
 
@@ -102,7 +100,7 @@ impl LogShipper {
     }
 
     /// Get the name of an output
-    fn get_output_name(&self, output: &LogOutput) -> &str {
+    fn get_output_name<'a>(&self, output: &'a LogOutput) -> &'a str {
         use crate::logs::LogOutput::*;
 
         match output {

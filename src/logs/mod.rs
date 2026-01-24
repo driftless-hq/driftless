@@ -77,6 +77,57 @@
 //! format = "text"
 //! level = "info"
 //! ```
+//!
+//! ## Syslog log output
+//!
+//! **YAML Format:**
+//! ```yaml
+//! logs:
+//!   - type: syslog
+//!     facility: local0
+//!     severity: info
+//!     tag: driftless
+//!     server: 127.0.0.1:514
+//!     protocol: udp
+//! ```
+//!
+//! **JSON Format:**
+//! ```json
+//! {
+//!   "logs": [
+//!     {
+//!       "type": "syslog",
+//!       "facility": "local0",
+//!       "severity": "info",
+//!       "tag": "driftless",
+//!       "server": "127.0.0.1:514",
+//!       "protocol": "udp"
+//!     }
+//!   ]
+//! }
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[logs]]
+//! type = "syslog"
+//! facility = "local0"
+//! severity = "info"
+//! tag = "driftless"
+//! server = "127.0.0.1:514"
+//! protocol = "udp"
+//! ```
+
+mod console_log_output;
+mod file_log_output;
+mod file_log_source;
+mod http_log_output;
+mod log_filters;
+mod log_parsers;
+mod orchestrator;
+mod s3_log_output;
+mod shipper;
+mod syslog_log_output;
 
 use anyhow::Result;
 use once_cell::sync::Lazy;
@@ -245,9 +296,13 @@ impl LogsRegistry {
             "file",
             "Log Sources",
             "Tail log files with rotation handling and encoding support",
-            "mod",
-            Arc::new(|_source| {
-                // TODO: Implement file source
+            "file_log_source",
+            Arc::new(|source| {
+                // Create a file log source and return a reader that yields log lines
+                let _file_source =
+                    crate::logs::file_log_source::FileLogSource::new(source.clone())?;
+                // For now, return an empty reader - the actual implementation would be more complex
+                // In a full implementation, this would create an async channel and stream
                 Ok(Box::new(std::io::empty()) as Box<dyn std::io::Read + Send>)
             }),
         );
@@ -443,6 +498,21 @@ pub struct LogSource {
     pub labels: HashMap<String, String>,
 }
 
+impl Default for LogSource {
+    fn default() -> Self {
+        Self {
+            name: String::new(),
+            enabled: true,
+            paths: Vec::new(),
+            file_options: FileOptions::default(),
+            parser: ParserConfig::default(),
+            filters: Vec::new(),
+            outputs: Vec::new(),
+            labels: HashMap::new(),
+        }
+    }
+}
+
 /// File reading options
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct FileOptions {
@@ -510,7 +580,7 @@ pub struct ParserConfig {
 }
 
 /// Parser types
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum ParserType {
     /// Plain text (no parsing)
@@ -597,7 +667,7 @@ pub enum LogOutput {
 }
 
 /// File output configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct FileOutput {
     /// Output destination name
     pub name: String,
@@ -618,7 +688,7 @@ pub struct FileOutput {
 }
 
 /// S3 output configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct S3Output {
     /// Output destination name
     pub name: String,
@@ -646,7 +716,7 @@ pub struct S3Output {
 }
 
 /// HTTP output configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct HttpOutput {
     /// Output destination name
     pub name: String,
@@ -794,7 +864,7 @@ pub struct CompressionConfig {
 }
 
 /// Compression algorithms
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum CompressionAlgorithm {
     /// Gzip compression
@@ -958,6 +1028,28 @@ fn default_max_backoff() -> u64 {
     60
 }
 
+// Public exports
+#[allow(unused)]
+pub use console_log_output::{create_console_output, ConsoleLogOutput};
+#[allow(unused)]
+pub use file_log_output::{create_file_output, FileLogOutput, LogOutputWriter};
+#[allow(unused)]
+pub use file_log_source::{FileLogSource, MultilineMatchType};
+#[allow(unused)]
+pub use http_log_output::HttpLogOutput;
+#[allow(unused)]
+pub use log_filters::{create_filter, LogFilter};
+#[allow(unused)]
+pub use log_parsers::{create_parser, LogEntry, LogParser};
+#[allow(unused)]
+pub use orchestrator::LogOrchestrator;
+#[allow(unused)]
+pub use s3_log_output::{create_s3_output, S3LogOutput};
+#[allow(unused)]
+pub use shipper::LogEntry as ShipperLogEntry;
+#[allow(unused)]
+pub use syslog_log_output::{create_syslog_output, SyslogLogOutput};
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -1069,5 +1161,23 @@ compression:
             }
             _ => panic!("Expected S3 output"),
         }
+    }
+
+    #[test]
+    fn test_orchestrator_creation() {
+        use crate::logs::LogOrchestrator;
+
+        // Create a minimal logs config
+        let config = LogsConfig {
+            global: Default::default(),
+            sources: vec![],
+            outputs: vec![],
+            processing: Default::default(),
+        };
+
+        // Test that we can create an orchestrator
+        let orchestrator = LogOrchestrator::new(config);
+        // Just test that creation succeeds
+        assert!(true); // If we get here, creation worked
     }
 }

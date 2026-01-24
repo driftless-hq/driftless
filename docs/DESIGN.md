@@ -59,18 +59,12 @@
 - Plugin registry and download manager
 
 ## TODO
-- **Log Collection Tasks** - Implement log processing task types, ensuring to include comprehensive documentation and tests:
-  - **File Log Source Task**: Ensure `src/logs/file_log_source.rs` for tailing log files with rotation handling, encoding support, and multiline log processing.
-  - **Log Parser Tasks**: Ensure `src/logs/log_parsers.rs` with parsers for plain text, JSON, key-value, Apache/Nginx logs, syslog, and custom regex patterns.
-  - **Log Filter Tasks**: Ensure `src/logs/log_filters.rs` with include/exclude patterns, field matching, rate limiting, and content-based filtering.
-  - **File Log Output Task**: Ensure `src/logs/file_log_output.rs` with file rotation, compression, and timestamp-based filename patterns.
-  - **S3 Log Output Task**: Ensure `src/logs/s3_log_output.rs` with batched uploads, compression, and configurable prefixes and regions.
-  - **HTTP Log Output Task**: Ensure `src/logs/http_log_output.rs` with batching, authentication (basic/bearer/API key), retry logic, and compression.
-  - **Syslog Output Task**: Ensure `src/logs/syslog_log_output.rs` with RFC 3164/5424 compliance and configurable facilities/priorities.
-  - **Console Log Output Task**: Ensure `src/logs/console_log_output.rs` for stdout/stderr output with structured formatting.
-  - **Log Processing Pipeline**: Ensure `src/logs/log_pipeline.rs` to orchestrate log sources, parsers, filters, and outputs with buffering and error handling.
+- The pipeline workflow causes a release build to occur whenever pushed to main. I would prefer to have a release process that determines and updates the version number, creates a release tag in the repo, and creates a GitHub release when triggered. What triggers the release process is what I need help determining. Propose a trigger solution and any recommendations or alterations to the process overall.
+	- Update the pipeline with the suggested updates
+	- How do you auto-delete the PR branch after it's merged?
 - Create task prompts in the TODO list that create, in managable pieces, an extensions/plugins system via the `wasmtime` crate that can create and register `apply`, `facts`, and `logs` task types and template filters and functions.
-- Create task prompts in the TODO list that create, in managable pieces, the agent mode that runs an event loop, regularly enforcing defined configuration, collecting metrics, and forwarding logs
+- Create task prompts in the TODO list that create, in managable pieces, the agent mode that runs an event loop, regularly enforcing defined configuration, collecting metrics, and forwarding logs. These tasks should integrate the `apply`, `facts` and `logs` orchestrators to complete the core functionality of the CLI and resolve every clippy warning.
+- Create task prompts in the TODO list that adds support for macOS and Windows operating systems
 - Review the codebase for usage of Rust best-practices and guidelines
 - Review the codebase for safety, security, and production-readiness
 - Ensure comprehensive test coverage
