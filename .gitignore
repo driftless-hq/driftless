@@ -6,6 +6,7 @@ Cargo.lock
 book/
 mdbook-admonish.css
 docs/*.html
+docs/SUMMARY.md
 index.html
 
 # IDE and editor files
