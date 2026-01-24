@@ -2,6 +2,13 @@
 target/
 Cargo.lock
 
+# mdBook build artifacts
+book/
+mdbook-admonish.css
+docs/*.html
+docs/SUMMARY.md
+index.html
+
 # IDE and editor files
 .vscode/
 .idea/

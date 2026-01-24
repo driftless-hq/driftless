@@ -1,0 +1,22 @@
+[book]
+title = "Driftless Documentation"
+description = "Streamlined system configuration, inventory, and monitoring agent with Ansible-like configuration operations"
+authors = ["Ross Peoples <ross.peoples@gmail.com>"]
+language = "en"
+src = "docs"
+
+[build]
+build-dir = "book"
+create-missing = false
+
+[preprocessor.autosummary]
+
+[output.html]
+default-theme = "ayu"
+preferred-dark-theme = "ayu"
+git-repository-url = "https://github.com/driftless-hq/driftless"
+edit-url-template = "https://github.com/driftless-hq/driftless/edit/main/{path}"
+
+[output.html.fold]
+enable = true
+level = 0
