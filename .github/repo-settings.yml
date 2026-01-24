@@ -1,0 +1,120 @@
+# Repository Settings Configuration
+# This file defines the repository settings that should be enforced programmatically
+# The enforce-repo-settings workflow will apply these settings when changes are made to .github/
+
+# Repository basic settings
+repository:
+  name: driftless
+  description: "Streamlined system configuration, inventory, and monitoring agent with Ansible-like configuration operations, plus facts collection and log management."
+  homepage: "https://driftless-hq.github.io/driftless/"
+  topics:
+    - rust
+    - automation
+    - configuration-management
+    - system-administration
+    - monitoring
+  has_issues: true
+  has_wiki: false
+  has_projects: false
+  has_downloads: true
+  allow_squash_merge: true
+  allow_merge_commit: true
+  allow_rebase_merge: true
+  allow_auto_merge: true
+  delete_branch_on_merge: true
+
+# Branch protection rules
+branch_protection:
+  main:
+    # Require pull request reviews before merging
+    required_pull_request_reviews:
+      required_approving_review_count: 1
+      dismiss_stale_reviews: true
+      require_code_owner_reviews: false
+      require_last_push_approval: false
+    
+    # Require status checks to pass before merging
+    required_status_checks:
+      strict: true  # Require branches to be up to date before merging
+      contexts:
+        - "Test (ubuntu-latest, amd64, stable)"
+        - "Test (ubuntu-latest, amd64, beta)"
+        - "Test (ubuntu-latest, amd64, 1.92)"
+        - "Security Audit"
+        - "Unused Dependencies"
+        - "Outdated Dependencies"
+        - "Build Documentation"
+    
+    # Enforce all configured restrictions
+    enforce_admins: false  # Allow admins to bypass (for emergency fixes)
+    
+    # Require conversation resolution before merging
+    required_conversation_resolution: true
+    
+    # Require linear history (no merge commits)
+    required_linear_history: false
+    
+    # Allow force pushes
+    allow_force_pushes: false
+    
+    # Allow deletions
+    allow_deletions: false
+    
+    # Require signed commits
+    required_signatures: false
+    
+    # Lock branch (prevent any pushes)
+    lock_branch: false
+    
+    # Restrict who can push to matching branches
+    restrictions:
+      users: []
+      teams: []
+      apps: []
+
+# GitHub Pages configuration
+pages:
+  enabled: true
+  source:
+    branch: null  # null means use GitHub Actions
+    path: null
+  build_type: "workflow"  # "workflow" for GitHub Actions, "legacy" for branch-based
+
+# Security settings
+security:
+  # Enable vulnerability alerts
+  enable_vulnerability_alerts: true
+  
+  # Enable automated security fixes (Dependabot)
+  enable_automated_security_fixes: true
+
+# Merge settings
+merge:
+  # Allow auto-merge
+  allow_auto_merge: true
+  
+  # Delete head branches automatically after merge
+  delete_branch_on_merge: true
+  
+  # Allow squash merging
+  allow_squash_merge: true
+  
+  # Allow merge commits
+  allow_merge_commit: true
+  
+  # Allow rebase merging
+  allow_rebase_merge: true
+  
+  # Squash merge commit title format
+  squash_merge_commit_title: "PR_TITLE"  # Use PR title as commit message
+  
+  # Squash merge commit message format
+  squash_merge_commit_message: "PR_BODY"  # Use PR body as commit message
+
+# Additional repository features
+features:
+  # Discussions
+  discussions: false
+  
+  # Sponsorships
+  sponsorships: false

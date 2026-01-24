@@ -1,0 +1,205 @@
+name: Enforce Repository Settings
+
+# This workflow enforces repository settings programmatically from .github/repo-settings.yml
+# It runs only when the .github directory is modified on the main branch
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/**'
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  contents: read
+  # Note: Repository settings modification requires a token with appropriate permissions
+  # The default GITHUB_TOKEN has limited permissions and may not be able to modify all settings
+  # Consider using a Personal Access Token (PAT) with 'repo' and 'admin:repo_hook' scopes if needed
+
+jobs:
+  enforce-settings:
+    name: Apply Repository Settings
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Read repository settings
+      id: read-settings
+      run: |
+        if [ ! -f .github/repo-settings.yml ]; then
+          echo "Error: .github/repo-settings.yml not found"
+          exit 1
+        fi
+        echo "Settings file found"
+    
+    - name: Install yq for YAML parsing
+      run: |
+        sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+        sudo chmod +x /usr/local/bin/yq
+        yq --version
+    
+    - name: Apply repository settings
+      env:
+        GH_TOKEN: ${{ github.token }}
+        REPO: ${{ github.repository }}
+      run: |
+        set -e
+        
+        echo "========================================="
+        echo "Applying Repository Settings"
+        echo "========================================="
+        
+        # Read settings from YAML
+        SETTINGS_FILE=".github/repo-settings.yml"
+        
+        # Repository basic settings
+        echo "Updating repository settings..."
+        DESCRIPTION=$(yq '.repository.description' "$SETTINGS_FILE")
+        HOMEPAGE=$(yq '.repository.homepage' "$SETTINGS_FILE")
+        HAS_ISSUES=$(yq '.repository.has_issues' "$SETTINGS_FILE")
+        HAS_WIKI=$(yq '.repository.has_wiki' "$SETTINGS_FILE")
+        HAS_PROJECTS=$(yq '.repository.has_projects' "$SETTINGS_FILE")
+        DELETE_BRANCH_ON_MERGE=$(yq '.repository.delete_branch_on_merge' "$SETTINGS_FILE")
+        ALLOW_SQUASH_MERGE=$(yq '.repository.allow_squash_merge' "$SETTINGS_FILE")
+        ALLOW_MERGE_COMMIT=$(yq '.repository.allow_merge_commit' "$SETTINGS_FILE")
+        ALLOW_REBASE_MERGE=$(yq '.repository.allow_rebase_merge' "$SETTINGS_FILE")
+        ALLOW_AUTO_MERGE=$(yq '.repository.allow_auto_merge' "$SETTINGS_FILE")
+        
+        # Update repository settings
+        gh api \
+          --method PATCH \
+          -H "Accept: application/vnd.github+json" \
+          "/repos/$REPO" \
+          -f description="$DESCRIPTION" \
+          -f homepage="$HOMEPAGE" \
+          -F has_issues=$HAS_ISSUES \
+          -F has_wiki=$HAS_WIKI \
+          -F has_projects=$HAS_PROJECTS \
+          -F delete_branch_on_merge=$DELETE_BRANCH_ON_MERGE \
+          -F allow_squash_merge=$ALLOW_SQUASH_MERGE \
+          -F allow_merge_commit=$ALLOW_MERGE_COMMIT \
+          -F allow_rebase_merge=$ALLOW_REBASE_MERGE \
+          -F allow_auto_merge=$ALLOW_AUTO_MERGE
+        
+        echo "✓ Repository settings updated"
+        
+        # Apply repository topics
+        echo "Updating repository topics..."
+        TOPICS=$(yq '.repository.topics[]' "$SETTINGS_FILE" | jq -R . | jq -s .)
+        gh api \
+          --method PUT \
+          -H "Accept: application/vnd.github+json" \
+          "/repos/$REPO/topics" \
+          -f names="$TOPICS"
+        
+        echo "✓ Repository topics updated"
+        
+        # Apply branch protection for main
+        echo "Applying branch protection for main..."
+        
+        REQUIRED_APPROVALS=$(yq '.branch_protection.main.required_pull_request_reviews.required_approving_review_count' "$SETTINGS_FILE")
+        DISMISS_STALE=$(yq '.branch_protection.main.required_pull_request_reviews.dismiss_stale_reviews' "$SETTINGS_FILE")
+        REQUIRE_CODE_OWNERS=$(yq '.branch_protection.main.required_pull_request_reviews.require_code_owner_reviews' "$SETTINGS_FILE")
+        STRICT_STATUS_CHECKS=$(yq '.branch_protection.main.required_status_checks.strict' "$SETTINGS_FILE")
+        STATUS_CHECKS=$(yq '.branch_protection.main.required_status_checks.contexts[]' "$SETTINGS_FILE" | jq -R . | jq -s .)
+        ENFORCE_ADMINS=$(yq '.branch_protection.main.enforce_admins' "$SETTINGS_FILE")
+        REQUIRE_CONVERSATION=$(yq '.branch_protection.main.required_conversation_resolution' "$SETTINGS_FILE")
+        REQUIRE_LINEAR=$(yq '.branch_protection.main.required_linear_history' "$SETTINGS_FILE")
+        ALLOW_FORCE_PUSHES=$(yq '.branch_protection.main.allow_force_pushes' "$SETTINGS_FILE")
+        ALLOW_DELETIONS=$(yq '.branch_protection.main.allow_deletions' "$SETTINGS_FILE")
+        REQUIRED_SIGNATURES=$(yq '.branch_protection.main.required_signatures' "$SETTINGS_FILE")
+        
+        # Create the branch protection JSON payload
+        cat > /tmp/branch-protection.json <<EOF
+        {
+          "required_status_checks": {
+            "strict": $STRICT_STATUS_CHECKS,
+            "contexts": $STATUS_CHECKS
+          },
+          "enforce_admins": $ENFORCE_ADMINS,
+          "required_pull_request_reviews": {
+            "dismiss_stale_reviews": $DISMISS_STALE,
+            "require_code_owner_reviews": $REQUIRE_CODE_OWNERS,
+            "required_approving_review_count": $REQUIRED_APPROVALS
+          },
+          "restrictions": null,
+          "required_linear_history": $REQUIRE_LINEAR,
+          "allow_force_pushes": $ALLOW_FORCE_PUSHES,
+          "allow_deletions": $ALLOW_DELETIONS,
+          "block_creations": false,
+          "required_conversation_resolution": $REQUIRE_CONVERSATION,
+          "lock_branch": false
+        }
+        EOF
+        
+        # Apply branch protection
+        gh api \
+          --method PUT \
+          -H "Accept: application/vnd.github+json" \
+          "/repos/$REPO/branches/main/protection" \
+          --input /tmp/branch-protection.json
+        
+        echo "✓ Branch protection applied for main"
+        
+        # Apply required signatures if needed
+        if [ "$REQUIRED_SIGNATURES" = "true" ]; then
+          echo "Enabling required commit signatures..."
+          gh api \
+            --method POST \
+            -H "Accept: application/vnd.github+json" \
+            "/repos/$REPO/branches/main/protection/required_signatures"
+          echo "✓ Required commit signatures enabled"
+        else
+          echo "Skipping required commit signatures (disabled in config)"
+        fi
+        
+        # Enable vulnerability alerts
+        echo "Enabling vulnerability alerts..."
+        gh api \
+          --method PUT \
+          -H "Accept: application/vnd.github+json" \
+          "/repos/$REPO/vulnerability-alerts" || echo "Note: Vulnerability alerts may already be enabled or require different permissions"
+        
+        # Enable automated security fixes
+        echo "Enabling automated security fixes..."
+        gh api \
+          --method PUT \
+          -H "Accept: application/vnd.github+json" \
+          "/repos/$REPO/automated-security-fixes" || echo "Note: Automated security fixes may already be enabled or require different permissions"
+        
+        echo "========================================="
+        echo "✓ All repository settings applied successfully"
+        echo "========================================="
+    
+    - name: Verify settings
+      env:
+        GH_TOKEN: ${{ github.token }}
+        REPO: ${{ github.repository }}
+      run: |
+        echo "Verifying applied settings..."
+        
+        # Check repository settings
+        echo "Repository settings:"
+        gh api "/repos/$REPO" --jq '{
+          description: .description,
+          homepage: .homepage,
+          has_issues: .has_issues,
+          has_wiki: .has_wiki,
+          delete_branch_on_merge: .delete_branch_on_merge,
+          allow_auto_merge: .allow_auto_merge
+        }'
+        
+        # Check branch protection
+        echo -e "\nBranch protection (main):"
+        gh api "/repos/$REPO/branches/main/protection" --jq '{
+          required_approvals: .required_pull_request_reviews.required_approving_review_count,
+          dismiss_stale: .required_pull_request_reviews.dismiss_stale_reviews,
+          enforce_admins: .enforce_admins.enabled,
+          required_conversation: .required_conversation_resolution.enabled,
+          status_checks: .required_status_checks.contexts
+        }' || echo "Unable to retrieve branch protection details"
+        
+        echo -e "\n✓ Verification complete"
