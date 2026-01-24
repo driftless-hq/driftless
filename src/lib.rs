@@ -9,3 +9,4 @@ pub mod doc_extractor;
 pub mod docs;
 pub mod facts;
 pub mod logs;
+pub mod plugins;

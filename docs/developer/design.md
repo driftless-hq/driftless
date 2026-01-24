@@ -86,12 +86,30 @@ The [nix crate](https://github.com/nix-rust/nix) provides Rust bindings to *nix 
 - [ ] **KVM operations** - Kernel-based virtual machines
 
 ## TODO
-- Create a new GitHub workflow that enforces repository settings programmatically using values from `.github/repo-settings.yml`. It should run only when the `.github` folder contents is modified on the `main` branch. It should include options for enabling and configuring main branch protection, preventing pushes to main unless admin, requiring a number of approvals before merging (default to 1), auto-delete PR branches after merge, auto-merge after required checks pass, GitHub Pages source configuration (Actions or branch), and any other commonly used setting that might need to be managed as code. Review the current `driftless-hq/driftless` repository settings and ensure the `.github/repo-settings.yml` file includes all current customizations for the repository.
-- Create task prompts in the TODO list that create, in managable pieces, an extensions/plugins system via the `wasmtime` crate that can create and register `apply`, `facts`, and `logs` task types and template filters and functions.
+- **Plugin System Foundation**: Add the `wasmtime` crate to `Cargo.toml` and create a plugin manager module in `src/plugins.rs` that handles loading and instantiating WebAssembly modules securely with resource limits.
+- **Plugin Interface Design**: Define a common interface (e.g., via WIT or direct exports) for plugins to register custom `apply`, `facts`, and `logs` task types, including serialization/deserialization of task configurations and results.
+- **Apply Task Plugins**: Implement support for loading and executing custom apply tasks from plugins, ensuring idempotency and integration with the existing apply executor.
+- **Facts Task Plugins**: Implement support for loading and executing custom facts gathering tasks from plugins, allowing plugins to collect and return custom metrics or system information.
+- **Logs Task Plugins**: Implement support for loading and executing custom log processing tasks from plugins, enabling custom parsers, filters, and output handlers.
+- **Template Extensions**: Add support for plugins to register custom template filters and functions, integrating with the templating engine to allow dynamic extension of template capabilities.
+- **Plugin Registry**: Create a plugin registry system that scans a designated directory for plugin files, validates them, and makes them available for use in configurations.
+- **Plugin Lifecycle Management**: Implement functionality to list, manage, and install configured plugin executables during startup, ensuring they are available for use. This includes downloading plugins from a registry if needed, validating them, and caching them locally. It is expected that plugins will be distributed as pre-compiled WASM binaries to an artifact registry.
+- **Security Hardening**: Implement security measures such as WASM module validation, execution timeouts, memory limits, and restricted system access to prevent malicious plugins from compromising the host system.
+- **Plugin Documentation**: Write comprehensive documentation in `docs/developer/plugins.md` explaining how to create plugins, including API references, security guidelines, and deployment instructions. Be sure to include a GitHub workflow example for building and publishing plugins as WASM binaries attached to GitHub Releases.
+- **Plugin Examples**: Create example plugins in multiple programming languages (Rust, JavaScript/TypeScript, Python via pyodide if feasible) demonstrating custom tasks and template extensions, placed in `docs/developer/examples/plugins/`.
+- **Plugin Testing**: Develop unit and integration tests for the plugin system, including tests for loading, execution, error handling, and security boundaries.
+- **Plugin CLI Integration**: Update the CLI to support plugin-related commands (e.g., `driftless plugins list`, `driftless plugins validate <plugin>`) for managing and inspecting loaded plugins.
 - Create task prompts in the TODO list that adds support for macOS and Windows operating systems
+- Review usages of `dead_code` and `unused_imports` to silence warnings and determine if code should be used or cleaned up
+- Ensure all dependencies in `Cargo.toml` are up-to-date with the latest stable versions
+- Review the codebase for usage of Rust best-practices and guidelines
+- Review the codebase for safety and security vulnerabilities and apply mitigations as needed
+- Ensure comprehensive test coverage and cleanup any clippy warnings
+- Review the auto-generated and manually-managed documentation in the `docs/` directory and validate information is accurate against the current codebase. Look for cleanup, clarification, expansion, and reorganization opportunities. Ensure all auto-generated documentation contains a banner indicating it is auto-generated and should not be manually edited.
+- Perform a final review of the entire codebase, documentation, and project structure to ensure consistency, quality, and readiness for production use.
 - Review usages of `dead_code` and `unused_imports` to silence warnings and determine if code should be used or cleaned up
 - Review the codebase for usage of Rust best-practices and guidelines
 - Review the codebase for safety and security vulnerabilities and apply mitigations as needed
 - Ensure comprehensive test coverage and cleanup any clippy warnings
-- Review the generated and manual documentation in the `docs/` directory and validate information is accurate against the current codebase. Look for cleanup, clarification, expansion, and reorganization opportunities.
+- Review the auto-generated and manually-managed documentation in the `docs/` directory and validate information is accurate against the current codebase. Look for cleanup, clarification, expansion, and reorganization opportunities. Ensure all auto-generated documentation contains a banner indicating it is auto-generated and should not be manually edited.
 - Perform a final review of the entire codebase, documentation, and project structure to ensure consistency, quality, and readiness for production use.
