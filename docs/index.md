@@ -1,8 +1,5 @@
 # Driftless
 
-[![Build Status](https://github.com/driftless-hq/driftless/workflows/CI/badge.svg)](https://github.com/driftless-hq/driftless/actions)
-[![Documentation](https://img.shields.io/badge/docs-generated-blue)](https://driftless-hq.github.io/driftless/)
-
 Streamlined system configuration, inventory, and monitoring agent with Ansible-like configuration operations, plus facts collection and log management.
 
 ## Features
