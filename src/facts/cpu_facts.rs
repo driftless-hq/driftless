@@ -285,18 +285,18 @@ mod tests {
             // Check that we have actual values, not null
             if keys.contains("usage_percent") {
                 let usage_value = map
-                    .get(&Value::String("usage_percent".to_string()))
+                    .get(Value::String("usage_percent".to_string()))
                     .unwrap();
                 assert!(!matches!(usage_value, Value::Null));
                 assert!(matches!(usage_value, Value::Number(_)));
             }
 
             if keys.contains("cores") {
-                let cores_value = map.get(&Value::String("cores".to_string())).unwrap();
+                let cores_value = map.get(Value::String("cores".to_string())).unwrap();
                 if let Value::Sequence(cores) = cores_value {
                     assert!(!cores.is_empty());
                     // Check first core has proper structure
-                    if let Some(Value::Mapping(core_map)) = cores.get(0) {
+                    if let Some(Value::Mapping(core_map)) = cores.first() {
                         let core_keys: std::collections::HashSet<_> = core_map
                             .keys()
                             .filter_map(|k| {
@@ -316,14 +316,14 @@ mod tests {
 
             if keys.contains("frequency_mhz") {
                 let freq_value = map
-                    .get(&Value::String("frequency_mhz".to_string()))
+                    .get(Value::String("frequency_mhz".to_string()))
                     .unwrap();
                 assert!(!matches!(freq_value, Value::Null));
                 assert!(matches!(freq_value, Value::Number(_)));
             }
 
             if keys.contains("load_average") {
-                let load_value = map.get(&Value::String("load_average".to_string())).unwrap();
+                let load_value = map.get(Value::String("load_average".to_string())).unwrap();
                 assert!(!matches!(load_value, Value::Null));
                 assert!(matches!(load_value, Value::Mapping(_)));
             }

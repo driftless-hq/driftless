@@ -1,0 +1,61 @@
+# Production Facts Configuration
+# Comprehensive monitoring setup for production environments
+
+collectors:
+  # CPU monitoring
+  - type: cpu
+    interval: 30
+    enabled: true
+
+  # Memory monitoring
+  - type: memory
+    interval: 30
+    enabled: true
+
+  # Disk monitoring for all mount points
+  - type: disk
+    interval: 300
+    paths: ["/", "/var", "/tmp", "/opt", "/home"]
+    enabled: true
+
+  # Network monitoring
+  - type: network
+    interval: 30
+    interfaces: ["eth0", "bond0"]  # Production interfaces
+    enabled: true
+
+  # Process monitoring
+  - type: process
+    interval: 60
+    processes: ["nginx", "postgres", "redis", "application"]
+    enabled: true
+
+  # System information
+  - type: system
+    interval: 3600
+    enabled: true
+
+# Multiple exporters for redundancy
+exporters:
+  # Primary Prometheus endpoint
+  - type: prometheus
+    port: 9090
+    path: "/metrics"
+    enabled: true
+
+  # Backup S3 storage
+  - type: s3
+    bucket: "{{ metrics_bucket }}"
+    region: "{{ aws_region }}"
+    prefix: metrics/{{ hostname }}/{{ year }}/{{ month }}/
+    interval: 300
+    enabled: true
+
+  # Local file backup
+  - type: file
+    path: "/var/log/driftless/metrics"
+    rotation:
+      max_size: "50MB"
+      max_age: "7d"
+      max_files: 7
+    enabled: true

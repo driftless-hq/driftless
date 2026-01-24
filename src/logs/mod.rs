@@ -231,7 +231,7 @@ impl LogsRegistry {
     }
 
     /// Register a log source function
-    pub fn register_source(
+    pub(crate) fn register_source(
         registry: &mut HashMap<String, LogRegistryEntry>,
         source_type: &str,
         category: &str,
@@ -260,7 +260,7 @@ impl LogsRegistry {
     }
 
     /// Register a log output function
-    pub fn register_output(
+    pub(crate) fn register_output(
         registry: &mut HashMap<String, LogRegistryEntry>,
         output_type: &str,
         category: &str,
@@ -289,7 +289,7 @@ impl LogsRegistry {
     }
 
     /// Initialize the registry with built-in log processors
-    pub fn initialize_builtin_processors(registry: &mut HashMap<String, LogRegistryEntry>) {
+    pub(crate) fn initialize_builtin_processors(registry: &mut HashMap<String, LogRegistryEntry>) {
         // File log source
         LogsRegistry::register_source(
             registry,
@@ -1176,8 +1176,7 @@ compression:
         };
 
         // Test that we can create an orchestrator
-        let orchestrator = LogOrchestrator::new(config);
+        let _orchestrator = LogOrchestrator::new(config);
         // Just test that creation succeeds
-        assert!(true); // If we get here, creation worked
     }
 }

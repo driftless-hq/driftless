@@ -209,7 +209,7 @@ mod tests {
             // Check that kernel_version is collected and not null
             if keys.contains("kernel_version") {
                 let kernel_value = map
-                    .get(&Value::String("kernel_version".to_string()))
+                    .get(Value::String("kernel_version".to_string()))
                     .unwrap();
                 assert!(!matches!(kernel_value, Value::Null));
             }
@@ -217,7 +217,7 @@ mod tests {
             // Check that uptime_seconds is collected and not null
             if keys.contains("uptime_seconds") {
                 let uptime_value = map
-                    .get(&Value::String("uptime_seconds".to_string()))
+                    .get(Value::String("uptime_seconds".to_string()))
                     .unwrap();
                 assert!(!matches!(uptime_value, Value::Null));
                 assert!(matches!(uptime_value, Value::Number(_)));
@@ -225,7 +225,7 @@ mod tests {
 
             // Check that boot_time is collected and not null
             if keys.contains("boot_time") {
-                let boot_value = map.get(&Value::String("boot_time".to_string())).unwrap();
+                let boot_value = map.get(Value::String("boot_time".to_string())).unwrap();
                 assert!(!matches!(boot_value, Value::Null));
                 assert!(matches!(boot_value, Value::Number(_)));
             }

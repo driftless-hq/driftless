@@ -101,7 +101,7 @@ mod tests {
 
         // Parse the result as a float and check it's in range
         let random_value: f64 = result.trim().parse().unwrap();
-        assert!(random_value >= 0.0 && random_value < 1.0);
+        assert!((0.0..1.0).contains(&random_value));
     }
 
     #[test]
@@ -113,7 +113,7 @@ mod tests {
         let result = template.render(minijinja::context!()).unwrap();
 
         let random_value: i64 = result.trim().parse().unwrap();
-        assert!(random_value >= 0 && random_value < 10);
+        assert!((0..10).contains(&random_value));
 
         // Test random(1) - should return 0
         let template = env.template_from_str("{{ random(1) }}").unwrap();
@@ -140,7 +140,7 @@ mod tests {
         let result = template.render(minijinja::context!()).unwrap();
 
         let random_value: i64 = result.trim().parse().unwrap();
-        assert!(random_value >= 5 && random_value < 10);
+        assert!((5..10).contains(&random_value));
 
         // Test random(10, 10) - should return 10
         let template = env.template_from_str("{{ random(10, 10) }}").unwrap();
@@ -188,7 +188,7 @@ mod tests {
         if !content.is_empty() {
             for num_str in content.split(',') {
                 let num: i64 = num_str.trim().parse().unwrap();
-                assert!(num >= 0 && num < 5);
+                assert!((0..5).contains(&num));
             }
         }
     }

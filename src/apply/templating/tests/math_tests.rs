@@ -92,7 +92,7 @@ mod tests {
             .unwrap()
             .parse()
             .unwrap();
-        assert!(result >= 0 && result <= 10);
+        assert!((0..=10).contains(&result));
 
         // Test random number with start and end range
         let template = env.template_from_str("{{ 5 | random(10) }}").unwrap();
@@ -101,7 +101,7 @@ mod tests {
             .unwrap()
             .parse()
             .unwrap();
-        assert!(result >= 5 && result <= 10);
+        assert!((5..=10).contains(&result));
 
         // Test random from string
         let template = env.template_from_str("{{ 'abc' | random }}").unwrap();
@@ -115,7 +115,7 @@ mod tests {
             .unwrap()
             .parse()
             .unwrap();
-        assert!(result >= 1 && result <= 3);
+        assert!((1..=3).contains(&result));
 
         // Test default random (0-100)
         let template = env.template_from_str("{{ none | random }}").unwrap();
@@ -124,7 +124,7 @@ mod tests {
             .unwrap()
             .parse()
             .unwrap();
-        assert!(result >= 0 && result <= 100);
+        assert!((0..=100).contains(&result));
     }
 
     #[test]

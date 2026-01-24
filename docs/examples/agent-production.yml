@@ -1,0 +1,16 @@
+# Production-Ready Agent Configuration
+# Complete example combining monitoring, logging, and configuration enforcement
+
+# Agent Configuration
+config_dir: "/etc/driftless/config"
+apply_interval: 1800  # 30 minutes
+facts_interval: 60    # 1 minute
+apply_dry_run: false
+metrics_port: 9090   # Standard Prometheus port
+enabled: true
+
+# Environment variables for secrets
+secrets:
+  aws_access_key_id: "{{ AWS_ACCESS_KEY_ID }}"
+  aws_secret_access_key: "{{ AWS_SECRET_ACCESS_KEY }}"
+  elasticsearch_password: "{{ ELASTICSEARCH_PASSWORD }}"

@@ -1,0 +1,107 @@
+# Production Logs Configuration
+# Enterprise-grade log collection and forwarding
+
+sources:
+  # Application logs
+  - type: file
+    name: application
+    paths: ["/var/log/application/*.log"]
+    parser: json
+    multiline:
+      pattern: '^{\s*"timestamp"'
+      negate: false
+    enabled: true
+
+  # Web server logs
+  - type: file
+    name: nginx
+    paths:
+      - "/var/log/nginx/access.log"
+      - "/var/log/nginx/error.log"
+    parser: nginx_combined
+    enabled: true
+
+  # Database logs
+  - type: file
+    name: postgres
+    paths: ["/var/log/postgresql/*.log"]
+    parser: syslog
+    enabled: true
+
+  # System logs
+  - type: file
+    name: system
+    paths:
+      - "/var/log/syslog"
+      - "/var/log/auth.log"
+      - "/var/log/kern.log"
+    parser: syslog
+    enabled: true
+
+  # Security logs
+  - type: file
+    name: audit
+    paths: ["/var/log/audit/audit.log"]
+    parser: audit
+    enabled: true
+
+outputs:
+  # Primary ELK stack
+  - type: http
+    name: elasticsearch
+    url: https://elasticsearch.prod.company.com:9200/_bulk
+    method: POST
+    headers:
+      Content-Type: "application/x-ndjson"
+    auth:
+      type: basic
+      username: "{{ elasticsearch_user }}"
+      password: "{{ elasticsearch_password }}"
+    tls:
+      ca_cert: "/etc/ssl/certs/ca.pem"
+      client_cert: "/etc/ssl/certs/client.pem"
+      client_key: "/etc/ssl/private/client.key"
+    batch:
+      max_size: 500
+      max_age: 60
+      max_bytes: 10485760  # 10MB
+    retry:
+      max_attempts: 3
+      backoff: exponential
+    enabled: true
+
+  # Backup S3 storage
+  - type: s3
+    name: s3-backup
+    bucket: "{{ logs_bucket }}"
+    region: "{{ aws_region }}"
+    prefix: logs/{{ hostname }}/{{ year }}/{{ month }}/{{ day }}/
+    compression:
+      algorithm: gzip
+      level: 9
+    batch:
+      max_size: 2000
+      max_age: 600
+      max_bytes: 67108864  # 64MB
+    enabled: true
+
+  # Local syslog relay
+  - type: syslog
+    name: local-relay
+    facility: local1
+    severity: info
+    host: "logrelay.prod.company.com"
+    port: 514
+    protocol: tcp
+    enabled: true
+
+  # Emergency local storage
+  - type: file
+    name: emergency-buffer
+    path: "/var/log/driftless/emergency"
+    rotation:
+      max_size: "1GB"
+      max_age: "1d"
+      max_files: 7
+      compress: true
+    enabled: true

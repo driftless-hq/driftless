@@ -1,0 +1,10 @@
+# Comprehensive Log Aggregation Agent Configuration
+# This example shows how to collect logs from multiple sources and forward them to various destinations
+
+# Agent Configuration
+config_dir: "~/.config/driftless/config"
+apply_interval: 3600  # 1 hour (reduced since we're focusing on logs)
+facts_interval: 300   # 5 minutes (reduced frequency)
+apply_dry_run: false
+metrics_port: 8001    # Different port to avoid conflicts
+enabled: true

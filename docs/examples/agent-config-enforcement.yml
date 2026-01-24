@@ -1,0 +1,10 @@
+# Configuration Enforcement Agent Configuration
+# This example focuses on continuous configuration enforcement and compliance
+
+# Agent Configuration
+config_dir: "~/.config/driftless/config"
+apply_interval: 600   # Check configuration every 10 minutes
+facts_interval: 300   # 5 minutes (reduced since focus is on config)
+apply_dry_run: false  # Actually enforce configuration
+metrics_port: 8002
+enabled: true

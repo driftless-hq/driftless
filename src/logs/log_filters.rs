@@ -2,36 +2,6 @@
 //!
 //! This module provides filtering capabilities for log entries including include/exclude patterns,
 //! field matching, rate limiting, and content-based filtering.
-//!
-//! # Examples
-//!
-//! ## Include filter
-//!
-//! ```rust
-//! use crate::logs::{log_filters::{LogFilter, IncludeFilter}, FilterConfig};
-//!
-//! let config = FilterConfig::Include {
-//!     pattern: "ERROR".to_string(),
-//!     case_sensitive: Some(false),
-//! };
-//! let filter = IncludeFilter::from_config(&config).unwrap();
-//! let entry = crate::logs::log_parsers::LogEntry::new("This is an ERROR message".to_string());
-//! assert!(filter.filter(&entry).unwrap());
-//! ```
-//!
-//! ## Rate limiting filter
-//!
-//! ```rust
-//! use crate::logs::{log_filters::{LogFilter, RateLimitFilter}, FilterConfig};
-//!
-//! let config = FilterConfig::RateLimit { events_per_second: 10 };
-//! let mut filter = RateLimitFilter::from_config(&config).unwrap();
-//! let entry = crate::logs::log_parsers::LogEntry::new("log message".to_string());
-//!
-//! // First few calls should pass
-//! assert!(filter.filter(&entry).unwrap());
-//! assert!(filter.filter(&entry).unwrap());
-//! ```
 
 use crate::logs::{FilterConfig, LogEntry};
 use anyhow::{Context, Result};
@@ -380,6 +350,7 @@ pub fn create_filter(config: &FilterConfig) -> Result<Box<dyn LogFilter>> {
 
 /// Apply a list of filters to a log entry
 /// Returns true if the entry passes all filters (should be kept)
+#[allow(dead_code)]
 pub fn apply_filters(entry: &LogEntry, filters: &[Box<dyn LogFilter>]) -> Result<bool> {
     for filter in filters {
         if !filter.filter(entry)? {

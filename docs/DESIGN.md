@@ -58,13 +58,39 @@
 - Extensible with plugins via `wasmtime` crate
 - Plugin registry and download manager
 
+### Nix Integration Opportunities
+
+The [nix crate](https://github.com/nix-rust/nix) provides Rust bindings to *nix APIs. We can leverage this for:
+
+#### High Priority (System-level operations)
+- [ ] **Process management** - Enhanced process monitoring/control
+- [ ] **Signal handling** - Send signals to processes
+- [ ] **File permissions** - More robust Unix permission handling
+- [ ] **User/group operations** - Lower-level user/group management
+- [ ] **Mount operations** - Filesystem mounting
+- [ ] **Network interfaces** - Network interface management
+- [ ] **System information** - Detailed system/hardware info
+
+#### Medium Priority (Infrastructure automation)
+- [ ] **Sysctl operations** - Kernel parameter management
+- [ ] **Capability management** - Linux capabilities
+- [ ] **Namespace operations** - Container/namespace management
+- [ ] **Cgroup management** - Control groups
+- [ ] **Inotify monitoring** - File system monitoring
+- [ ] **Socket operations** - Unix domain sockets
+
+#### Low Priority (Advanced features)
+- [ ] **ACL management** - Access control lists
+- [ ] **Extended attributes** - File extended attributes
+- [ ] **Audit operations** - System audit logging
+- [ ] **KVM operations** - Kernel-based virtual machines
+
 ## TODO
-- The pipeline workflow causes a release build to occur whenever pushed to main. I would prefer to have a release process that determines and updates the version number, creates a release tag in the repo, and creates a GitHub release when triggered. What triggers the release process is what I need help determining. Propose a trigger solution and any recommendations or alterations to the process overall.
-	- Update the pipeline with the suggested updates
-	- How do you auto-delete the PR branch after it's merged?
+- Create a new GitHub workflow that enforces repository settings programmatically using values from `.github/repo-settings.yml`. It should run only when the `.github` folder contents is modified on the `main` branch. It should include options for enabling and configuring main branch protection, preventing pushes to main unless admin, auto-delete PR branches after merge, auto-merge after required checks pass, and any other commonly used setting that might need to be managed as code.
 - Create task prompts in the TODO list that create, in managable pieces, an extensions/plugins system via the `wasmtime` crate that can create and register `apply`, `facts`, and `logs` task types and template filters and functions.
-- Create task prompts in the TODO list that create, in managable pieces, the agent mode that runs an event loop, regularly enforcing defined configuration, collecting metrics, and forwarding logs. These tasks should integrate the `apply`, `facts` and `logs` orchestrators to complete the core functionality of the CLI and resolve every clippy warning.
 - Create task prompts in the TODO list that adds support for macOS and Windows operating systems
+- Review usages of `dead_code` and `unused_imports` to silence warnings and determine if code should be used or cleaned up
 - Review the codebase for usage of Rust best-practices and guidelines
 - Review the codebase for safety, security, and production-readiness
 - Ensure comprehensive test coverage
+- Review the README.md and validate information is accurate. Look for cleanup and reorganization opportunities.

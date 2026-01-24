@@ -51,7 +51,15 @@ hostname = "0.4.2"
 prometheus = "0.14"
 sysinfo = "0.30"
 
+# HTTP server for metrics endpoint
+axum = "0.7"
+tower = "0.4"
+tower-http = { version = "0.5", features = ["cors"] }
+
 # Secrets management (TODO: add appropriate crate)
+
+# File watching for configuration changes
+notify = "6.1"
 
 # Shell-like parsing for commands
 shlex = "1.0"
@@ -81,6 +89,17 @@ uuid = { version = "1.0", features = ["v4"] }
 # Async utilities
 async-trait = "0.1"
 once_cell = "1.0"
+
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[test]]
+name = "agent_integration"
+path = "tests/agent_integration.rs"
+
+[[bench]]
+name = "agent_benchmark"
+harness = false
 
 [profile.release]
 opt-level = 3

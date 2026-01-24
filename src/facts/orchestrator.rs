@@ -110,14 +110,19 @@ pub struct FactsOrchestrator {
 impl FactsOrchestrator {
     /// Create a new facts orchestrator
     pub fn new(config: FactsConfig) -> Result<Self> {
+        Self::new_with_registry(config, prometheus::Registry::new())
+    }
+
+    /// Create a new facts orchestrator with a custom registry
+    pub fn new_with_registry(config: FactsConfig, registry: prometheus::Registry) -> Result<Self> {
         let mut exporters = Vec::new();
 
         // Initialize exporters based on configuration
         if config.export.prometheus.enabled {
-            exporters.push(
-                Box::new(PrometheusExporter::new(config.export.prometheus.clone())?)
-                    as Box<dyn FactsExporter>,
-            );
+            exporters.push(Box::new(PrometheusExporter::new(
+                config.export.prometheus.clone(),
+                registry.clone(),
+            )?) as Box<dyn FactsExporter>);
         }
 
         if let Some(s3_config) = &config.export.s3 {
@@ -215,6 +220,16 @@ impl FactsOrchestrator {
         self.collected_facts.read().await.clone()
     }
 
+    /// Get the number of configured collectors
+    pub fn collector_count(&self) -> usize {
+        self.config.collectors.len()
+    }
+
+    /// Get the number of configured exporters
+    pub fn exporter_count(&self) -> usize {
+        self.exporters.len()
+    }
+
     /// Check if a collector is enabled
     fn is_collector_enabled(&self, collector: &Collector) -> bool {
         use Collector::*;
@@ -295,9 +310,7 @@ pub struct PrometheusExporter {
 #[allow(dead_code)]
 impl PrometheusExporter {
     /// Create a new Prometheus exporter
-    pub fn new(config: PrometheusExport) -> Result<Self> {
-        let registry = prometheus::Registry::new();
-
+    pub fn new(config: PrometheusExport, registry: prometheus::Registry) -> Result<Self> {
         Ok(Self { config, registry })
     }
 }
@@ -305,17 +318,31 @@ impl PrometheusExporter {
 #[async_trait::async_trait]
 impl FactsExporter for PrometheusExporter {
     async fn export(&self, facts: &HashMap<String, Value>) -> Result<()> {
-        // Convert facts to Prometheus metrics format
+        // Convert facts to Prometheus metrics and register them
         println!("Prometheus export: {} facts collected", facts.len());
 
-        // Basic metrics conversion
         for (collector_name, fact_data) in facts {
             if let Value::Mapping(fact_map) = fact_data {
                 // Convert facts to Prometheus gauge metrics
                 for (key, value) in fact_map {
                     if let (Value::String(key_str), Value::Number(num)) = (key, value) {
                         if let Some(num_val) = num.as_f64() {
-                            println!("{}_{} {}", collector_name, key_str, num_val);
+                            // Create a gauge metric for each fact
+                            let gauge = prometheus::Gauge::new(
+                                format!("driftless_{}_{}", collector_name, key_str),
+                                format!("{} {}", collector_name, key_str),
+                            )?;
+
+                            // Register the metric with the registry
+                            self.registry.register(Box::new(gauge.clone()))?;
+
+                            // Set the value
+                            gauge.set(num_val);
+
+                            println!(
+                                "Registered metric: driftless_{}_{} = {}",
+                                collector_name, key_str, num_val
+                            );
                         }
                     }
                 }

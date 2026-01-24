@@ -48,7 +48,7 @@ pub struct TaskRegistry;
 
 impl TaskRegistry {
     /// Register a task executor function
-    pub fn register(
+    pub(crate) fn register(
         registry: &mut HashMap<String, TaskRegistryEntry>,
         task_type: &str,
         category: &str,
@@ -65,7 +65,7 @@ impl TaskRegistry {
     }
 
     /// Register a task executor function with validation
-    pub fn register_with_validator(
+    pub(crate) fn register_with_validator(
         registry: &mut HashMap<String, TaskRegistryEntry>,
         task_type: &str,
         category: &str,
@@ -83,7 +83,7 @@ impl TaskRegistry {
     }
 
     /// Initialize the registry with built-in task executors
-    pub fn initialize_builtin_executors(registry: &mut HashMap<String, TaskRegistryEntry>) {
+    pub(crate) fn initialize_builtin_executors(registry: &mut HashMap<String, TaskRegistryEntry>) {
         // File operations
         TaskRegistry::register_with_validator(
             registry,

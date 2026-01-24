@@ -2,28 +2,8 @@
 //!
 //! This module provides HTTP-based log output with batching, authentication,
 //! retry logic, and compression support.
-//!
-//! # Examples
-//!
-//! ```rust
-//! use crate::logs::{HttpOutput, http_log_output::HttpLogOutput};
-//!
-//! let config = HttpOutput {
-//!     name: "http-logs".to_string(),
-//!     enabled: true,
-//!     url: "https://logs.example.com/api/logs".to_string(),
-//!     method: "POST".to_string(),
-//!     headers: std::collections::HashMap::new(),
-//!     auth: Some(crate::logs::HttpAuth::Bearer { token: "secret".to_string() }),
-//!     ..Default::default()
-//! };
-//!
-//! let mut output = HttpLogOutput::new(config).await.unwrap();
-//! let entry = crate::logs::ShipperLogEntry::new("log message".to_string(), "test".to_string());
-//! output.write_entry(&entry).await.unwrap();
-//! output.close().await.unwrap();
-//! ```
 
+#[allow(unused_imports)]
 use crate::logs::{BatchConfig, CompressionAlgorithm, HttpAuth, HttpOutput, ShipperLogEntry};
 use anyhow::{anyhow, Context, Result};
 use chrono::{DateTime, Utc};
@@ -45,6 +25,7 @@ pub struct HttpLogOutput {
 
 impl HttpLogOutput {
     /// Create a new HTTP log output
+    #[allow(dead_code)]
     pub async fn new(config: HttpOutput) -> Result<Self> {
         let client = Client::builder()
             .timeout(Duration::from_secs(30))
@@ -248,6 +229,7 @@ impl super::LogOutputWriter for HttpLogOutput {
 }
 
 /// Create a new HTTP log output
+#[allow(dead_code)]
 pub async fn create_http_output(config: HttpOutput) -> Result<Box<dyn super::LogOutputWriter>> {
     let output = HttpLogOutput::new(config).await?;
     Ok(Box::new(output))

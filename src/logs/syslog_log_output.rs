@@ -2,27 +2,6 @@
 //!
 //! This module provides syslog-based log output with RFC 3164/5424 compliance,
 //! configurable facilities/priorities, and support for both UDP and TCP protocols.
-//!
-//! # Examples
-//!
-//! ```rust
-//! use crate::logs::{SyslogOutput, syslog_log_output::SyslogLogOutput};
-//!
-//! let config = SyslogOutput {
-//!     name: "syslog-logs".to_string(),
-//!     enabled: true,
-//!     facility: "local0".to_string(),
-//!     severity: "info".to_string(),
-//!     tag: "driftless".to_string(),
-//!     server: Some("127.0.0.1:514".to_string()),
-//!     protocol: crate::logs::SyslogProtocol::Udp,
-//! };
-//!
-//! let mut output = SyslogLogOutput::new(config).await.unwrap();
-//! let entry = crate::logs::ShipperLogEntry::new("log message".to_string(), "test".to_string());
-//! output.write_entry(&entry).await.unwrap();
-//! output.close().await.unwrap();
-//! ```
 
 use crate::logs::{ShipperLogEntry, SyslogOutput, SyslogProtocol};
 use anyhow::{Context, Result};
@@ -67,6 +46,7 @@ impl SyslogLogOutput {
     }
 
     /// Format a log entry as a syslog message (RFC 3164)
+    #[allow(dead_code)]
     fn format_rfc3164(&self, entry: &ShipperLogEntry) -> String {
         let timestamp = entry
             .timestamp

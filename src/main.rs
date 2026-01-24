@@ -1,11 +1,17 @@
 use clap::{Parser, Subcommand};
 use std::path::PathBuf;
+use std::sync::Arc;
+use tokio::sync::Mutex;
+use tracing::{error, info};
 
+mod agent;
 mod apply;
 mod doc_extractor;
 mod docs;
 mod facts;
 mod logs;
+
+use axum::{extract::State, http::StatusCode, response::Json, routing::get, Router};
 
 #[derive(Parser)]
 #[command(name = "driftless")]
@@ -48,6 +54,21 @@ enum Commands {
         /// Metrics endpoint port
         #[arg(short, long, default_value = "8000")]
         port: u16,
+        /// Apply task execution interval (seconds)
+        #[arg(long, default_value = "300")]
+        apply_interval: u64,
+        /// Facts collection interval (seconds)
+        #[arg(long, default_value = "60")]
+        facts_interval: u64,
+        /// Enable dry-run mode for apply tasks
+        #[arg(long)]
+        dry_run: bool,
+        /// Enable verbose logging
+        #[arg(short, long)]
+        verbose: bool,
+        /// Enable debug mode
+        #[arg(long)]
+        debug: bool,
     },
 }
 
@@ -134,7 +155,10 @@ async fn main() -> anyhow::Result<()> {
                     }
 
                     // Create and run the facts orchestrator
-                    match facts::FactsOrchestrator::new(config) {
+                    match facts::FactsOrchestrator::new_with_registry(
+                        config,
+                        prometheus::Registry::new(),
+                    ) {
                         Ok(orchestrator) => {
                             println!("Facts orchestrator created successfully");
                             println!("Starting facts collection...");
@@ -248,13 +272,104 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
         }
-        Commands::Agent { port } => {
-            println!("Starting agent mode with config: {}", config_dir.display());
-            println!(
+        Commands::Agent {
+            port,
+            apply_interval,
+            facts_interval,
+            dry_run,
+            verbose,
+            debug,
+        } => {
+            // Configure logging level
+            let log_level = if debug {
+                tracing::Level::DEBUG
+            } else if verbose {
+                tracing::Level::INFO
+            } else {
+                tracing::Level::WARN
+            };
+
+            // Initialize tracing subscriber with proper formatting
+            tracing_subscriber::fmt()
+                .with_max_level(log_level)
+                .with_target(false)
+                .with_thread_ids(false)
+                .with_file(false)
+                .with_line_number(false)
+                .compact()
+                .init();
+
+            info!("Starting agent mode with config: {}", config_dir.display());
+            info!(
                 "Metrics endpoint will be available at http://0.0.0.0:{}/metrics",
                 port
             );
-            // TODO: Implement agent mode
+            info!(
+                "Health check endpoint available at http://0.0.0.0:{}/health",
+                port
+            );
+            info!(
+                "Agent status endpoint available at http://0.0.0.0:{}/status",
+                port
+            );
+
+            // Load agent configuration from file if it exists
+            let mut agent_config = load_agent_config(&config_dir).unwrap_or_else(|_| {
+                info!("No agent config found, using defaults");
+                agent::AgentConfig::default()
+            });
+
+            // Override with CLI arguments
+            agent_config.config_dir = config_dir.clone();
+            agent_config.metrics_port = port;
+            agent_config.apply_interval = apply_interval;
+            agent_config.facts_interval = facts_interval;
+            agent_config.apply_dry_run = dry_run;
+
+            info!("Agent configuration:");
+            info!("  Apply interval: {} seconds", agent_config.apply_interval);
+            info!("  Facts interval: {} seconds", agent_config.facts_interval);
+            info!("  Dry run mode: {}", agent_config.apply_dry_run);
+            info!("  Metrics port: {}", agent_config.metrics_port);
+
+            // Create agent
+            let agent = Arc::new(Mutex::new(agent::Agent::new(agent_config)));
+
+            // Start HTTP server for health and status endpoints
+            let agent_clone = Arc::clone(&agent);
+            let port_clone = port;
+            let http_server = tokio::spawn(async move {
+                let app = Router::new()
+                    .route("/health", get(health_check))
+                    .route("/status", get(status_endpoint))
+                    .with_state(agent_clone);
+
+                let addr: std::net::SocketAddr = format!("0.0.0.0:{}", port_clone).parse().unwrap();
+                info!("Starting HTTP server on {}", addr);
+
+                let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+                axum::serve(listener, app).await.unwrap();
+            });
+
+            // Start agent
+            let agent_task = tokio::spawn(async move {
+                let mut agent_guard = agent.lock().await;
+                if let Err(e) = agent_guard.start().await {
+                    error!("Failed to start agent: {}", e);
+                    std::process::exit(1);
+                }
+
+                info!("Agent started successfully. Press Ctrl+C to stop.");
+
+                // Run the event loop
+                if let Err(e) = agent_guard.run_event_loop().await {
+                    error!("Agent event loop error: {}", e);
+                    std::process::exit(1);
+                }
+            });
+
+            // Wait for both tasks
+            let _ = tokio::try_join!(http_server, agent_task);
         }
     }
 
@@ -266,7 +381,7 @@ fn load_facts_config(config_dir: &PathBuf) -> anyhow::Result<facts::FactsConfig>
     use std::fs;
 
     // Look for facts configuration files
-    let facts_files = find_facts_config_files(config_dir)?;
+    let facts_files = find_config_files(config_dir, "facts")?;
 
     if facts_files.is_empty() {
         return Err(anyhow::anyhow!(
@@ -296,64 +411,41 @@ fn load_facts_config(config_dir: &PathBuf) -> anyhow::Result<facts::FactsConfig>
     Ok(config)
 }
 
-/// Find facts configuration files in the config directory
-fn find_facts_config_files(config_dir: &PathBuf) -> anyhow::Result<Vec<PathBuf>> {
+/// Load agent configuration from the config directory
+fn load_agent_config(config_dir: &PathBuf) -> anyhow::Result<agent::AgentConfig> {
     use std::fs;
 
-    if !config_dir.exists() {
+    // Look for agent configuration files
+    let agent_files = find_config_files(config_dir, "agent")?;
+
+    if agent_files.is_empty() {
         return Err(anyhow::anyhow!(
-            "Config directory does not exist: {}",
+            "No agent configuration files found in {}",
             config_dir.display()
         ));
     }
 
-    let mut facts_files = Vec::new();
+    // For now, load the first agent config file found
+    let config_file = &agent_files[0];
+    println!("Loading agent config from: {}", config_file.display());
 
-    // Look for files that might contain facts configuration
-    // Priority order: facts.{json,toml,yaml,yml}, then any .{json,toml,yaml,yml} files
-    for entry in fs::read_dir(config_dir)? {
-        let entry = entry?;
-        let path = entry.path();
-
-        if path.is_file() {
-            if let Some(file_name) = path.file_name().and_then(|n| n.to_str()) {
-                // Skip backup files and hidden files
-                if file_name.ends_with(".bak") || file_name.starts_with('.') {
-                    continue;
-                }
-
-                // Check for supported config file extensions
-                if file_name.ends_with(".json")
-                    || file_name.ends_with(".toml")
-                    || file_name.ends_with(".yaml")
-                    || file_name.ends_with(".yml")
-                {
-                    facts_files.push(path);
-                }
-            }
+    let content = fs::read_to_string(config_file)?;
+    let config: agent::AgentConfig = match config_file.extension().and_then(|s| s.to_str()) {
+        Some("json") => serde_json::from_str(&content)?,
+        Some("toml") => toml::from_str(&content)?,
+        Some("yaml") | Some("yml") => serde_yaml::from_str(&content)?,
+        _ => {
+            return Err(anyhow::anyhow!(
+                "Unsupported config file format: {}",
+                config_file.display()
+            ));
         }
-    }
+    };
 
-    // Sort files for consistent ordering (facts.* files first)
-    facts_files.sort_by(|a, b| {
-        let a_name = a.file_name().and_then(|n| n.to_str()).unwrap_or("");
-        let b_name = b.file_name().and_then(|n| n.to_str()).unwrap_or("");
-
-        let a_is_facts = a_name.starts_with("facts.");
-        let b_is_facts = b_name.starts_with("facts.");
-
-        if a_is_facts && !b_is_facts {
-            std::cmp::Ordering::Less
-        } else if !a_is_facts && b_is_facts {
-            std::cmp::Ordering::Greater
-        } else {
-            a_name.cmp(b_name)
-        }
-    });
-
-    Ok(facts_files)
+    Ok(config)
 }
 
+/// Find facts configuration files in the config directory
 /// Check if a collector is enabled based on global and collector-specific settings
 fn is_collector_enabled(collector: &facts::Collector, global_enabled: bool) -> bool {
     use facts::Collector::*;
@@ -482,7 +574,7 @@ fn load_apply_config(config_dir: &PathBuf) -> anyhow::Result<apply::ApplyConfig>
     use std::fs;
 
     // Look for apply configuration files
-    let apply_files = find_apply_config_files(config_dir)?;
+    let apply_files = find_config_files(config_dir, "apply")?;
 
     if apply_files.is_empty() {
         return Err(anyhow::anyhow!(
@@ -517,7 +609,7 @@ fn load_apply_config(config_dir: &PathBuf) -> anyhow::Result<apply::ApplyConfig>
 }
 
 /// Find apply configuration files in the config directory
-fn find_apply_config_files(config_dir: &PathBuf) -> anyhow::Result<Vec<PathBuf>> {
+fn find_config_files(config_dir: &PathBuf, prefix: &str) -> anyhow::Result<Vec<PathBuf>> {
     use std::fs;
 
     if !config_dir.exists() {
@@ -527,10 +619,10 @@ fn find_apply_config_files(config_dir: &PathBuf) -> anyhow::Result<Vec<PathBuf>>
         ));
     }
 
-    let mut apply_files = Vec::new();
+    let mut config_files = Vec::new();
 
-    // Look for files that might contain apply configuration
-    // Priority order: apply.{json,toml,yaml,yml}, then any .{json,toml,yaml,yml} files
+    // Look for files that might contain configuration
+    // Priority order: {prefix}.{json,toml,yaml,yml}, then any .{json,toml,yaml,yml} files
     for entry in fs::read_dir(config_dir)? {
         let entry = entry?;
         let path = entry.path();
@@ -548,28 +640,192 @@ fn find_apply_config_files(config_dir: &PathBuf) -> anyhow::Result<Vec<PathBuf>>
                     || file_name.ends_with(".yaml")
                     || file_name.ends_with(".yml")
                 {
-                    apply_files.push(path);
+                    config_files.push(path);
                 }
             }
         }
     }
 
-    // Sort files for consistent ordering (apply.* files first, then by name)
-    apply_files.sort_by(|a, b| {
+    // Sort files for consistent ordering ({prefix}.* files first, then by name)
+    config_files.sort_by(|a, b| {
         let a_name = a.file_name().and_then(|n| n.to_str()).unwrap_or("");
         let b_name = b.file_name().and_then(|n| n.to_str()).unwrap_or("");
 
-        let a_is_apply = a_name.starts_with("apply.");
-        let b_is_apply = b_name.starts_with("apply.");
+        let a_is_prefix = a_name.starts_with(&format!("{}.", prefix));
+        let b_is_prefix = b_name.starts_with(&format!("{}.", prefix));
 
-        if a_is_apply && !b_is_apply {
+        if a_is_prefix && !b_is_prefix {
             std::cmp::Ordering::Less
-        } else if !a_is_apply && b_is_apply {
+        } else if !a_is_prefix && b_is_prefix {
             std::cmp::Ordering::Greater
         } else {
             a_name.cmp(b_name)
         }
     });
 
-    Ok(apply_files)
+    Ok(config_files)
+}
+
+async fn health_check(
+    State(agent): State<Arc<Mutex<agent::Agent>>>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    let agent_guard = agent.lock().await;
+    let is_running = agent_guard.is_running();
+
+    if is_running {
+        (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "status": "healthy",
+                "timestamp": chrono::Utc::now().to_rfc3339()
+            })),
+        )
+    } else {
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(serde_json::json!({
+                "status": "unhealthy",
+                "timestamp": chrono::Utc::now().to_rfc3339(),
+                "message": "Agent is not running"
+            })),
+        )
+    }
+}
+
+async fn status_endpoint(State(agent): State<Arc<Mutex<agent::Agent>>>) -> Json<serde_json::Value> {
+    let agent_guard = agent.lock().await;
+
+    Json(serde_json::json!({
+        "status": if agent_guard.is_running() { "running" } else { "stopped" },
+        "timestamp": chrono::Utc::now().to_rfc3339(),
+        "config": {
+            "apply_interval": agent_guard.config().apply_interval,
+            "facts_interval": agent_guard.config().facts_interval,
+            "dry_run": agent_guard.config().apply_dry_run,
+            "metrics_port": agent_guard.config().metrics_port
+        },
+        "metrics": {
+            "apply": {
+                "execution_count": agent_guard.apply_execution_count(),
+                "success_count": agent_guard.apply_success_count(),
+                "failure_count": agent_guard.apply_failure_count(),
+                "last_execution": agent_guard.apply_last_execution().map(|t| t.elapsed().as_secs()),
+                "last_duration": agent_guard.apply_last_duration().map(|d| d.as_secs())
+            },
+            "facts": {
+                "collection_count": agent_guard.facts_collection_count(),
+                "success_count": agent_guard.facts_success_count(),
+                "failure_count": agent_guard.facts_failure_count(),
+                "last_collection": agent_guard.facts_last_collection().map(|t| t.elapsed().as_secs()),
+                "last_duration": agent_guard.facts_last_duration().map(|d| d.as_secs())
+            }
+        }
+    }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use tempfile::TempDir;
+
+    #[test]
+    fn test_find_config_files() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_dir = temp_dir.path().to_path_buf();
+
+        // Create test config files
+        fs::write(config_dir.join("agent.json"), r#"{"apply_interval": 100}"#).unwrap();
+        fs::write(config_dir.join("apply.yaml"), r#"vars: {}"#).unwrap();
+        fs::write(config_dir.join("facts.toml"), r#"[facts]"#).unwrap();
+        fs::write(config_dir.join("random.json"), r#"{}"#).unwrap();
+
+        // Test finding agent config files
+        let agent_files = find_config_files(&config_dir, "agent").unwrap();
+        assert_eq!(agent_files.len(), 4); // All config files, sorted with agent.* first
+        assert!(agent_files[0].file_name().unwrap() == "agent.json"); // agent.json first
+        assert!(agent_files[1].file_name().unwrap() == "apply.yaml");
+        assert!(agent_files[2].file_name().unwrap() == "facts.toml");
+        assert!(agent_files[3].file_name().unwrap() == "random.json");
+
+        // Test finding apply config files
+        let apply_files = find_config_files(&config_dir, "apply").unwrap();
+        assert_eq!(apply_files.len(), 4); // All config files, sorted with apply.* first
+        assert!(apply_files[0].file_name().unwrap() == "apply.yaml"); // apply.yaml first
+        assert!(apply_files[1].file_name().unwrap() == "agent.json");
+        assert!(apply_files[2].file_name().unwrap() == "facts.toml");
+        assert!(apply_files[3].file_name().unwrap() == "random.json");
+    }
+
+    #[test]
+    fn test_load_agent_config() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_dir = temp_dir.path().to_path_buf();
+
+        // Create test agent config
+        let agent_config = r#"{
+            "config_dir": "/tmp/test",
+            "apply_interval": 123,
+            "facts_interval": 456,
+            "apply_dry_run": true,
+            "metrics_port": 9999,
+            "enabled": true,
+            "secrets": {"key": "value"},
+            "resource_monitoring": {
+                "enabled": true,
+                "cache_duration": 30,
+                "memory_warning_threshold": 1073741824,
+                "cpu_warning_threshold": 80.0,
+                "async_monitoring": true,
+                "selective_monitoring": false,
+                "lightweight_monitoring": true
+            }
+        }"#;
+        fs::write(config_dir.join("agent.json"), agent_config).unwrap();
+
+        let config = load_agent_config(&config_dir).unwrap();
+        assert_eq!(config.apply_interval, 123);
+        assert_eq!(config.facts_interval, 456);
+        assert_eq!(config.metrics_port, 9999);
+        assert!(config.apply_dry_run);
+        assert!(config.enabled);
+        assert_eq!(config.secrets.get("key").unwrap(), "value");
+    }
+
+    #[test]
+    fn test_load_agent_config_not_found() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_dir = temp_dir.path().to_path_buf();
+
+        let result = load_agent_config(&config_dir);
+        assert!(result.is_err());
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("No agent configuration files found"));
+    }
+
+    #[test]
+    fn test_load_agent_config_invalid_format() {
+        let temp_dir = TempDir::new().unwrap();
+        let config_dir = temp_dir.path().to_path_buf();
+
+        // Create invalid JSON
+        fs::write(config_dir.join("agent.json"), r#"{"invalid": json}"#).unwrap();
+
+        let result = load_agent_config(&config_dir);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_health_check_handler() {
+        // This would require setting up a test agent, but for now we'll test the basic structure
+        // In a real integration test, we'd start the agent and make HTTP requests
+        // For unit testing the handler, we'd need to mock the agent state
+    }
+
+    #[test]
+    fn test_status_endpoint_handler() {
+        // Similar to health check - would need integration test setup
+    }
 }

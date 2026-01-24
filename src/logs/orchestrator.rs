@@ -5,9 +5,8 @@
 
 use crate::logs::{
     create_console_output, create_file_output, create_filter, create_parser, create_s3_output,
-    create_syslog_output, ConsoleOutput, FileLogSource, FileOutput, FilterConfig, LogEntry,
-    LogOutput, LogOutputWriter, LogSource, LogsConfig, ParserConfig, S3Output, ShipperLogEntry,
-    SyslogOutput,
+    create_syslog_output, FileLogSource, FilterConfig, LogEntry, LogOutput, LogOutputWriter,
+    LogSource, LogsConfig, ParserConfig, ShipperLogEntry,
 };
 use anyhow::{anyhow, Result};
 use std::collections::HashMap;
@@ -409,5 +408,15 @@ impl LogOrchestrator {
         for task in self.output_tasks.drain(..) {
             let _ = task.await;
         }
+    }
+
+    /// Get the number of configured sources
+    pub fn source_count(&self) -> usize {
+        self.config.sources.len()
+    }
+
+    /// Get the number of configured outputs
+    pub fn output_count(&self) -> usize {
+        self.config.outputs.len()
     }
 }

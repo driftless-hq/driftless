@@ -342,7 +342,7 @@ mod tests {
             assert!(keys.contains("disks"));
 
             // Check disks array
-            if let Some(Value::Sequence(disks)) = map.get(&Value::String("disks".to_string())) {
+            if let Some(Value::Sequence(disks)) = map.get(Value::String("disks".to_string())) {
                 // Should have at least one disk (depending on system)
                 // Note: In test environment, this might be empty, so we don't assert length
 

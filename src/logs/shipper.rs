@@ -9,17 +9,20 @@ use std::collections::HashMap;
 use tokio::sync::mpsc;
 
 /// Log shipper for collecting and forwarding logs
+#[allow(dead_code)]
 pub struct LogShipper {
     config: LogsConfig,
 }
 
 impl LogShipper {
     /// Create a new log shipper
+    #[allow(dead_code)]
     pub fn new(config: LogsConfig) -> Self {
         Self { config }
     }
 
     /// Start the log shipping process
+    #[allow(dead_code)]
     pub async fn start(&self) -> Result<()> {
         println!(
             "Starting log shipping with {} sources and {} outputs",
@@ -53,6 +56,7 @@ impl LogShipper {
     }
 
     /// Process a single log entry
+    #[allow(dead_code)]
     pub async fn process_log_entry(&self, entry: LogEntry) -> Result<()> {
         // TODO: Apply filters and transformations
         // TODO: Forward to configured outputs
@@ -62,6 +66,7 @@ impl LogShipper {
     }
 
     /// Validate the log shipping configuration
+    #[allow(dead_code)]
     pub fn validate(&self) -> Result<()> {
         println!("Validating log shipping configuration...");
 
@@ -100,6 +105,7 @@ impl LogShipper {
     }
 
     /// Check if an output is enabled
+    #[allow(dead_code)]
     fn is_output_enabled(&self, output: &LogOutput) -> bool {
         use crate::logs::LogOutput::*;
 
@@ -113,6 +119,7 @@ impl LogShipper {
     }
 
     /// Get the name of an output
+    #[allow(dead_code)]
     fn get_output_name<'a>(&self, output: &'a LogOutput) -> &'a str {
         use crate::logs::LogOutput::*;
 
@@ -143,6 +150,7 @@ pub struct LogEntry {
 
 impl LogEntry {
     /// Create a new log entry
+    #[allow(dead_code)]
     pub fn new(message: String, source: String) -> Self {
         Self {
             message,
@@ -154,12 +162,14 @@ impl LogEntry {
     }
 
     /// Add a parsed field
+    #[allow(dead_code)]
     pub fn with_field(mut self, key: String, value: serde_json::Value) -> Self {
         self.fields.insert(key, value);
         self
     }
 
     /// Add a label
+    #[allow(dead_code)]
     pub fn with_label(mut self, key: String, value: String) -> Self {
         self.labels.insert(key, value);
         self
@@ -167,17 +177,20 @@ impl LogEntry {
 }
 
 /// File tailer for monitoring log files
+#[allow(dead_code)]
 pub struct FileTailer {
     source: LogSource,
 }
 
 impl FileTailer {
     /// Create a new file tailer
+    #[allow(dead_code)]
     pub fn new(source: LogSource) -> Self {
         Self { source }
     }
 
     /// Start tailing the configured files
+    #[allow(dead_code)]
     pub async fn start_tailing(&self) -> Result<()> {
         println!(
             "Starting to tail {} files for source: {}",

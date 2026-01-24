@@ -1,0 +1,105 @@
+# Comprehensive Log Aggregation Configuration
+# Collects logs from multiple sources and forwards to various destinations
+
+sources:
+  # Web server access logs
+  - type: file
+    name: nginx-access
+    paths:
+      - "/var/log/nginx/access.log"
+      - "/var/log/nginx/access.log.1"
+    parser: common  # Apache Common Log Format
+    multiline:
+      pattern: '^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}'  # IP address at start
+      negate: false
+    enabled: true
+
+  # Web server error logs
+  - type: file
+    name: nginx-error
+    paths: ["/var/log/nginx/error.log"]
+    parser: nginx_error
+    enabled: true
+
+  # System authentication logs
+  - type: file
+    name: system-auth
+    paths: ["/var/log/auth.log", "/var/log/secure"]
+    parser: syslog
+    enabled: true
+
+  # System messages
+  - type: file
+    name: system-messages
+    paths: ["/var/log/messages", "/var/log/syslog"]
+    parser: syslog
+    enabled: true
+
+  # Application logs (JSON format)
+  - type: file
+    name: application-json
+    paths: ["/var/log/application/*.log"]
+    parser: json
+    multiline:
+      pattern: '^{\s*"timestamp"'  # JSON objects starting with timestamp
+      negate: false
+    enabled: true
+
+  # Docker container logs
+  - type: file
+    name: docker-logs
+    paths: ["/var/lib/docker/containers/*/*.log"]
+    parser: json
+    enabled: true
+
+outputs:
+  # Long-term S3 storage with compression
+  - type: s3
+    name: s3-long-term-storage
+    bucket: my-company-logs
+    region: us-east-1
+    prefix: logs/{{ year }}/{{ month }}/{{ day }}/
+    compression:
+      algorithm: gzip
+      level: 6
+    batch:
+      max_size: 1000  # 1000 log entries per batch
+      max_age: 300    # 5 minutes max batch age
+      max_bytes: 5242880  # 5MB max batch size
+    enabled: true
+
+  # Real-time ELK stack forwarding
+  - type: http
+    name: elasticsearch-bulk
+    url: http://elasticsearch:9200/_bulk
+    method: POST
+    headers:
+      Content-Type: "application/x-ndjson"
+    auth:
+      type: basic
+      username: elastic
+      password: "{{ elasticsearch_password }}"
+    batch:
+      max_size: 100
+      max_age: 30
+    timeout: 30
+    enabled: true
+
+  # Local syslog for immediate visibility
+  - type: syslog
+    name: local-syslog
+    facility: local0
+    severity: info
+    tag: driftless
+    enabled: true
+
+  # Local file archive for backup
+  - type: file
+    name: local-archive
+    path: "/var/log/driftless/archive"
+    rotation:
+      max_size: "100MB"
+      max_age: "30d"
+      max_files: 30
+      compress: true
+    enabled: true
