@@ -3,6 +3,8 @@
 [![Build Status](https://github.com/driftless-hq/driftless/workflows/CI/badge.svg)](https://github.com/driftless-hq/driftless/actions)
 [![Documentation](https://img.shields.io/badge/docs-generated-blue)](https://driftless-hq.github.io/driftless/)
 
+> **Warning:** This is an experimental, AI-assisted project. Bugs and other shortcomings are expected and should be reported as GitHub Issues. PRs are welcome!
+
 Streamlined system configuration, inventory, and monitoring agent with Ansible-like configuration operations, plus facts collection and log management.
 
 ## Documentation

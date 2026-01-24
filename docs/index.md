@@ -1,5 +1,7 @@
 # Driftless
 
+> **Warning:** This is an experimental, AI-assisted project. Bugs and other shortcomings are expected and should be reported as GitHub Issues. PRs are welcome!
+
 Streamlined system configuration, inventory, and monitoring agent with Ansible-like configuration operations, plus facts collection and log management.
 
 ## Features
