@@ -87,8 +87,6 @@ jobs:
       with:
         path: ~/.cargo/bin/cargo-audit
         key: ${{ runner.os }}-cargo-audit-v1
-        restore-keys: |
-          ${{ runner.os }}-cargo-audit-
 
     - name: Install cargo-audit
       run: |
@@ -114,13 +112,14 @@ jobs:
       with:
         toolchain: nightly
 
+    - name: Cache Rust dependencies
+      uses: Swatinem/rust-cache@v2
+
     - name: Cache cargo-udeps
       uses: actions/cache@v4
       with:
         path: ~/.cargo/bin/cargo-udeps
         key: ${{ runner.os }}-cargo-udeps-v1
-        restore-keys: |
-          ${{ runner.os }}-cargo-udeps-
 
     - name: Install cargo-udeps
       run: |
@@ -150,8 +149,6 @@ jobs:
       with:
         path: ~/.cargo/bin/cargo-outdated
         key: ${{ runner.os }}-cargo-outdated-v1
-        restore-keys: |
-          ${{ runner.os }}-cargo-outdated-
 
     - name: Install cargo-outdated
       run: |
@@ -161,7 +158,7 @@ jobs:
       timeout-minutes: 15
 
     - name: Check for outdated dependencies
-      run: cargo outdated --exit-code 1
+      run: cargo outdated --root-deps-only --exit-code 1
       continue-on-error: true
 
   # Coverage reporting
