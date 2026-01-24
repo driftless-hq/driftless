@@ -2,4 +2,4 @@
 
 Welcome to the Driftless documentation. This documentation is auto-generated from the markdown files in this repository.
 
-For the project introduction and overview, see the [README](https://github.com/driftless-hq/driftless#readme) on GitHub.
+For the project introduction and overview, see the [Introduction](introduction.md).
