@@ -13,9 +13,9 @@ on:
 
 permissions:
   contents: read
-  # Note: Repository settings modification requires a token with appropriate permissions
-  # The default GITHUB_TOKEN has limited permissions and may not be able to modify all settings
-  # Consider using a Personal Access Token (PAT) with 'repo' and 'admin:repo_hook' scopes if needed
+  # Repository settings modification requires a token with appropriate permissions
+  # The ENFORCE_REPO_SETTINGS_TOKEN secret should be a Personal Access Token (PAT) 
+  # with 'repo', 'admin:repo_hook', and 'admin:org' scopes (if applicable)
 
 jobs:
   enforce-settings:
@@ -44,7 +44,7 @@ jobs:
     
     - name: Apply repository settings
       env:
-        GH_TOKEN: ${{ github.token }}
+        GH_TOKEN: ${{ secrets.ENFORCE_REPO_SETTINGS_TOKEN }}
         REPO: ${{ github.repository }}
       run: |
         set -e
@@ -177,7 +177,7 @@ jobs:
     
     - name: Verify settings
       env:
-        GH_TOKEN: ${{ github.token }}
+        GH_TOKEN: ${{ secrets.ENFORCE_REPO_SETTINGS_TOKEN }}
         REPO: ${{ github.repository }}
       run: |
         echo "Verifying applied settings..."
