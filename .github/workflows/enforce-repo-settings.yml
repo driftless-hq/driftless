@@ -90,11 +90,12 @@ jobs:
         # Apply repository topics
         echo "Updating repository topics..."
         TOPICS=$(yq '.repository.topics[]' "$SETTINGS_FILE" | jq -R . | jq -s .)
+        echo "{\"names\": $TOPICS}" > /tmp/topics.json
         gh api \
           --method PUT \
           -H "Accept: application/vnd.github+json" \
           "/repos/$REPO/topics" \
-          -f names="$TOPICS"
+          --input /tmp/topics.json
         
         echo "✓ Repository topics updated"
         
