@@ -48,8 +48,19 @@ jobs:
       with:
         mdbook-version: '0.4.40'
 
+    - name: Cache mdbook-autosummary
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/bin/mdbook-autosummary
+        key: ${{ runner.os }}-mdbook-autosummary-v0.1.9
+        restore-keys: |
+          ${{ runner.os }}-mdbook-autosummary-
+
     - name: Install mdbook-autosummary
-      run: cargo install mdbook-autosummary --version 0.1.9
+      run: |
+        if ! command -v mdbook-autosummary &> /dev/null; then
+          cargo install mdbook-autosummary --version 0.1.9 --locked
+        fi
       timeout-minutes: 15
 
     - name: Verify mdBook installation
@@ -64,6 +75,18 @@ jobs:
     - name: Build mdBook
       run: mdbook build
       timeout-minutes: 10
+
+    - name: Verify mdBook output
+      run: |
+        if [ ! -d "book" ]; then
+          echo "Error: book directory was not created by mdbook build"
+          exit 1
+        fi
+        if [ ! -f "book/index.html" ]; then
+          echo "Error: book/index.html was not created"
+          exit 1
+        fi
+        echo "mdBook build successful, book directory exists"
 
     - name: Integrate Rust API docs into mdBook output
       run: |

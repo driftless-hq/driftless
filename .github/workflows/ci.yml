@@ -20,6 +20,8 @@ jobs:
   test:
     name: Test (${{ matrix.os }}, ${{ matrix.arch }}, ${{ matrix.rust }})
     runs-on: ${{ matrix.os }}
+    # Skip the entire job for platforms not yet implemented
+    if: matrix.skip_tests == false
     strategy:
       matrix:
         include:
@@ -91,20 +93,18 @@ jobs:
 
     - name: Check formatting (Linux amd64 only)
       run: cargo fmt --all -- --check
-      if: matrix.os == 'ubuntu-latest' && matrix.arch == 'amd64' && matrix.rust == 'stable' && matrix.skip_tests == false
+      if: matrix.os == 'ubuntu-latest' && matrix.arch == 'amd64' && matrix.rust == 'stable'
 
     - name: Run clippy (Linux amd64 only)
       run: cargo clippy -- -D warnings
-      if: matrix.os == 'ubuntu-latest' && matrix.arch == 'amd64' && matrix.rust == 'stable' && matrix.skip_tests == false
+      if: matrix.os == 'ubuntu-latest' && matrix.arch == 'amd64' && matrix.rust == 'stable'
 
     - name: Build project
       run: cargo build --target ${{ matrix.target }} --verbose
-      if: matrix.skip_tests == false
       timeout-minutes: 30
 
     - name: Run tests
       run: cargo test --target ${{ matrix.target }} --verbose
-      if: matrix.skip_tests == false
       timeout-minutes: 20
 
   # Security audit
