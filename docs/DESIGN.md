@@ -86,6 +86,7 @@ The [nix crate](https://github.com/nix-rust/nix) provides Rust bindings to *nix 
 - [ ] **KVM operations** - Kernel-based virtual machines
 
 ## TODO
+- Move validation code from the pipeline workflows and into a new script in the `scripts` folder that the workflow calls. This will allow developers to discover potential pipeline failures before committing code.
 - Create a new GitHub workflow that enforces repository settings programmatically using values from `.github/repo-settings.yml`. It should run only when the `.github` folder contents is modified on the `main` branch. It should include options for enabling and configuring main branch protection, preventing pushes to main unless admin, auto-delete PR branches after merge, auto-merge after required checks pass, and any other commonly used setting that might need to be managed as code.
 - Create task prompts in the TODO list that create, in managable pieces, an extensions/plugins system via the `wasmtime` crate that can create and register `apply`, `facts`, and `logs` task types and template filters and functions.
 - Create task prompts in the TODO list that adds support for macOS and Windows operating systems
