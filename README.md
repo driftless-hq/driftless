@@ -8,7 +8,7 @@ Streamlined system configuration, inventory, and monitoring agent with Ansible-l
 ## Documentation
 
 - **[Complete Documentation](https://driftless-hq.github.io/driftless/)** - Full documentation on GitHub Pages
-- **[Introduction & Quick Start](docs/introduction.md)** - Comprehensive guide to get started
+- **[Documentation Source](docs/)** - Markdown documentation in the repository
 - **[API Documentation](https://driftless-hq.github.io/driftless/api/driftless/)** - Rust API documentation
 
 ## Quick Start
