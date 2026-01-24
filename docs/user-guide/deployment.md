@@ -15,7 +15,7 @@ This guide covers deploying the Driftless agent in production environments.
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/driftless.git
+git clone https://github.com/driftless-hq/driftless.git
 cd driftless
 
 # Build the binary
@@ -29,7 +29,7 @@ sudo cp target/release/driftless /usr/local/bin/
 
 ```bash
 # Download the latest release
-wget https://github.com/your-org/driftless/releases/latest/download/driftless-linux-x64.tar.gz
+wget https://github.com/driftless-hq/driftless/releases/latest/download/driftless-linux-x64.tar.gz
 tar -xzf driftless-linux-x64.tar.gz
 sudo mv driftless /usr/local/bin/
 ```
