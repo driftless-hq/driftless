@@ -84,8 +84,8 @@ driftless docs --format json --output docs/schema/apply-config.schema.json
 
 ### View Documentation
 - [Configuration Operations Reference](reference/tasks-reference.md) - Complete operation documentation with examples in YAML, JSON, and TOML
-- [JSON Schema](../docs/schema/apply-config.schema.json) - Schema for configuration validation
-- [Example Configurations](../docs/examples/) - Comprehensive examples in all supported formats
+- [JSON Schema](schema/apply-config.schema.json) - Schema for configuration validation
+- [Example Configurations](examples/) - Comprehensive examples in all supported formats
 - [API Documentation](https://driftless-hq.github.io/driftless/api/driftless/) - Generated Rust API docs
 
 ### Configuration Formats
@@ -323,4 +323,3 @@ pub async fn execute_my_operation(operation: &MyOperation, dry_run: bool) -> Res
 ## License
 
 Licensed under the Apache License, Version 2.0. See [LICENSE](../LICENSE) for details.
-```
