@@ -30,6 +30,10 @@ def should_include_file(file_path: Path, docs_dir: Path) -> bool:
     if file_path.name == 'SUMMARY.md':
         return False
     
+    # Skip README.md (it's in the root, not for the docs)
+    if file_path.name == 'README.md':
+        return False
+    
     # Only include .md files
     if file_path.suffix != '.md':
         return False
