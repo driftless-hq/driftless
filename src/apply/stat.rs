@@ -474,7 +474,7 @@ mod tests {
 
         if let serde_yaml::Value::Mapping(map) = result.unwrap() {
             assert_eq!(
-                map.get(&serde_yaml::Value::String("exists".to_string())),
+                map.get(serde_yaml::Value::String("exists".to_string())),
                 Some(&serde_yaml::Value::Bool(false))
             );
         } else {

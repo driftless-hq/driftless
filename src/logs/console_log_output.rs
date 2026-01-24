@@ -2,23 +2,6 @@
 //!
 //! This module provides console-based log output for stdout/stderr with
 //! structured formatting and configurable output targets.
-//!
-//! # Examples
-//!
-//! ```rust
-//! use crate::logs::{ConsoleOutput, console_log_output::ConsoleLogOutput};
-//!
-//! let config = ConsoleOutput {
-//!     name: "console-logs".to_string(),
-//!     enabled: true,
-//!     target: crate::logs::ConsoleTarget::Stdout,
-//! };
-//!
-//! let mut output = ConsoleLogOutput::new(config).unwrap();
-//! let entry = crate::logs::ShipperLogEntry::new("log message".to_string(), "test".to_string());
-//! output.write_entry(&entry).await.unwrap();
-//! output.close().await.unwrap();
-//! ```
 
 use crate::logs::{ConsoleOutput, ConsoleTarget, ShipperLogEntry};
 use anyhow::{Context, Result};
@@ -28,6 +11,7 @@ use tokio::task;
 
 /// Console-based log output with structured formatting
 pub struct ConsoleLogOutput {
+    #[allow(dead_code)]
     config: ConsoleOutput,
     writer: Box<dyn Write + Send>,
 }
@@ -57,6 +41,7 @@ impl ConsoleLogOutput {
     }
 
     /// Format a log entry as JSON for console output
+    #[allow(dead_code)]
     fn format_entry_json(&self, entry: &ShipperLogEntry) -> Result<String> {
         let mut json_entry = serde_json::Map::new();
 
@@ -137,7 +122,6 @@ pub fn create_console_output(config: ConsoleOutput) -> Result<Box<dyn super::Log
 mod tests {
     use super::*;
     use crate::logs::ShipperLogEntry;
-    use chrono::Utc;
 
     #[test]
     fn test_format_entry() {

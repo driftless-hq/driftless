@@ -1,0 +1,139 @@
+# Production Configuration Enforcement
+# Critical system configuration that must be maintained
+
+tasks:
+  # Core system packages
+  - type: package
+    name: monitoring-tools
+    state: present
+
+  - type: package
+    name: logrotate
+    state: present
+
+  - type: package
+    name: unattended-upgrades
+    state: present
+
+  # Monitoring services
+  - type: service
+    name: monitoring-agent
+    state: started
+    enabled: true
+
+  - type: service
+    name: logrotate
+    state: started
+    enabled: true
+
+  # Security hardening
+  - type: sysctl
+    name: "net.ipv4.tcp_syncookies"
+    value: "1"
+
+  - type: sysctl
+    name: "net.ipv4.conf.all.rp_filter"
+    value: "1"
+
+  - type: sysctl
+    name: "kernel.randomize_va_space"
+    value: "2"
+
+  - type: sysctl
+    name: "net.ipv4.ip_forward"
+    value: "0"
+
+  # SSH hardening
+  - type: file
+    path: "/etc/ssh/sshd_config.d/driftless.conf"
+    state: present
+    content: |
+      # Production SSH hardening enforced by driftless
+      PermitRootLogin no
+      PasswordAuthentication no
+      MaxAuthTries 3
+      ClientAliveInterval 60
+      ClientAliveCountMax 3
+      AllowTcpForwarding no
+      X11Forwarding no
+      PermitTTY yes
+      PrintLastLog yes
+    mode: "0644"
+
+  - type: service
+    name: ssh
+    state: restarted
+
+  # Log rotation policies
+  - type: logrotate
+    name: application-logs
+    path: "/var/log/application/*.log"
+    options:
+      - "daily"
+      - "rotate 30"
+      - "compress"
+      - "missingok"
+      - "notifempty"
+      - "create 0644 {{ application_user }} {{ application_group }}"
+
+  # Backup configuration
+  - type: cron
+    name: daily-backup
+    minute: "0"
+    hour: "2"
+    job: "/usr/local/bin/backup.sh"
+    state: present
+    user: backup
+
+  # Monitoring configuration
+  - type: file
+    path: "/etc/monitoring/agent.yml"
+    state: present
+    content: |
+      # Monitoring agent configuration
+      server: monitoring.prod.company.com
+      port: 443
+      tls: true
+      api_key: "{{ monitoring_api_key }}"
+    mode: "0600"
+    owner: monitoring
+    group: monitoring
+
+  # NTP synchronization
+  - type: service
+    name: systemd-timesyncd
+    state: started
+    enabled: true
+
+  - type: file
+    path: "/etc/systemd/timesyncd.conf"
+    state: present
+    content: |
+      [Time]
+      NTP=ntp1.prod.company.com ntp2.prod.company.com
+      FallbackNTP=pool.ntp.org
+    mode: "0644"
+
+  - type: service
+    name: systemd-timesyncd
+    state: restarted
+
+  # Disk monitoring
+  - type: cron
+    name: disk-usage-alert
+    minute: "*/15"
+    job: "/usr/local/bin/check-disk-usage.sh"
+    state: present
+    user: root
+
+  # Security updates
+  - type: file
+    path: "/etc/apt/apt.conf.d/50unattended-upgrades"
+    state: present
+    content: |
+      Unattended-Upgrade::Allowed-Origins {
+          "${distro_id}:${distro_codename}-security";
+      };
+      Unattended-Upgrade::Automatic-Reboot "true";
+      Unattended-Upgrade::Automatic-Reboot-Time "02:00";
+    mode: "0644"

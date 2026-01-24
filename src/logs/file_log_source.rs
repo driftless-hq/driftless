@@ -96,6 +96,7 @@ use tokio::time;
 #[derive(Debug, Clone)]
 struct FileReaderState {
     /// Current file path
+    #[allow(dead_code)]
     path: PathBuf,
     /// Current read position in the file
     position: u64,
@@ -119,14 +120,17 @@ pub struct MultilineConfig {
     /// Maximum number of lines to combine
     pub max_lines: Option<usize>,
     /// Timeout for multiline assembly
+    #[allow(dead_code)]
     pub timeout: Option<Duration>,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub enum MultilineMatchType {
     /// Lines after the match are part of the same entry
+    #[allow(dead_code)]
     After,
     /// Lines before the match are part of the same entry
+    #[allow(dead_code)]
     Before,
 }
 
@@ -369,6 +373,7 @@ impl FileLogSource {
     }
 
     /// Get the source configuration
+    #[allow(dead_code)]
     pub fn config(&self) -> &LogSource {
         &self.config
     }

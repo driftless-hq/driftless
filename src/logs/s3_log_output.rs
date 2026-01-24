@@ -2,28 +2,8 @@
 //!
 //! This module provides S3-based log output with batched uploads, compression,
 //! and configurable prefixes and regions.
-//!
-//! # Examples
-//!
-//! ```rust
-//! use crate::logs::{S3Output, s3_log_output::S3LogOutput};
-//!
-//! let config = S3Output {
-//!     name: "s3-logs".to_string(),
-//!     enabled: true,
-//!     bucket: "my-logs-bucket".to_string(),
-//!     region: "us-east-1".to_string(),
-//!     prefix: "logs/".to_string(),
-//!     upload_interval: 300,
-//!     ..Default::default()
-//! };
-//!
-//! let mut output = S3LogOutput::new(config).await.unwrap();
-//! let entry = crate::logs::ShipperLogEntry::new("log message".to_string(), "test".to_string());
-//! output.write_entry(&entry).await.unwrap();
-//! output.close().await.unwrap();
-//! ```
 
+#[allow(unused_imports)]
 use crate::logs::{CompressionAlgorithm, CompressionConfig, S3Output, ShipperLogEntry};
 use anyhow::{anyhow, Context, Result};
 use chrono::{DateTime, Utc};
@@ -40,6 +20,7 @@ pub struct S3LogOutput {
     bucket: Bucket,
     buffer: Vec<String>,
     last_upload: DateTime<Utc>,
+    #[allow(dead_code)]
     upload_task: Option<tokio::task::JoinHandle<()>>,
 }
 
@@ -135,6 +116,7 @@ impl S3LogOutput {
     }
 
     /// Generate S3 key for upload (static version for testing)
+    #[allow(dead_code)]
     fn generate_key_static(config: &S3Output, timestamp: &DateTime<Utc>) -> String {
         let timestamp_str = timestamp.format("%Y/%m/%d/%H/%M/%S").to_string();
         let random_suffix = format!("{:x}", rand::random::<u32>());

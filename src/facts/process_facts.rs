@@ -279,7 +279,7 @@ mod tests {
 
             // Check processes array
             if let Some(Value::Sequence(processes)) =
-                map.get(&Value::String("processes".to_string()))
+                map.get(Value::String("processes".to_string()))
             {
                 // If there are processes, validate structure
                 for process in processes {

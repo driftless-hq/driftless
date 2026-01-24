@@ -251,7 +251,7 @@ mod tests {
 
             // Check interfaces array
             if let Some(Value::Sequence(interfaces)) =
-                map.get(&Value::String("interfaces".to_string()))
+                map.get(Value::String("interfaces".to_string()))
             {
                 // Should have at least one interface (depending on system)
                 // Note: In test environment, this might be empty, so we don't assert length

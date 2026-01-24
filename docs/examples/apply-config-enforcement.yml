@@ -1,0 +1,127 @@
+# Configuration Enforcement Tasks
+# Ensures system configuration remains compliant with policy
+
+tasks:
+  # Security packages
+  - type: package
+    name: fail2ban
+    state: present
+
+  - type: package
+    name: ufw
+    state: present
+
+  - type: package
+    name: auditd
+    state: present
+
+  # Security services
+  - type: service
+    name: fail2ban
+    state: started
+    enabled: true
+
+  - type: service
+    name: ufw
+    state: started
+    enabled: true
+
+  - type: service
+    name: auditd
+    state: started
+    enabled: true
+
+  # Firewall configuration
+  - type: ufw
+    rule: allow
+    port: "22"
+    proto: tcp
+    from_ip: "10.0.0.0/8"
+
+  - type: ufw
+    rule: allow
+    port: "80"
+    proto: tcp
+
+  - type: ufw
+    rule: allow
+    port: "443"
+    proto: tcp
+
+  - type: ufw
+    rule: default
+    policy: deny
+    direction: incoming
+
+  # SSH hardening
+  - type: file
+    path: "/etc/ssh/sshd_config"
+    state: present
+    content: |
+      # SSH configuration enforced by driftless
+      PermitRootLogin no
+      PasswordAuthentication no
+      X11Forwarding no
+      MaxAuthTries 3
+      ClientAliveInterval 60
+      ClientAliveCountMax 3
+    mode: "0644"
+    backup: true
+
+  - type: service
+    name: sshd
+    state: restarted
+
+  # System hardening
+  - type: sysctl
+    name: "net.ipv4.tcp_syncookies"
+    value: "1"
+    state: present
+
+  - type: sysctl
+    name: "net.ipv4.conf.all.rp_filter"
+    value: "1"
+    state: present
+
+  - type: sysctl
+    name: "kernel.randomize_va_space"
+    value: "2"
+    state: present
+
+  # Log rotation for security logs
+  - type: logrotate
+    name: auth-log
+    path: "/var/log/auth.log"
+    options:
+      - "weekly"
+      - "rotate 12"
+      - "compress"
+      - "missingok"
+      - "notifempty"
+
+  # Cron job for log analysis
+  - type: cron
+    name: security-log-check
+    minute: "0"
+    hour: "*/4"
+    job: "/usr/local/bin/security-check.sh"
+    state: present
+    user: root
+
+  # Ensure security monitoring scripts exist
+  - type: file
+    path: "/usr/local/bin/security-check.sh"
+    state: present
+    content: |
+      #!/bin/bash
+      # Security log analysis script
+      echo "Running security checks at $(date)"
+
+      # Check for suspicious login attempts
+      if grep -q "Failed password" /var/log/auth.log; then
+          echo "ALERT: Failed login attempts detected"
+          # Send alert here
+      fi
+    mode: "0755"
+    owner: root
+    group: root

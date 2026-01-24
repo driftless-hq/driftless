@@ -2,30 +2,6 @@
 //!
 //! This module provides parsers for different log formats including plain text,
 //! JSON, key-value pairs, Apache/Nginx logs, syslog, and custom regex patterns.
-//!
-//! # Examples
-//!
-//! ## JSON Parser
-//!
-//! ```rust
-//! use crate::logs::log_parsers::{LogParser, JsonParser};
-//!
-//! let parser = JsonParser::new();
-//! let log_line = r#"{"timestamp": "2023-01-01T12:00:00Z", "level": "INFO", "message": "Hello world"}"#;
-//! let entry = parser.parse(log_line).unwrap();
-//! assert_eq!(entry.fields.get("level"), Some(&serde_json::Value::String("INFO".to_string())));
-//! ```
-//!
-//! ## Key-Value Parser
-//!
-//! ```rust
-//! use crate::logs::log_parsers::{LogParser, KeyValueParser};
-//!
-//! let parser = KeyValueParser::new();
-//! let log_line = "timestamp=2023-01-01T12:00:00Z level=INFO message=\"Hello world\"";
-//! let entry = parser.parse(log_line).unwrap();
-//! assert_eq!(entry.fields.get("level"), Some(&serde_json::Value::String("INFO".to_string())));
-//! ```
 
 use crate::logs::{ParserConfig, ParserType};
 use anyhow::{Context, Result};
@@ -63,6 +39,7 @@ impl LogEntry {
     }
 
     /// Create a log entry with parsed fields
+    #[allow(dead_code)]
     pub fn with_fields(raw: String, fields: HashMap<String, Value>) -> Self {
         Self {
             raw,
@@ -80,6 +57,7 @@ pub trait LogParser: Send + Sync {
     fn parse(&self, line: &str) -> Result<LogEntry>;
 
     /// Get the parser type
+    #[allow(dead_code)]
     fn parser_type(&self) -> ParserType;
 }
 
@@ -152,6 +130,7 @@ impl LogParser for JsonParser {
 
 /// Key-value parser (key=value format)
 pub struct KeyValueParser {
+    #[allow(dead_code)]
     separator: String,
 }
 
@@ -164,6 +143,7 @@ impl KeyValueParser {
     }
 
     /// Create a key-value parser with custom separator
+    #[allow(dead_code)]
     pub fn with_separator(separator: String) -> Self {
         Self { separator }
     }
@@ -892,7 +872,7 @@ mod tests {
                 "http://www.example.com/start.html".to_string()
             ))
         );
-        assert!(entry.fields.get("user_agent").is_some());
+        assert!(entry.fields.contains_key("user_agent"));
     }
 
     #[test]

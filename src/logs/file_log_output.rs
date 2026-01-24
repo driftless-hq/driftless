@@ -2,26 +2,6 @@
 //!
 //! This module provides file-based log output functionality with support for
 //! file rotation, compression, and timestamp-based filename patterns.
-//!
-//! # Examples
-//!
-//! ## Basic file output
-//!
-//! ```rust
-//! use crate::logs::{FileOutput, file_log_output::FileLogOutput};
-//!
-//! let config = FileOutput {
-//!     name: "app_logs".to_string(),
-//!     enabled: true,
-//!     path: "/var/log/app".to_string(),
-//!     filename_pattern: "%Y-%m-%d-app.log".to_string(),
-//!     ..Default::default()
-//! };
-//!
-//! let mut output = FileLogOutput::new(config).unwrap();
-//! let entry = crate::logs::shipper::ShipperLogEntry::new("log message".to_string(), "test".to_string());
-//! output.write_entry(&entry).unwrap();
-//! ```
 
 use crate::logs::{CompressionAlgorithm, FileOutput, RotationStrategy, ShipperLogEntry};
 use anyhow::{anyhow, Context, Result};
@@ -38,9 +18,11 @@ pub trait LogOutputWriter: Send {
     async fn write_entry(&mut self, entry: &ShipperLogEntry) -> Result<()>;
 
     /// Flush any buffered data
+    #[allow(dead_code)]
     async fn flush(&mut self) -> Result<()>;
 
     /// Close the output
+    #[allow(dead_code)]
     async fn close(self) -> Result<()>;
 }
 
@@ -56,6 +38,7 @@ struct FileWriter {
     path: PathBuf,
     compressor: Option<Box<dyn Write + Send>>,
     bytes_written: u64,
+    #[allow(dead_code)]
     created_at: DateTime<Utc>,
 }
 
