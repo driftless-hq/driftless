@@ -45,11 +45,10 @@ jobs:
       uses: Swatinem/rust-cache@v2
 
     - name: Install mdBook
-      run: |
-        mkdir -p ~/.cargo/bin
-        curl -sSL https://github.com/rust-lang/mdBook/releases/download/v0.4.40/mdbook-v0.4.40-x86_64-unknown-linux-gnu.tar.gz | tar -xz --directory=~/.cargo/bin
-        chmod +x ~/.cargo/bin/mdbook
-        
+      uses: peaceiris/actions-mdbook@v2
+      with:
+        mdbook-version: '0.4.40'
+
     - name: Verify mdBook installation
       run: mdbook --version
 
@@ -62,8 +61,13 @@ jobs:
     - name: Integrate Rust API docs into mdBook output
       run: |
         # Copy Rust API documentation into the book output
-        mkdir -p book/api
-        cp -r target/doc/* book/api/
+        if [ -d "target/doc" ] && [ "$(ls -A target/doc)" ]; then
+          mkdir -p book/api
+          cp -r target/doc/* book/api/
+          echo "Rust API documentation integrated successfully"
+        else
+          echo "Warning: No Rust API documentation found in target/doc"
+        fi
         
         # Ensure .nojekyll exists to disable Jekyll processing
         touch book/.nojekyll
