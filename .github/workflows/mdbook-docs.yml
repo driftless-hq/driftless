@@ -48,8 +48,11 @@ jobs:
       with:
         mdbook-version: '0.4.40'
 
+    - name: Install mdbook-autosummary
+      run: cargo install mdbook-autosummary --version 0.1.9
+
     - name: Verify mdBook installation
-      run: mdbook --version
+      run: mdbook --version && mdbook-autosummary version
 
     - name: Build Rust API documentation
       run: cargo doc --no-deps --workspace
