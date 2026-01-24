@@ -34,23 +34,21 @@ jobs:
     - name: Cache Rust dependencies
       uses: Swatinem/rust-cache@v2
 
+    - name: Setup Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
     - name: Install mdBook
       uses: peaceiris/actions-mdbook@v2
       with:
-        mdbook-version: '0.4.40'
-
-    - name: Install mdbook-autosummary
-      uses: taiki-e/install-action@v2
-      with:
-        tool: mdbook-autosummary@0.1.9
+        mdbook-version: 'latest'
 
     - name: Verify mdBook installation
-      run: mdbook --version && mdbook-autosummary version
+      run: mdbook --version
 
-    - name: Build Rust API documentation
-      run: cargo doc --no-deps --workspace
-      env:
-        RUSTDOCFLAGS: "--default-theme ayu"
+    - name: Generate documentation
+      run: ./scripts/generate-docs.sh
       timeout-minutes: 30
 
     - name: Build mdBook

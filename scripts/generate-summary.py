@@ -141,10 +141,14 @@ def main():
     
     # Write to SUMMARY.md
     summary_file = docs_dir / 'SUMMARY.md'
-    with open(summary_file, 'w', encoding='utf-8') as f:
-        f.write(summary_content)
+    try:
+        with open(summary_file, 'w', encoding='utf-8') as f:
+            f.write(summary_content)
+        print(f"✅ Generated {summary_file}")
+    except IOError as e:
+        print(f"❌ Error writing {summary_file}: {e}")
+        return 1
     
-    print(f"✅ Generated {summary_file}")
     return 0
 
 if __name__ == '__main__':
