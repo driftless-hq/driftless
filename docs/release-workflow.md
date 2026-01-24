@@ -232,14 +232,17 @@ Release notes are automatically generated and include:
 ### Currently Implemented
 - ✅ **Linux amd64** (x86_64-unknown-linux-gnu)
 
-### Planned (Ready to Enable)
-- ⏳ **Linux arm64** (aarch64-unknown-linux-gnu)
-- ⏳ **macOS amd64** (x86_64-apple-darwin)
-- ⏳ **macOS arm64** (aarch64-apple-darwin)
-- ⏳ **Windows amd64** (x86_64-pc-windows-msvc)
-- ⏳ **Windows arm64** (aarch64-pc-windows-msvc)
+### Planned (Ready to Enable with Additional Setup)
 
-To enable a platform, update the `skip_build` flag from `true` to `false` in the release workflow's build matrix.
+The workflow includes matrix entries for these platforms, but they require additional setup:
+
+- ⏳ **Linux arm64** (aarch64-unknown-linux-gnu) - Requires self-hosted runner or GitHub-hosted ubuntu-24.04-arm runner when available
+- ⏳ **macOS amd64** (x86_64-apple-darwin) - Available on `macos-13` GitHub-hosted runner
+- ⏳ **macOS arm64** (aarch64-apple-darwin) - Available on `macos-latest` GitHub-hosted runner
+- ⏳ **Windows amd64** (x86_64-pc-windows-msvc) - Available on `windows-latest` GitHub-hosted runner
+- ⏳ **Windows arm64** (aarch64-pc-windows-msvc) - Requires self-hosted runner or GitHub-hosted windows-11-arm runner when available
+
+**Note**: Some platform combinations (ubuntu-24.04-arm, windows-11-arm) may require self-hosted runners or may not be available yet on GitHub Actions. To enable a platform, verify the runner is available and update the `skip_build` flag from `true` to `false` in the release workflow's build matrix.
 
 ## Troubleshooting
 

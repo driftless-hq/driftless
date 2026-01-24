@@ -176,26 +176,30 @@ jobs:
           echo "tag=v$VERSION" >> $GITHUB_OUTPUT
           echo "create_tag=${{ inputs.create_tag }}" >> $GITHUB_OUTPUT
         else
-          # Bump version using cargo-release
+          # Bump version - use simple shell logic instead of cargo-release for reliability
           CURRENT_VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
           echo "Current version: $CURRENT_VERSION"
+          
+          # Parse version components
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT_VERSION"
           
           # Determine new version based on bump type
           case "${{ inputs.bump }}" in
             major)
-              NEW_VERSION=$(cargo release version --bump major --no-confirm 2>&1 | grep -oP '\d+\.\d+\.\d+' | head -1)
+              MAJOR=$((MAJOR + 1))
+              MINOR=0
+              PATCH=0
               ;;
             minor)
-              NEW_VERSION=$(cargo release version --bump minor --no-confirm 2>&1 | grep -oP '\d+\.\d+\.\d+' | head -1)
+              MINOR=$((MINOR + 1))
+              PATCH=0
               ;;
             patch|*)
-              NEW_VERSION=$(cargo release version --bump patch --no-confirm 2>&1 | grep -oP '\d+\.\d+\.\d+' | head -1)
+              PATCH=$((PATCH + 1))
               ;;
           esac
           
-          if [ -z "$NEW_VERSION" ]; then
-            NEW_VERSION=$CURRENT_VERSION
-          fi
+          NEW_VERSION="${MAJOR}.${MINOR}.${PATCH}"
           
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "tag=v$NEW_VERSION" >> $GITHUB_OUTPUT
@@ -239,7 +243,13 @@ jobs:
         TAG="${{ steps.version.outputs.tag }}"
         
         # Get the previous tag
-        PREV_TAG=$(git describe --tags --abbrev=0 "$TAG^" 2>/dev/null || echo "")
+        if [ "${{ github.event_name }}" = "push" ]; then
+          # For tag-based releases, get the previous tag
+          PREV_TAG=$(git describe --tags --abbrev=0 "$TAG^" 2>/dev/null || echo "")
+        else
+          # For workflow_dispatch, get the latest tag or use HEAD
+          PREV_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+        fi
         
         # Generate release notes
         cat > release-notes.md <<EOF
@@ -250,7 +260,13 @@ jobs:
         
         if [ -n "$PREV_TAG" ]; then
           echo "" >> release-notes.md
-          git log --pretty=format:"- %s (%h)" "$PREV_TAG..$TAG" >> release-notes.md
+          if [ "${{ github.event_name }}" = "push" ]; then
+            # For tag releases, use the tag
+            git log --pretty=format:"- %s (%h)" "$PREV_TAG..$TAG" >> release-notes.md
+          else
+            # For workflow_dispatch, use HEAD
+            git log --pretty=format:"- %s (%h)" "$PREV_TAG..HEAD" >> release-notes.md
+          fi
         else
           echo "" >> release-notes.md
           echo "Initial release" >> release-notes.md
