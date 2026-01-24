@@ -86,8 +86,6 @@ The [nix crate](https://github.com/nix-rust/nix) provides Rust bindings to *nix 
 - [ ] **KVM operations** - Kernel-based virtual machines
 
 ## TODO
-- **Plugin System Foundation**: Add the `wasmtime` crate to `Cargo.toml` and create a plugin manager module in `src/plugins.rs` that handles loading and instantiating WebAssembly modules securely with resource limits.
-- **Plugin Interface Design**: Define a common interface (e.g., via WIT or direct exports) for plugins to register custom `apply`, `facts`, and `logs` task types, including serialization/deserialization of task configurations and results.
 - **Apply Task Plugins**: Implement support for loading and executing custom apply tasks from plugins, ensuring idempotency and integration with the existing apply executor.
 - **Facts Task Plugins**: Implement support for loading and executing custom facts gathering tasks from plugins, allowing plugins to collect and return custom metrics or system information.
 - **Logs Task Plugins**: Implement support for loading and executing custom log processing tasks from plugins, enabling custom parsers, filters, and output handlers.
