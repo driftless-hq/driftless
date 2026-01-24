@@ -122,13 +122,50 @@ The following jobs run conditionally and should NOT be added as required checks:
 
 For the `Deploy to GitHub Pages` job to work, you need to configure GitHub Pages in the repository settings:
 
+### Initial Setup
+
 1. Go to **Settings** > **Pages**
 2. Under **Build and deployment**:
    - **Source**: Select "GitHub Actions"
 3. The deployment will happen automatically when code is pushed to the main branch
+
+### Permissions
 
 The workflow uses OIDC authentication which requires:
 - `pages: write` permission (to deploy)
 - `id-token: write` permission (to verify deployment origin)
 
 Both permissions are correctly configured in the workflow.
+
+### Troubleshooting GitHub Pages Deployment
+
+#### Issue: Deploy job shows "action_required" or fails
+
+**Possible Causes:**
+1. GitHub Pages is not enabled or not set to use "GitHub Actions" as the source
+2. The repository environment "github-pages" requires manual approval
+3. The deployment needs to be approved by a repository administrator
+
+**Solutions:**
+
+1. **Verify GitHub Pages is configured correctly:**
+   - Go to **Settings** > **Pages**
+   - Ensure **Source** is set to "GitHub Actions" (not "Deploy from a branch")
+   - Save if you made any changes
+
+2. **Check environment protection rules:**
+   - Go to **Settings** > **Environments** > **github-pages**
+   - If "Required reviewers" is enabled, deployments will need manual approval
+   - Either approve pending deployments or disable required reviewers if not needed
+
+3. **Verify permissions:**
+   - The workflow has the correct permissions configured
+   - Check that GitHub Actions has permission to deploy to Pages in repository settings
+
+4. **First deployment:**
+   - The first deployment to GitHub Pages might require manual approval or configuration
+   - After the first successful deployment, subsequent deployments should work automatically
+
+5. **Re-run the workflow:**
+   - Sometimes the first run fails due to environment setup
+   - Try re-running the failed workflow after verifying the settings above
