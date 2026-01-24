@@ -1,4 +1,4 @@
-## Agent Mode
+# Agent Mode
 
 Driftless agent mode provides continuous configuration enforcement, metrics collection, and log forwarding for infrastructure automation and monitoring.
 
