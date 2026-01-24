@@ -28,6 +28,16 @@ driftless apply
 
 For detailed installation instructions, configuration examples, and comprehensive guides, see the [full documentation](https://driftless-hq.github.io/driftless/).
 
+## Contributing
+
+Before submitting a pull request, please run the validation script to catch potential CI failures:
+
+```bash
+./scripts/validate.sh
+```
+
+This will check code formatting, run linting, and validate documentation. See the [Development Guide](docs/developer/development.md) for more information.
+
 ## License
 
 Licensed under the Apache License, Version 2.0.
