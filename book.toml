@@ -12,6 +12,8 @@ create-missing = false
 # [preprocessor.autosummary]
 # NOTE: mdbook-autosummary is currently not working properly
 # SUMMARY.md is maintained manually for now
+# TODO: Investigate and fix mdbook-autosummary, or find an alternative preprocessor
+# When adding new documentation files, remember to update docs/SUMMARY.md manually
 
 [output.html]
 default-theme = "ayu"
