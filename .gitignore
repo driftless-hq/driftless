@@ -5,6 +5,8 @@ Cargo.lock
 # mdBook build artifacts
 book/
 mdbook-admonish.css
+docs/*.html
+index.html
 
 # IDE and editor files
 .vscode/
