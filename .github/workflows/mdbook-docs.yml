@@ -54,6 +54,8 @@ jobs:
 
     - name: Build Rust API documentation
       run: cargo doc --no-deps --workspace
+      env:
+        RUSTDOCFLAGS: "--default-theme ayu"
 
     - name: Build mdBook
       run: mdbook build
