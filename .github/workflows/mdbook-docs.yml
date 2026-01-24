@@ -3,30 +3,21 @@ name: Deploy mdBook Documentation
 on:
   push:
     branches: [ main, master ]
-    paths:
-      - 'src/**'
-      - 'docs/**'
-      - 'book.toml'
-      - 'Cargo.toml'
-      - 'README.md'
-      - '.github/workflows/mdbook-docs.yml'
+  pull_request:
+    branches: [ main, master ]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: "pages"
   cancel-in-progress: false
 
 jobs:
-  build-deploy:
+  build-docs:
+    name: Build Documentation
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     
     steps:
     - name: Checkout code
@@ -48,8 +39,18 @@ jobs:
       with:
         mdbook-version: '0.4.40'
 
+    - name: Cache mdbook-autosummary
+      uses: actions/cache@v4
+      with:
+        path: ~/.cargo/bin/mdbook-autosummary
+        key: ${{ runner.os }}-mdbook-autosummary-v0.1.9
+
     - name: Install mdbook-autosummary
-      run: cargo install mdbook-autosummary --version 0.1.9
+      run: |
+        if ! command -v mdbook-autosummary > /dev/null 2>&1; then
+          cargo install mdbook-autosummary --version 0.1.9 --locked
+        fi
+      timeout-minutes: 15
 
     - name: Verify mdBook installation
       run: mdbook --version && mdbook-autosummary version
@@ -58,9 +59,23 @@ jobs:
       run: cargo doc --no-deps --workspace
       env:
         RUSTDOCFLAGS: "--default-theme ayu"
+      timeout-minutes: 30
 
     - name: Build mdBook
       run: mdbook build
+      timeout-minutes: 10
+
+    - name: Verify mdBook output
+      run: |
+        if [ ! -d "book" ]; then
+          echo "Error: book directory was not created by mdbook build"
+          exit 1
+        fi
+        if [ ! -f "book/index.html" ]; then
+          echo "Error: book/index.html was not created"
+          exit 1
+        fi
+        echo "mdBook build successful, book directory exists"
 
     - name: Integrate Rust API docs into mdBook output
       run: |
@@ -76,13 +91,29 @@ jobs:
         # Ensure .nojekyll exists to disable Jekyll processing
         touch book/.nojekyll
 
-    - name: Setup GitHub Pages
-      uses: actions/configure-pages@v5
-
-    - name: Upload artifact
+    # Store build artifact for deployment job
+    - name: Upload build artifact
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       uses: actions/upload-pages-artifact@v3
       with:
         path: './book'
+
+  # Deploy to GitHub Pages (only on push to main)
+  deploy:
+    name: Deploy to GitHub Pages
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build-docs
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    permissions:
+      pages: write
+      id-token: write
+    
+    steps:
+    - name: Setup GitHub Pages
+      uses: actions/configure-pages@v5
 
     - name: Deploy to GitHub Pages
       id: deployment
