@@ -53,12 +53,8 @@ jobs:
     - name: Cache dependencies
       uses: Swatinem/rust-cache@v2
 
-    - name: Check formatting (Linux amd64 only)
-      run: cargo fmt --all -- --check
-      if: matrix.os == 'ubuntu-latest' && matrix.arch == 'amd64' && matrix.rust == 'stable'
-
-    - name: Run clippy (Linux amd64 only)
-      run: cargo clippy -- -D warnings
+    - name: Run validation checks (Linux amd64 only)
+      run: ./scripts/validate.sh
       if: matrix.os == 'ubuntu-latest' && matrix.arch == 'amd64' && matrix.rust == 'stable'
 
     - name: Build project
