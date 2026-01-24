@@ -1,4 +1,4 @@
-# Driftless (Config Management)
+# Design Document for Driftless
 
 ## Goals
 - Streamlined system configuration, inventory, and monitoring agent
