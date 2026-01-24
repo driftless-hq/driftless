@@ -343,7 +343,7 @@ sudo systemctl start driftless-agent
 
 ```bash
 # Check for updates
-curl -s https://api.github.com/repos/your-org/driftless/releases/latest | grep "browser_download_url.*linux"
+curl -s https://api.github.com/repos/driftless-hq/driftless/releases/latest | grep "browser_download_url.*linux"
 
 # Update binary
 sudo systemctl stop driftless-agent
