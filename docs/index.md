@@ -322,4 +322,4 @@ pub async fn execute_my_operation(operation: &MyOperation, dry_run: bool) -> Res
 
 ## License
 
-Licensed under the Apache License, Version 2.0. See [LICENSE](../LICENSE) for details.
+Licensed under the Apache License, Version 2.0.
