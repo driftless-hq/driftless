@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["ensure_package_absent","ensure_package_latest","ensure_package_present","execute_pacman_task","is_package_installed","run_pacman_command","update_cache"],"struct":["PacmanTask"]};

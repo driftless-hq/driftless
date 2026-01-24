@@ -1,0 +1,85 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Ruby gem management task executor"><title>driftless::apply::gem - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="driftless" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module gem</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../driftless/index.html">driftless</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module gem</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#install-a-gem" title="Install a gem">Install a gem</a></li><li><a href="#install-gem-with-specific-version" title="Install gem with specific version">Install gem with specific version</a></li><li><a href="#install-gem-for-specific-user" title="Install gem for specific user">Install gem for specific user</a></li><li><a href="#remove-a-gem" title="Remove a gem">Remove a gem</a></li></ul></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In driftless::<wbr>apply</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">driftless</a>::<wbr><a href="../index.html">apply</a></div><h1>Module <span>gem</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/driftless/apply/gem.rs.html#1-467">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Ruby gem management task executor</p>
+<p>Handles gem installation, removal, and updates using gem.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="install-a-gem"><a class="doc-anchor" href="#install-a-gem">§</a>Install a gem</h3>
+<p>This example installs the bundler gem.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: gem
+  description: &quot;Install bundler gem&quot;
+  name: bundler
+  state: present</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;gem&quot;,
+  &quot;description&quot;: &quot;Install bundler gem&quot;,
+  &quot;name&quot;: &quot;bundler&quot;,
+  &quot;state&quot;: &quot;present&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;gem&quot;
+description = &quot;Install bundler gem&quot;
+name = &quot;bundler&quot;
+state = &quot;present&quot;</code></pre></div><h3 id="install-gem-with-specific-version"><a class="doc-anchor" href="#install-gem-with-specific-version">§</a>Install gem with specific version</h3>
+<p>This example installs a specific version of the rails gem.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: gem
+  description: &quot;Install Rails 7.0&quot;
+  name: rails
+  state: present
+  version: &quot;7.0.0&quot;</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;gem&quot;,
+  &quot;description&quot;: &quot;Install Rails 7.0&quot;,
+  &quot;name&quot;: &quot;rails&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;version&quot;: &quot;7.0.0&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;gem&quot;
+description = &quot;Install Rails 7.0&quot;
+name = &quot;rails&quot;
+state = &quot;present&quot;
+version = &quot;7.0.0&quot;</code></pre></div><h3 id="install-gem-for-specific-user"><a class="doc-anchor" href="#install-gem-for-specific-user">§</a>Install gem for specific user</h3>
+<p>This example installs a gem in the user’s home directory.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: gem
+  description: &quot;Install jekyll for user&quot;
+  name: jekyll
+  state: present
+  user_install: true</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;gem&quot;,
+  &quot;description&quot;: &quot;Install jekyll for user&quot;,
+  &quot;name&quot;: &quot;jekyll&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;user_install&quot;: true
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;gem&quot;
+description = &quot;Install jekyll for user&quot;
+name = &quot;jekyll&quot;
+state = &quot;present&quot;
+user_install = true</code></pre></div><h3 id="remove-a-gem"><a class="doc-anchor" href="#remove-a-gem">§</a>Remove a gem</h3>
+<p>This example removes the bundler gem.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: gem
+  description: &quot;Remove bundler gem&quot;
+  name: bundler
+  state: absent</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;gem&quot;,
+  &quot;description&quot;: &quot;Remove bundler gem&quot;,
+  &quot;name&quot;: &quot;bundler&quot;,
+  &quot;state&quot;: &quot;absent&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;gem&quot;
+description = &quot;Remove bundler gem&quot;
+name = &quot;bundler&quot;
+state = &quot;absent&quot;</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.GemTask.html" title="struct driftless::apply::gem::GemTask">GemTask</a></dt><dd>Ruby gem management task</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.default_gem_executable.html" title="fn driftless::apply::gem::default_gem_executable">default_<wbr>gem_<wbr>executable</a></dt><dd>Default gem executable (“gem”)</dd><dt><a class="fn" href="fn.default_ruby_executable.html" title="fn driftless::apply::gem::default_ruby_executable">default_<wbr>ruby_<wbr>executable</a></dt><dd>Default Ruby executable (“ruby”)</dd><dt><a class="fn" href="fn.ensure_gem_absent.html" title="fn driftless::apply::gem::ensure_gem_absent">ensure_<wbr>gem_<wbr>absent</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure gem is removed</dd><dt><a class="fn" href="fn.ensure_gem_latest.html" title="fn driftless::apply::gem::ensure_gem_latest">ensure_<wbr>gem_<wbr>latest</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure gem is at latest version</dd><dt><a class="fn" href="fn.ensure_gem_present.html" title="fn driftless::apply::gem::ensure_gem_present">ensure_<wbr>gem_<wbr>present</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure gem is installed</dd><dt><a class="fn" href="fn.execute_gem_task.html" title="fn driftless::apply::gem::execute_gem_task">execute_<wbr>gem_<wbr>task</a></dt><dd>Execute a gem task</dd><dt><a class="fn" href="fn.is_gem_installed.html" title="fn driftless::apply::gem::is_gem_installed">is_<wbr>gem_<wbr>installed</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Check if gem is installed</dd><dt><a class="fn" href="fn.run_gem_command.html" title="fn driftless::apply::gem::run_gem_command">run_<wbr>gem_<wbr>command</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Run gem command with proper error handling</dd></dl></section></div></main></body></html>

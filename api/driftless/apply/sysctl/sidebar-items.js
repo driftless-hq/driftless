@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["SysctlState"],"fn":["apply_sysctl_immediately","ensure_sysctl_absent","ensure_sysctl_value","execute_sysctl_task","get_sysctl_value","persist_sysctl_value","remove_persistent_sysctl","remove_sysctl_value","set_sysctl_value"],"struct":["SysctlTask"]};

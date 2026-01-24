@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["FileState"],"fn":["ensure_file_absent","ensure_file_present","execute_file_task","set_file_ownership","set_file_permissions"],"struct":["FileTask"]};

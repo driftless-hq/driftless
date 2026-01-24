@@ -1,0 +1,97 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Template rendering task executor"><title>driftless::apply::template - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="driftless" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module template</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../driftless/index.html">driftless</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module template</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#render-a-template" title="Render a template">Render a template</a></li><li><a href="#render-template-with-backup" title="Render template with backup">Render template with backup</a></li><li><a href="#remove-rendered-template" title="Remove rendered template">Remove rendered template</a></li></ul></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In driftless::<wbr>apply</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">driftless</a>::<wbr><a href="../index.html">apply</a></div><h1>Module <span>template</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/driftless/apply/template.rs.html#1-510">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Template rendering task executor</p>
+<p>Handles rendering template files with variable substitution.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="render-a-template"><a class="doc-anchor" href="#render-a-template">§</a>Render a template</h3>
+<p>This example renders a template file with variables.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: template
+  description: &quot;Render nginx configuration&quot;
+  src: /templates/nginx.conf.j2
+  dest: /etc/nginx/sites-available/default
+  state: present
+  vars:
+    server_name: example.com
+    port: 80
+    root_dir: /var/www/html</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;template&quot;,
+  &quot;description&quot;: &quot;Render nginx configuration&quot;,
+  &quot;src&quot;: &quot;/templates/nginx.conf.j2&quot;,
+  &quot;dest&quot;: &quot;/etc/nginx/sites-available/default&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;vars&quot;: {
+    &quot;server_name&quot;: &quot;example.com&quot;,
+    &quot;port&quot;: 80,
+    &quot;root_dir&quot;: &quot;/var/www/html&quot;
+  }
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;template&quot;
+description = &quot;Render nginx configuration&quot;
+src = &quot;/templates/nginx.conf.j2&quot;
+dest = &quot;/etc/nginx/sites-available/default&quot;
+state = &quot;present&quot;
+
+[tasks.vars]
+server_name = &quot;example.com&quot;
+port = 80
+root_dir = &quot;/var/www/html&quot;</code></pre></div><h3 id="render-template-with-backup"><a class="doc-anchor" href="#render-template-with-backup">§</a>Render template with backup</h3>
+<p>This example renders a template and creates a backup of the destination.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: template
+  description: &quot;Update config with backup&quot;
+  src: /templates/app.conf.j2
+  dest: /etc/myapp/config.conf
+  state: present
+  backup: true
+  vars:
+    database_host: localhost
+    database_port: 5432</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;template&quot;,
+  &quot;description&quot;: &quot;Update config with backup&quot;,
+  &quot;src&quot;: &quot;/templates/app.conf.j2&quot;,
+  &quot;dest&quot;: &quot;/etc/myapp/config.conf&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;backup&quot;: true,
+  &quot;vars&quot;: {
+    &quot;database_host&quot;: &quot;localhost&quot;,
+    &quot;database_port&quot;: 5432
+  }
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;template&quot;
+description = &quot;Update config with backup&quot;
+src = &quot;/templates/app.conf.j2&quot;
+dest = &quot;/etc/myapp/config.conf&quot;
+state = &quot;present&quot;
+backup = true
+
+[tasks.vars]
+database_host = &quot;localhost&quot;
+database_port = 5432</code></pre></div><h3 id="remove-rendered-template"><a class="doc-anchor" href="#remove-rendered-template">§</a>Remove rendered template</h3>
+<p>This example removes a file that was rendered from a template.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: template
+  description: &quot;Remove rendered configuration&quot;
+  src: /templates/old.conf.j2
+  dest: /etc/oldapp/config.conf
+  state: absent</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;template&quot;,
+  &quot;description&quot;: &quot;Remove rendered configuration&quot;,
+  &quot;src&quot;: &quot;/templates/old.conf.j2&quot;,
+  &quot;dest&quot;: &quot;/etc/oldapp/config.conf&quot;,
+  &quot;state&quot;: &quot;absent&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;template&quot;
+description = &quot;Remove rendered configuration&quot;
+src = &quot;/templates/old.conf.j2&quot;
+dest = &quot;/etc/oldapp/config.conf&quot;
+state = &quot;absent&quot;</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.TemplateTask.html" title="struct driftless::apply::template::TemplateTask">Template<wbr>Task</a></dt><dd>Template rendering task</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.TemplateState.html" title="enum driftless::apply::template::TemplateState">Template<wbr>State</a></dt><dd>Template state enumeration</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.ensure_template_not_rendered.html" title="fn driftless::apply::template::ensure_template_not_rendered">ensure_<wbr>template_<wbr>not_<wbr>rendered</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure template output is removed</dd><dt><a class="fn" href="fn.ensure_template_rendered.html" title="fn driftless::apply::template::ensure_template_rendered">ensure_<wbr>template_<wbr>rendered</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure template is rendered to destination</dd><dt><a class="fn" href="fn.execute_template_task.html" title="fn driftless::apply::template::execute_template_task">execute_<wbr>template_<wbr>task</a></dt><dd>Execute a template task</dd><dt><a class="fn" href="fn.render_template.html" title="fn driftless::apply::template::render_template">render_<wbr>template</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Render template with variable substitution</dd></dl></section></div></main></body></html>

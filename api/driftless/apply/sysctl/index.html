@@ -1,0 +1,97 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Sysctl task executor"><title>driftless::apply::sysctl - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="driftless" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module sysctl</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../driftless/index.html">driftless</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module sysctl</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#set-kernel-parameter" title="Set kernel parameter">Set kernel parameter</a></li><li><a href="#configure-network-buffer-sizes" title="Configure network buffer sizes">Configure network buffer sizes</a></li><li><a href="#disable-ipv6" title="Disable IPv6">Disable IPv6</a></li><li><a href="#remove-sysctl-parameter" title="Remove sysctl parameter">Remove sysctl parameter</a></li></ul></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In driftless::<wbr>apply</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">driftless</a>::<wbr><a href="../index.html">apply</a></div><h1>Module <span>sysctl</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/driftless/apply/sysctl.rs.html#1-505">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Sysctl task executor</p>
+<p>Handles kernel parameter management via sysctl.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="set-kernel-parameter"><a class="doc-anchor" href="#set-kernel-parameter">§</a>Set kernel parameter</h3>
+<p>This example sets a kernel parameter value.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: sysctl
+  description: &quot;Enable IP forwarding&quot;
+  name: net.ipv4.ip_forward
+  state: present
+  value: &quot;1&quot;
+  persist: true</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;sysctl&quot;,
+  &quot;description&quot;: &quot;Enable IP forwarding&quot;,
+  &quot;name&quot;: &quot;net.ipv4.ip_forward&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;value&quot;: &quot;1&quot;,
+  &quot;persist&quot;: true
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;sysctl&quot;
+description = &quot;Enable IP forwarding&quot;
+name = &quot;net.ipv4.ip_forward&quot;
+state = &quot;present&quot;
+value = &quot;1&quot;
+persist = true</code></pre></div><h3 id="configure-network-buffer-sizes"><a class="doc-anchor" href="#configure-network-buffer-sizes">§</a>Configure network buffer sizes</h3>
+<p>This example sets network buffer sizes for better performance.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: sysctl
+  description: &quot;Increase network buffer sizes&quot;
+  name: net.core.rmem_max
+  state: present
+  value: &quot;16777216&quot;
+  persist: true</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;sysctl&quot;,
+  &quot;description&quot;: &quot;Increase network buffer sizes&quot;,
+  &quot;name&quot;: &quot;net.core.rmem_max&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;value&quot;: &quot;16777216&quot;,
+  &quot;persist&quot;: true
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;sysctl&quot;
+description = &quot;Increase network buffer sizes&quot;
+name = &quot;net.core.rmem_max&quot;
+state = &quot;present&quot;
+value = &quot;16777216&quot;
+persist = true</code></pre></div><h3 id="disable-ipv6"><a class="doc-anchor" href="#disable-ipv6">§</a>Disable IPv6</h3>
+<p>This example disables IPv6 on the system.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: sysctl
+  description: &quot;Disable IPv6&quot;
+  name: net.ipv6.conf.all.disable_ipv6
+  state: present
+  value: &quot;1&quot;
+  persist: true</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;sysctl&quot;,
+  &quot;description&quot;: &quot;Disable IPv6&quot;,
+  &quot;name&quot;: &quot;net.ipv6.conf.all.disable_ipv6&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;value&quot;: &quot;1&quot;,
+  &quot;persist&quot;: true
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;sysctl&quot;
+description = &quot;Disable IPv6&quot;
+name = &quot;net.ipv6.conf.all.disable_ipv6&quot;
+state = &quot;present&quot;
+value = &quot;1&quot;
+persist = true</code></pre></div><h3 id="remove-sysctl-parameter"><a class="doc-anchor" href="#remove-sysctl-parameter">§</a>Remove sysctl parameter</h3>
+<p>This example removes a sysctl parameter setting.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: sysctl
+  description: &quot;Remove custom sysctl parameter&quot;
+  name: net.ipv4.tcp_tw_reuse
+  state: absent</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;sysctl&quot;,
+  &quot;description&quot;: &quot;Remove custom sysctl parameter&quot;,
+  &quot;name&quot;: &quot;net.ipv4.tcp_tw_reuse&quot;,
+  &quot;state&quot;: &quot;absent&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;sysctl&quot;
+description = &quot;Remove custom sysctl parameter&quot;
+name = &quot;net.ipv4.tcp_tw_reuse&quot;
+state = &quot;absent&quot;</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.SysctlTask.html" title="struct driftless::apply::sysctl::SysctlTask">Sysctl<wbr>Task</a></dt><dd>Kernel parameter management task</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.SysctlState.html" title="enum driftless::apply::sysctl::SysctlState">Sysctl<wbr>State</a></dt><dd>Sysctl state enumeration</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.apply_sysctl_immediately.html" title="fn driftless::apply::sysctl::apply_sysctl_immediately">apply_<wbr>sysctl_<wbr>immediately</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Apply sysctl value immediately via /proc/sys</dd><dt><a class="fn" href="fn.ensure_sysctl_absent.html" title="fn driftless::apply::sysctl::ensure_sysctl_absent">ensure_<wbr>sysctl_<wbr>absent</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure a sysctl parameter does not exist</dd><dt><a class="fn" href="fn.ensure_sysctl_value.html" title="fn driftless::apply::sysctl::ensure_sysctl_value">ensure_<wbr>sysctl_<wbr>value</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure a sysctl parameter has the specified value</dd><dt><a class="fn" href="fn.execute_sysctl_task.html" title="fn driftless::apply::sysctl::execute_sysctl_task">execute_<wbr>sysctl_<wbr>task</a></dt><dd>Execute a sysctl task</dd><dt><a class="fn" href="fn.get_sysctl_value.html" title="fn driftless::apply::sysctl::get_sysctl_value">get_<wbr>sysctl_<wbr>value</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Get the current value of a sysctl parameter</dd><dt><a class="fn" href="fn.persist_sysctl_value.html" title="fn driftless::apply::sysctl::persist_sysctl_value">persist_<wbr>sysctl_<wbr>value</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Persist a sysctl value to /etc/sysctl.conf</dd><dt><a class="fn" href="fn.remove_persistent_sysctl.html" title="fn driftless::apply::sysctl::remove_persistent_sysctl">remove_<wbr>persistent_<wbr>sysctl</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Remove persistent sysctl value from /etc/sysctl.conf</dd><dt><a class="fn" href="fn.remove_sysctl_value.html" title="fn driftless::apply::sysctl::remove_sysctl_value">remove_<wbr>sysctl_<wbr>value</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Remove a sysctl parameter (reset to default)</dd><dt><a class="fn" href="fn.set_sysctl_value.html" title="fn driftless::apply::sysctl::set_sysctl_value">set_<wbr>sysctl_<wbr>value</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Set a sysctl parameter value</dd></dl></section></div></main></body></html>

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["GetUrlState"],"fn":["default_get_url_timeout","download_url_to_file","ensure_file_downloaded","ensure_file_removed","execute_get_url_task","set_file_ownership","set_file_permissions","validate_checksum"],"struct":["GetUrlTask"]};

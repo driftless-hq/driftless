@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["default_gem_executable","default_ruby_executable","ensure_gem_absent","ensure_gem_latest","ensure_gem_present","execute_gem_task","is_gem_installed","run_gem_command"],"struct":["GemTask"]};

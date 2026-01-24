@@ -1,0 +1,64 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Logrotate task executor"><title>driftless::apply::logrotate - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="driftless" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module logrotate</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../driftless/index.html">driftless</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module logrotate</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#create-a-logrotate-configuration-for-nginx" title="Create a logrotate configuration for nginx">Create a logrotate configuration for nginx</a></li><li><a href="#remove-a-logrotate-configuration" title="Remove a logrotate configuration">Remove a logrotate configuration</a></li></ul></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In driftless::<wbr>apply</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">driftless</a>::<wbr><a href="../index.html">apply</a></div><h1>Module <span>logrotate</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/driftless/apply/logrotate.rs.html#1-377">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Logrotate task executor</p>
+<p>Manages log rotation configuration files in /etc/logrotate.d/</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="create-a-logrotate-configuration-for-nginx"><a class="doc-anchor" href="#create-a-logrotate-configuration-for-nginx">§</a>Create a logrotate configuration for nginx</h3>
+<p>This example creates a logrotate configuration for nginx logs with weekly rotation,
+compression, and post-rotation service reload.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: logrotate
+  description: &quot;Configure nginx log rotation&quot;
+  name: nginx
+  path: /var/log/nginx/*.log
+  options:
+    - weekly
+    - rotate 52
+    - compress
+    - delaycompress
+    - missingok
+    - notifempty
+    - create 644 www-data www-data
+  postrotate: |
+    systemctl reload nginx
+  state: present</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;logrotate&quot;,
+  &quot;description&quot;: &quot;Configure nginx log rotation&quot;,
+  &quot;name&quot;: &quot;nginx&quot;,
+  &quot;path&quot;: &quot;/var/log/nginx/*.log&quot;,
+  &quot;options&quot;: [
+    &quot;weekly&quot;,
+    &quot;rotate 52&quot;,
+    &quot;compress&quot;,
+    &quot;delaycompress&quot;,
+    &quot;missingok&quot;,
+    &quot;notifempty&quot;,
+    &quot;create 644 www-data www-data&quot;
+  ],
+  &quot;postrotate&quot;: &quot;systemctl reload nginx\n&quot;,
+  &quot;state&quot;: &quot;present&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;logrotate&quot;
+description = &quot;Configure nginx log rotation&quot;
+name = &quot;nginx&quot;
+path = &quot;/var/log/nginx/*.log&quot;
+options = [
+  &quot;weekly&quot;,
+  &quot;rotate 52&quot;,
+  &quot;compress&quot;,
+  &quot;delaycompress&quot;,
+  &quot;missingok&quot;,
+  &quot;notifempty&quot;,
+  &quot;create 644 www-data www-data&quot;
+]
+postrotate = &quot;&quot;&quot;
+systemctl reload nginx
+&quot;&quot;&quot;
+state = &quot;present&quot;</code></pre></div><h3 id="remove-a-logrotate-configuration"><a class="doc-anchor" href="#remove-a-logrotate-configuration">§</a>Remove a logrotate configuration</h3>
+<p>This example removes a logrotate configuration file.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: logrotate
+  description: &quot;Remove custom logrotate config&quot;
+  name: myapp
+  state: absent</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.LogrotateTask.html" title="struct driftless::apply::logrotate::LogrotateTask">Logrotate<wbr>Task</a></dt><dd>Logrotate configuration task</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.LogrotateState.html" title="enum driftless::apply::logrotate::LogrotateState">Logrotate<wbr>State</a></dt><dd>Logrotate state enumeration</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.default_state.html" title="fn driftless::apply::logrotate::default_state">default_<wbr>state</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dt><a class="fn" href="fn.ensure_logrotate_absent.html" title="fn driftless::apply::logrotate::ensure_logrotate_absent">ensure_<wbr>logrotate_<wbr>absent</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure a logrotate configuration does not exist</dd><dt><a class="fn" href="fn.ensure_logrotate_present.html" title="fn driftless::apply::logrotate::ensure_logrotate_present">ensure_<wbr>logrotate_<wbr>present</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure a logrotate configuration exists</dd><dt><a class="fn" href="fn.execute_logrotate_task.html" title="fn driftless::apply::logrotate::execute_logrotate_task">execute_<wbr>logrotate_<wbr>task</a></dt><dd>Execute a logrotate task</dd><dt><a class="fn" href="fn.generate_logrotate_config.html" title="fn driftless::apply::logrotate::generate_logrotate_config">generate_<wbr>logrotate_<wbr>config</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Generate logrotate configuration content</dd></dl></section></div></main></body></html>

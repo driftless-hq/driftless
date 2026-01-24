@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["FilesystemState"],"fn":["create_filesystem","ensure_filesystem_absent","ensure_filesystem_present","execute_filesystem_task","get_filesystem_type","has_filesystem","remove_filesystem","run_command"],"struct":["FilesystemTask"]};

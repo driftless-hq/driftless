@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["CopyState"],"fn":["ensure_file_copied","ensure_file_not_copied","execute_copy_task","file_contents_differ"],"struct":["CopyTask"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["TemplateState"],"fn":["ensure_template_not_rendered","ensure_template_rendered","execute_template_task","render_template"],"struct":["TemplateTask"]};

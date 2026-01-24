@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["execute_hostname_task","get_current_hostname","persist_hostname","set_hostname"],"struct":["HostnameTask"]};

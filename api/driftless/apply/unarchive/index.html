@@ -1,0 +1,102 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Unarchive files task executor"><title>driftless::apply::unarchive - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="driftless" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module unarchive</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../driftless/index.html">driftless</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module unarchive</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#extract-a-tar-archive" title="Extract a tar archive">Extract a tar archive</a></li><li><a href="#extract-from-url" title="Extract from URL">Extract from URL</a></li><li><a href="#extract-specific-files" title="Extract specific files">Extract specific files</a></li><li><a href="#extract-zip-archive" title="Extract zip archive">Extract zip archive</a></li></ul></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In driftless::<wbr>apply</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">driftless</a>::<wbr><a href="../index.html">apply</a></div><h1>Module <span>unarchive</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/driftless/apply/unarchive.rs.html#1-721">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Unarchive files task executor</p>
+<p>Handles extracting files from various archive formats.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="extract-a-tar-archive"><a class="doc-anchor" href="#extract-a-tar-archive">§</a>Extract a tar archive</h3>
+<p>This example extracts a tar archive to a directory.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: unarchive
+  description: &quot;Extract application archive&quot;
+  src: /tmp/myapp.tar.gz
+  dest: /opt/myapp
+  state: present</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;unarchive&quot;,
+  &quot;description&quot;: &quot;Extract application archive&quot;,
+  &quot;src&quot;: &quot;/tmp/myapp.tar.gz&quot;,
+  &quot;dest&quot;: &quot;/opt/myapp&quot;,
+  &quot;state&quot;: &quot;present&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;unarchive&quot;
+description = &quot;Extract application archive&quot;
+src = &quot;/tmp/myapp.tar.gz&quot;
+dest = &quot;/opt/myapp&quot;
+state = &quot;present&quot;</code></pre></div><h3 id="extract-from-url"><a class="doc-anchor" href="#extract-from-url">§</a>Extract from URL</h3>
+<p>This example downloads and extracts an archive from a URL.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: unarchive
+  description: &quot;Download and extract software&quot;
+  src: https://example.com/software.tar.gz
+  dest: /opt/software
+  state: present
+  creates: true</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;unarchive&quot;,
+  &quot;description&quot;: &quot;Download and extract software&quot;,
+  &quot;src&quot;: &quot;https://example.com/software.tar.gz&quot;,
+  &quot;dest&quot;: &quot;/opt/software&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;creates&quot;: true
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;unarchive&quot;
+description = &quot;Download and extract software&quot;
+src = &quot;https://example.com/software.tar.gz&quot;
+dest = &quot;/opt/software&quot;
+state = &quot;present&quot;
+creates = true</code></pre></div><h3 id="extract-specific-files"><a class="doc-anchor" href="#extract-specific-files">§</a>Extract specific files</h3>
+<p>This example extracts only specific files from an archive.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: unarchive
+  description: &quot;Extract configuration files&quot;
+  src: /tmp/configs.tar.gz
+  dest: /etc/myapp
+  state: present
+  list_files:
+    - config.yml
+    - settings.json</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;unarchive&quot;,
+  &quot;description&quot;: &quot;Extract configuration files&quot;,
+  &quot;src&quot;: &quot;/tmp/configs.tar.gz&quot;,
+  &quot;dest&quot;: &quot;/etc/myapp&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;list_files&quot;: [&quot;config.yml&quot;, &quot;settings.json&quot;]
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;unarchive&quot;
+description = &quot;Extract configuration files&quot;
+src = &quot;/tmp/configs.tar.gz&quot;
+dest = &quot;/etc/myapp&quot;
+state = &quot;present&quot;
+list_files = [&quot;config.yml&quot;, &quot;settings.json&quot;]</code></pre></div><h3 id="extract-zip-archive"><a class="doc-anchor" href="#extract-zip-archive">§</a>Extract zip archive</h3>
+<p>This example extracts a zip archive.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: unarchive
+  description: &quot;Extract zip archive&quot;
+  src: /tmp/data.zip
+  dest: /var/data
+  state: present
+  format: zip</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;unarchive&quot;,
+  &quot;description&quot;: &quot;Extract zip archive&quot;,
+  &quot;src&quot;: &quot;/tmp/data.zip&quot;,
+  &quot;dest&quot;: &quot;/var/data&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;format&quot;: &quot;zip&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;unarchive&quot;
+description = &quot;Extract zip archive&quot;
+src = &quot;/tmp/data.zip&quot;
+dest = &quot;/var/data&quot;
+state = &quot;present&quot;
+format = &quot;zip&quot;</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.UnarchiveTask.html" title="struct driftless::apply::unarchive::UnarchiveTask">Unarchive<wbr>Task</a></dt><dd>Unarchive files task</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.UnarchiveState.html" title="enum driftless::apply::unarchive::UnarchiveState">Unarchive<wbr>State</a></dt><dd>Unarchive state enumeration</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.default_unarchive_timeout.html" title="fn driftless::apply::unarchive::default_unarchive_timeout">default_<wbr>unarchive_<wbr>timeout</a></dt><dd>Default unarchive timeout (30 seconds)</dd><dt><a class="fn" href="fn.detect_archive_format.html" title="fn driftless::apply::unarchive::detect_archive_format">detect_<wbr>archive_<wbr>format</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Detect archive format from file extension</dd><dt><a class="fn" href="fn.download_url_to_temp_file.html" title="fn driftless::apply::unarchive::download_url_to_temp_file">download_<wbr>url_<wbr>to_<wbr>temp_<wbr>file</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Download URL to temporary file</dd><dt><a class="fn" href="fn.ensure_archive_extracted.html" title="fn driftless::apply::unarchive::ensure_archive_extracted">ensure_<wbr>archive_<wbr>extracted</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure archive is extracted</dd><dt><a class="fn" href="fn.ensure_archive_not_extracted.html" title="fn driftless::apply::unarchive::ensure_archive_not_extracted">ensure_<wbr>archive_<wbr>not_<wbr>extracted</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure archive is not extracted (remove extracted files)</dd><dt><a class="fn" href="fn.execute_unarchive_task.html" title="fn driftless::apply::unarchive::execute_unarchive_task">execute_<wbr>unarchive_<wbr>task</a></dt><dd>Execute an unarchive task</dd><dt><a class="fn" href="fn.extract_7z_archive.html" title="fn driftless::apply::unarchive::extract_7z_archive">extract_<wbr>7z_<wbr>archive</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Extract 7z archive</dd><dt><a class="fn" href="fn.extract_archive_from_path.html" title="fn driftless::apply::unarchive::extract_archive_from_path">extract_<wbr>archive_<wbr>from_<wbr>path</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Extract archive using appropriate tool</dd><dt><a class="fn" href="fn.extract_tar_archive.html" title="fn driftless::apply::unarchive::extract_tar_archive">extract_<wbr>tar_<wbr>archive</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Extract uncompressed tar archive</dd><dt><a class="fn" href="fn.extract_tar_bz2_archive.html" title="fn driftless::apply::unarchive::extract_tar_bz2_archive">extract_<wbr>tar_<wbr>bz2_<wbr>archive</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Extract bzip2-compressed tar archive</dd><dt><a class="fn" href="fn.extract_tar_gz_archive.html" title="fn driftless::apply::unarchive::extract_tar_gz_archive">extract_<wbr>tar_<wbr>gz_<wbr>archive</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Extract gzip-compressed tar archive</dd><dt><a class="fn" href="fn.extract_tar_xz_archive.html" title="fn driftless::apply::unarchive::extract_tar_xz_archive">extract_<wbr>tar_<wbr>xz_<wbr>archive</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Extract xz-compressed tar archive</dd><dt><a class="fn" href="fn.extract_zip_archive.html" title="fn driftless::apply::unarchive::extract_zip_archive">extract_<wbr>zip_<wbr>archive</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Extract zip archive</dd><dt><a class="fn" href="fn.is_url.html" title="fn driftless::apply::unarchive::is_url">is_url</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Check if a string is a URL</dd><dt><a class="fn" href="fn.run_command.html" title="fn driftless::apply::unarchive::run_command">run_<wbr>command</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Run external command for archive extraction</dd></dl></section></div></main></body></html>

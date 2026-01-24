@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["PackageState"],"fn":["detect_package_manager","ensure_package_absent","ensure_package_latest","ensure_package_present","execute_package_task","get_check_command","get_install_command","get_remove_command","get_upgrade_command","is_package_installed","run_command"],"struct":["PackageTask"]};

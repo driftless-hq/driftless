@@ -1,0 +1,100 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="File task executor"><title>driftless::apply::file - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="driftless" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module file</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../driftless/index.html">driftless</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module file</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#create-a-file-with-content" title="Create a file with content">Create a file with content</a></li><li><a href="#copy-a-file-from-source" title="Copy a file from source">Copy a file from source</a></li><li><a href="#remove-a-file" title="Remove a file">Remove a file</a></li><li><a href="#create-a-directory" title="Create a directory">Create a directory</a></li><li><a href="#register-file-creation" title="Register file creation">Register file creation</a></li></ul></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In driftless::<wbr>apply</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">driftless</a>::<wbr><a href="../index.html">apply</a></div><h1>Module <span>file</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/driftless/apply/file.rs.html#1-496">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>File task executor</p>
+<p>Handles file operations: create, modify, delete files with proper permissions.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="create-a-file-with-content"><a class="doc-anchor" href="#create-a-file-with-content">§</a>Create a file with content</h3>
+<p>This example creates a simple configuration file with specific permissions and ownership.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: file
+  description: &quot;Create nginx configuration file&quot;
+  path: /etc/nginx/sites-available/default
+  state: present
+  content: |
+    server {
+        listen 80;
+        root /var/www/html;
+        index index.html index.htm;
+
+        location / {
+            try_files $uri $uri/ =404;
+        }
+    }
+  mode: &quot;0644&quot;
+  owner: root
+  group: root</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;file&quot;,
+  &quot;description&quot;: &quot;Create nginx configuration file&quot;,
+  &quot;path&quot;: &quot;/etc/nginx/sites-available/default&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;content&quot;: &quot;server {\n    listen 80;\n    root /var/www/html;\n    index index.html index.htm;\n\n    location / {\n        try_files $uri $uri/ =404;\n    }\n}&quot;,
+  &quot;mode&quot;: &quot;0644&quot;,
+  &quot;owner&quot;: &quot;root&quot;,
+  &quot;group&quot;: &quot;root&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;file&quot;
+description = &quot;Create nginx configuration file&quot;
+path = &quot;/etc/nginx/sites-available/default&quot;
+state = &quot;present&quot;
+content = &quot;&quot;&quot;
+server {
+    listen 80;
+    root /var/www/html;
+    index index.html index.htm;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+}
+&quot;&quot;&quot;
+mode = &quot;0644&quot;
+owner = &quot;root&quot;
+group = &quot;root&quot;</code></pre></div><h3 id="copy-a-file-from-source"><a class="doc-anchor" href="#copy-a-file-from-source">§</a>Copy a file from source</h3>
+<p>This example copies an existing file to a new location.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: file
+  description: &quot;Copy configuration template&quot;
+  path: /etc/myapp/config.yml
+  state: present
+  source: /opt/myapp/config.template.yml
+  mode: &quot;0644&quot;
+  owner: myapp
+  group: myapp</code></pre></div><h3 id="remove-a-file"><a class="doc-anchor" href="#remove-a-file">§</a>Remove a file</h3>
+<p>This example ensures a file does not exist.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: file
+  description: &quot;Remove temporary file&quot;
+  path: /tmp/temp-file.txt
+  state: absent</code></pre></div><h3 id="create-a-directory"><a class="doc-anchor" href="#create-a-directory">§</a>Create a directory</h3>
+<p>This example creates a directory (note: directories are just files with no content).</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: file
+  description: &quot;Create application directory&quot;
+  path: /opt/myapp
+  state: present
+  mode: &quot;0755&quot;
+  owner: myapp
+  group: myapp</code></pre></div><h3 id="register-file-creation"><a class="doc-anchor" href="#register-file-creation">§</a>Register file creation</h3>
+<p>This example creates a file and registers the result.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: file
+  description: &quot;Create marker file&quot;
+  path: /tmp/driftless.marker
+  state: present
+  register: marker_file</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;file&quot;,
+  &quot;description&quot;: &quot;Create marker file&quot;,
+  &quot;path&quot;: &quot;/tmp/driftless.marker&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;register&quot;: &quot;marker_file&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;file&quot;
+description = &quot;Create marker file&quot;
+path = &quot;/tmp/driftless.marker&quot;
+state = &quot;present&quot;
+register = &quot;marker_file&quot;</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.FileTask.html" title="struct driftless::apply::file::FileTask">File<wbr>Task</a></dt><dd>File operation task</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.FileState.html" title="enum driftless::apply::file::FileState">File<wbr>State</a></dt><dd>File state enumeration</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.ensure_file_absent.html" title="fn driftless::apply::file::ensure_file_absent">ensure_<wbr>file_<wbr>absent</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure a file does not exist</dd><dt><a class="fn" href="fn.ensure_file_present.html" title="fn driftless::apply::file::ensure_file_present">ensure_<wbr>file_<wbr>present</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure a file exists with the correct content and permissions</dd><dt><a class="fn" href="fn.execute_file_task.html" title="fn driftless::apply::file::execute_file_task">execute_<wbr>file_<wbr>task</a></dt><dd>Execute a file task</dd><dt><a class="fn" href="fn.set_file_ownership.html" title="fn driftless::apply::file::set_file_ownership">set_<wbr>file_<wbr>ownership</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Set file ownership</dd><dt><a class="fn" href="fn.set_file_permissions.html" title="fn driftless::apply::file::set_file_permissions">set_<wbr>file_<wbr>permissions</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Set file permissions</dd></dl></section></div></main></body></html>

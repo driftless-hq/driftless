@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["DirectoryState"],"fn":["create_directory_recursive","ensure_directory_absent","ensure_directory_present","execute_directory_task","set_directory_ownership","set_directory_permissions","set_ownership_recursive","set_permissions_recursive","set_single_ownership","set_single_permissions"],"struct":["DirectoryTask"]};

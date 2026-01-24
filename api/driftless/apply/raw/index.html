@@ -1,0 +1,96 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Execute commands without shell processing task executor"><title>driftless::apply::raw - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="driftless" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module raw</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../driftless/index.html">driftless</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module raw</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#execute-a-simple-command" title="Execute a simple command">Execute a simple command</a></li><li><a href="#execute-command-with-environment-variables" title="Execute command with environment variables">Execute command with environment variables</a></li><li><a href="#execute-command-with-timeout" title="Execute command with timeout">Execute command with timeout</a></li><li><a href="#execute-command-in-specific-directory" title="Execute command in specific directory">Execute command in specific directory</a></li></ul></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In driftless::<wbr>apply</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">driftless</a>::<wbr><a href="../index.html">apply</a></div><h1>Module <span>raw</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/driftless/apply/raw.rs.html#1-446">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Execute commands without shell processing task executor</p>
+<p>Handles execution of commands directly without shell interpretation.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="execute-a-simple-command"><a class="doc-anchor" href="#execute-a-simple-command">§</a>Execute a simple command</h3>
+<p>This example executes the <code>ls</code> command.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: raw
+  description: &quot;List directory contents&quot;
+  executable: ls
+  args: [&quot;-la&quot;, &quot;/tmp&quot;]</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;raw&quot;,
+  &quot;description&quot;: &quot;List directory contents&quot;,
+  &quot;executable&quot;: &quot;ls&quot;,
+  &quot;args&quot;: [&quot;-la&quot;, &quot;/tmp&quot;]
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;raw&quot;
+description = &quot;List directory contents&quot;
+executable = &quot;ls&quot;
+args = [&quot;-la&quot;, &quot;/tmp&quot;]</code></pre></div><h3 id="execute-command-with-environment-variables"><a class="doc-anchor" href="#execute-command-with-environment-variables">§</a>Execute command with environment variables</h3>
+<p>This example executes a command with custom environment variables.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: raw
+  description: &quot;Run command with environment&quot;
+  executable: /usr/local/bin/myapp
+  args: [&quot;--config&quot;, &quot;/etc/myapp/config.json&quot;]
+  environment:
+    DATABASE_URL: &quot;postgresql://localhost/mydb&quot;
+    LOG_LEVEL: &quot;debug&quot;</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;raw&quot;,
+  &quot;description&quot;: &quot;Run command with environment&quot;,
+  &quot;executable&quot;: &quot;/usr/local/bin/myapp&quot;,
+  &quot;args&quot;: [&quot;--config&quot;, &quot;/etc/myapp/config.json&quot;],
+  &quot;environment&quot;: {
+    &quot;DATABASE_URL&quot;: &quot;postgresql://localhost/mydb&quot;,
+    &quot;LOG_LEVEL&quot;: &quot;debug&quot;
+  }
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;raw&quot;
+description = &quot;Run command with environment&quot;
+executable = &quot;/usr/local/bin/myapp&quot;
+args = [&quot;--config&quot;, &quot;/etc/myapp/config.json&quot;]
+environment = { DATABASE_URL = &quot;postgresql://localhost/mydb&quot;, LOG_LEVEL = &quot;debug&quot; }</code></pre></div><h3 id="execute-command-with-timeout"><a class="doc-anchor" href="#execute-command-with-timeout">§</a>Execute command with timeout</h3>
+<p>This example executes a command with a timeout.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: raw
+  description: &quot;Run command with timeout&quot;
+  executable: sleep
+  args: [&quot;30&quot;]
+  timeout: 10
+  ignore_errors: true</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;raw&quot;,
+  &quot;description&quot;: &quot;Run command with timeout&quot;,
+  &quot;executable&quot;: &quot;sleep&quot;,
+  &quot;args&quot;: [&quot;30&quot;],
+  &quot;timeout&quot;: 10,
+  &quot;ignore_errors&quot;: true
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;raw&quot;
+description = &quot;Run command with timeout&quot;
+executable = &quot;sleep&quot;
+args = [&quot;30&quot;]
+timeout = 10
+ignore_errors = true</code></pre></div><h3 id="execute-command-in-specific-directory"><a class="doc-anchor" href="#execute-command-in-specific-directory">§</a>Execute command in specific directory</h3>
+<p>This example executes a command in a specific working directory.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: raw
+  description: &quot;Run command in project directory&quot;
+  executable: make
+  args: [&quot;build&quot;]
+  chdir: /opt/myproject</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;raw&quot;,
+  &quot;description&quot;: &quot;Run command in project directory&quot;,
+  &quot;executable&quot;: &quot;make&quot;,
+  &quot;args&quot;: [&quot;build&quot;],
+  &quot;chdir&quot;: &quot;/opt/myproject&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;raw&quot;
+description = &quot;Run command in project directory&quot;
+executable = &quot;make&quot;
+args = [&quot;build&quot;]
+chdir = &quot;/opt/myproject&quot;</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.RawTask.html" title="struct driftless::apply::raw::RawTask">RawTask</a></dt><dd>Execute commands without shell processing task</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.default_exit_codes.html" title="fn driftless::apply::raw::default_exit_codes">default_<wbr>exit_<wbr>codes</a></dt><dd>Default exit codes ([0])</dd><dt><a class="fn" href="fn.execute_raw_task.html" title="fn driftless::apply::raw::execute_raw_task">execute_<wbr>raw_<wbr>task</a></dt><dd>Execute a raw task</dd></dl></section></div></main></body></html>

@@ -1,0 +1,148 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Cron task executor"><title>driftless::apply::cron - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="driftless" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module cron</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../driftless/index.html">driftless</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module cron</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#create-a-cron-job" title="Create a cron job">Create a cron job</a></li><li><a href="#create-cron-job-with-specific-schedule" title="Create cron job with specific schedule">Create cron job with specific schedule</a></li><li><a href="#remove-a-cron-job" title="Remove a cron job">Remove a cron job</a></li><li><a href="#cron-job-with-complex-schedule" title="Cron job with complex schedule">Cron job with complex schedule</a></li></ul></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In driftless::<wbr>apply</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">driftless</a>::<wbr><a href="../index.html">apply</a></div><h1>Module <span>cron</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/driftless/apply/cron.rs.html#1-600">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Cron task executor</p>
+<p>Handles cron job management: create, modify, delete scheduled tasks.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="create-a-cron-job"><a class="doc-anchor" href="#create-a-cron-job">§</a>Create a cron job</h3>
+<p>This example creates a cron job that runs a backup script daily at 2 AM.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: cron
+  description: &quot;Create daily backup cron job&quot;
+  name: daily-backup
+  state: present
+  user: root
+  minute: &quot;0&quot;
+  hour: &quot;2&quot;
+  day: &quot;*&quot;
+  month: &quot;*&quot;
+  weekday: &quot;*&quot;
+  job: &quot;/usr/local/bin/backup.sh&quot;</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;cron&quot;,
+  &quot;description&quot;: &quot;Create daily backup cron job&quot;,
+  &quot;name&quot;: &quot;daily-backup&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;user&quot;: &quot;root&quot;,
+  &quot;minute&quot;: &quot;0&quot;,
+  &quot;hour&quot;: &quot;2&quot;,
+  &quot;day&quot;: &quot;*&quot;,
+  &quot;month&quot;: &quot;*&quot;,
+  &quot;weekday&quot;: &quot;*&quot;,
+  &quot;job&quot;: &quot;/usr/local/bin/backup.sh&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;cron&quot;
+description = &quot;Create daily backup cron job&quot;
+name = &quot;daily-backup&quot;
+state = &quot;present&quot;
+user = &quot;root&quot;
+minute = &quot;0&quot;
+hour = &quot;2&quot;
+day = &quot;*&quot;
+month = &quot;*&quot;
+weekday = &quot;*&quot;
+job = &quot;/usr/local/bin/backup.sh&quot;</code></pre></div><h3 id="create-cron-job-with-specific-schedule"><a class="doc-anchor" href="#create-cron-job-with-specific-schedule">§</a>Create cron job with specific schedule</h3>
+<p>This example creates a cron job that runs every Monday at 9 AM.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: cron
+  description: &quot;Weekly maintenance on Mondays&quot;
+  name: weekly-maintenance
+  state: present
+  user: root
+  minute: &quot;0&quot;
+  hour: &quot;9&quot;
+  day: &quot;*&quot;
+  month: &quot;*&quot;
+  weekday: &quot;1&quot;
+  job: &quot;/usr/local/bin/maintenance.sh&quot;
+  comment: &quot;Weekly system maintenance&quot;</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;cron&quot;,
+  &quot;description&quot;: &quot;Weekly maintenance on Mondays&quot;,
+  &quot;name&quot;: &quot;weekly-maintenance&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;user&quot;: &quot;root&quot;,
+  &quot;minute&quot;: &quot;0&quot;,
+  &quot;hour&quot;: &quot;9&quot;,
+  &quot;day&quot;: &quot;*&quot;,
+  &quot;month&quot;: &quot;*&quot;,
+  &quot;weekday&quot;: &quot;1&quot;,
+  &quot;job&quot;: &quot;/usr/local/bin/maintenance.sh&quot;,
+  &quot;comment&quot;: &quot;Weekly system maintenance&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;cron&quot;
+description = &quot;Weekly maintenance on Mondays&quot;
+name = &quot;weekly-maintenance&quot;
+state = &quot;present&quot;
+user = &quot;root&quot;
+minute = &quot;0&quot;
+hour = &quot;9&quot;
+day = &quot;*&quot;
+month = &quot;*&quot;
+weekday = &quot;1&quot;
+job = &quot;/usr/local/bin/maintenance.sh&quot;
+comment = &quot;Weekly system maintenance&quot;</code></pre></div><h3 id="remove-a-cron-job"><a class="doc-anchor" href="#remove-a-cron-job">§</a>Remove a cron job</h3>
+<p>This example removes the daily-backup cron job.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: cron
+  description: &quot;Remove daily backup cron job&quot;
+  name: daily-backup
+  state: absent</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;cron&quot;,
+  &quot;description&quot;: &quot;Remove daily backup cron job&quot;,
+  &quot;name&quot;: &quot;daily-backup&quot;,
+  &quot;state&quot;: &quot;absent&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;cron&quot;
+description = &quot;Remove daily backup cron job&quot;
+name = &quot;daily-backup&quot;
+state = &quot;absent&quot;</code></pre></div><h3 id="cron-job-with-complex-schedule"><a class="doc-anchor" href="#cron-job-with-complex-schedule">§</a>Cron job with complex schedule</h3>
+<p>This example creates a cron job that runs every 15 minutes during business hours.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: cron
+  description: &quot;Monitor service every 15 minutes during business hours&quot;
+  name: service-monitor
+  state: present
+  user: monitor
+  minute: &quot;*/15&quot;
+  hour: &quot;9-17&quot;
+  day: &quot;1-5&quot;
+  month: &quot;*&quot;
+  weekday: &quot;*&quot;
+  job: &quot;/usr/local/bin/check-service.sh&quot;
+  comment: &quot;Business hours service monitoring&quot;</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;cron&quot;,
+  &quot;description&quot;: &quot;Monitor service every 15 minutes during business hours&quot;,
+  &quot;name&quot;: &quot;service-monitor&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;user&quot;: &quot;monitor&quot;,
+  &quot;minute&quot;: &quot;*/15&quot;,
+  &quot;hour&quot;: &quot;9-17&quot;,
+  &quot;day&quot;: &quot;1-5&quot;,
+  &quot;month&quot;: &quot;*&quot;,
+  &quot;weekday&quot;: &quot;*&quot;,
+  &quot;job&quot;: &quot;/usr/local/bin/check-service.sh&quot;,
+  &quot;comment&quot;: &quot;Business hours service monitoring&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;cron&quot;
+description = &quot;Monitor service every 15 minutes during business hours&quot;
+name = &quot;service-monitor&quot;
+state = &quot;present&quot;
+user = &quot;monitor&quot;
+minute = &quot;*/15&quot;
+hour = &quot;9-17&quot;
+day = &quot;1-5&quot;
+month = &quot;*&quot;
+weekday = &quot;*&quot;
+job = &quot;/usr/local/bin/check-service.sh&quot;
+comment = &quot;Business hours service monitoring&quot;</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.CronTask.html" title="struct driftless::apply::cron::CronTask">Cron<wbr>Task</a></dt><dd>Cron job management task</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.CronState.html" title="enum driftless::apply::cron::CronState">Cron<wbr>State</a></dt><dd>Cron job state enumeration</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.add_cron_job.html" title="fn driftless::apply::cron::add_cron_job">add_<wbr>cron_<wbr>job</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Add a cron job to the crontab</dd><dt><a class="fn" href="fn.default_cron_day.html" title="fn driftless::apply::cron::default_cron_day">default_<wbr>cron_<wbr>day</a></dt><dd>Default cron day (“*”)</dd><dt><a class="fn" href="fn.default_cron_hour.html" title="fn driftless::apply::cron::default_cron_hour">default_<wbr>cron_<wbr>hour</a></dt><dd>Default cron hour (“*”)</dd><dt><a class="fn" href="fn.default_cron_minute.html" title="fn driftless::apply::cron::default_cron_minute">default_<wbr>cron_<wbr>minute</a></dt><dd>Default cron minute (“*”)</dd><dt><a class="fn" href="fn.default_cron_month.html" title="fn driftless::apply::cron::default_cron_month">default_<wbr>cron_<wbr>month</a></dt><dd>Default cron month (“*”)</dd><dt><a class="fn" href="fn.default_cron_user.html" title="fn driftless::apply::cron::default_cron_user">default_<wbr>cron_<wbr>user</a></dt><dd>Default cron user (“root”)</dd><dt><a class="fn" href="fn.default_cron_weekday.html" title="fn driftless::apply::cron::default_cron_weekday">default_<wbr>cron_<wbr>weekday</a></dt><dd>Default cron weekday (“*”)</dd><dt><a class="fn" href="fn.ensure_cron_job_absent.html" title="fn driftless::apply::cron::ensure_cron_job_absent">ensure_<wbr>cron_<wbr>job_<wbr>absent</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure a cron job does not exist</dd><dt><a class="fn" href="fn.ensure_cron_job_present.html" title="fn driftless::apply::cron::ensure_cron_job_present">ensure_<wbr>cron_<wbr>job_<wbr>present</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure a cron job exists</dd><dt><a class="fn" href="fn.execute_cron_task.html" title="fn driftless::apply::cron::execute_cron_task">execute_<wbr>cron_<wbr>task</a></dt><dd>Execute a cron task</dd><dt><a class="fn" href="fn.format_cron_job.html" title="fn driftless::apply::cron::format_cron_job">format_<wbr>cron_<wbr>job</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Format a cron job line</dd><dt><a class="fn" href="fn.get_cron_file_path.html" title="fn driftless::apply::cron::get_cron_file_path">get_<wbr>cron_<wbr>file_<wbr>path</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Get the path to the user’s crontab file</dd><dt><a class="fn" href="fn.read_crontab.html" title="fn driftless::apply::cron::read_crontab">read_<wbr>crontab</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Read the crontab file</dd><dt><a class="fn" href="fn.remove_cron_job.html" title="fn driftless::apply::cron::remove_cron_job">remove_<wbr>cron_<wbr>job</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Remove a cron job from the crontab</dd></dl></section></div></main></body></html>

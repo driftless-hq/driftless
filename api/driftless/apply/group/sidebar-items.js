@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["GroupState"],"fn":["create_group","ensure_group_absent","ensure_group_present","execute_group_task","group_exists","remove_group","run_command"],"struct":["GroupTask"]};

@@ -1,0 +1,126 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Git task executor"><title>driftless::apply::git - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="driftless" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module git</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../driftless/index.html">driftless</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module git</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#clone-a-repository" title="Clone a repository">Clone a repository</a></li><li><a href="#clone-specific-branch" title="Clone specific branch">Clone specific branch</a></li><li><a href="#clone-with-submodules" title="Clone with submodules">Clone with submodules</a></li><li><a href="#clone-specific-commit" title="Clone specific commit">Clone specific commit</a></li><li><a href="#register-repository-state" title="Register repository state">Register repository state</a></li></ul></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In driftless::<wbr>apply</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">driftless</a>::<wbr><a href="../index.html">apply</a></div><h1>Module <span>git</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/driftless/apply/git.rs.html#1-602">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Git task executor</p>
+<p>Handles git repository operations: clone, checkout, update repositories.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="clone-a-repository"><a class="doc-anchor" href="#clone-a-repository">§</a>Clone a repository</h3>
+<p>This example clones a git repository to a local directory.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: git
+  description: &quot;Clone application repository&quot;
+  repo: https://github.com/user/myapp.git
+  dest: /opt/myapp
+  version: main</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;git&quot;,
+  &quot;description&quot;: &quot;Clone application repository&quot;,
+  &quot;repo&quot;: &quot;https://github.com/user/myapp.git&quot;,
+  &quot;dest&quot;: &quot;/opt/myapp&quot;,
+  &quot;version&quot;: &quot;main&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;git&quot;
+description = &quot;Clone application repository&quot;
+repo = &quot;https://github.com/user/myapp.git&quot;
+dest = &quot;/opt/myapp&quot;
+version = &quot;main&quot;</code></pre></div><h3 id="clone-specific-branch"><a class="doc-anchor" href="#clone-specific-branch">§</a>Clone specific branch</h3>
+<p>This example clones a specific branch of a repository.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: git
+  description: &quot;Clone development branch&quot;
+  repo: https://github.com/user/myapp.git
+  dest: /opt/myapp-dev
+  version: develop</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;git&quot;,
+  &quot;description&quot;: &quot;Clone development branch&quot;,
+  &quot;repo&quot;: &quot;https://github.com/user/myapp.git&quot;,
+  &quot;dest&quot;: &quot;/opt/myapp-dev&quot;,
+  &quot;version&quot;: &quot;develop&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;git&quot;
+description = &quot;Clone development branch&quot;
+repo = &quot;https://github.com/user/myapp.git&quot;
+dest = &quot;/opt/myapp-dev&quot;
+version = &quot;develop&quot;</code></pre></div><h3 id="clone-with-submodules"><a class="doc-anchor" href="#clone-with-submodules">§</a>Clone with submodules</h3>
+<p>This example clones a repository including all submodules.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: git
+  description: &quot;Clone repository with submodules&quot;
+  repo: https://github.com/user/myapp.git
+  dest: /opt/myapp
+  recursive: true</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;git&quot;,
+  &quot;description&quot;: &quot;Clone repository with submodules&quot;,
+  &quot;repo&quot;: &quot;https://github.com/user/myapp.git&quot;,
+  &quot;dest&quot;: &quot;/opt/myapp&quot;,
+  &quot;recursive&quot;: true
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;git&quot;
+description = &quot;Clone repository with submodules&quot;
+repo = &quot;https://github.com/user/myapp.git&quot;
+dest = &quot;/opt/myapp&quot;
+recursive = true</code></pre></div><h3 id="clone-specific-commit"><a class="doc-anchor" href="#clone-specific-commit">§</a>Clone specific commit</h3>
+<p>This example clones a repository and checks out a specific commit.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: git
+  description: &quot;Clone specific commit&quot;
+  repo: https://github.com/user/myapp.git
+  dest: /opt/myapp
+  version: abc123def456</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;git&quot;,
+  &quot;description&quot;: &quot;Clone specific commit&quot;,
+  &quot;repo&quot;: &quot;https://github.com/user/myapp.git&quot;,
+  &quot;dest&quot;: &quot;/opt/myapp&quot;,
+  &quot;version&quot;: &quot;abc123def456&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;git&quot;
+description = &quot;Clone specific commit&quot;
+repo = &quot;https://github.com/user/myapp.git&quot;
+dest = &quot;/opt/myapp&quot;
+version = &quot;abc123def456&quot;</code></pre></div><h3 id="register-repository-state"><a class="doc-anchor" href="#register-repository-state">§</a>Register repository state</h3>
+<p>This example clones a repository and registers its state for use in subsequent tasks.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: git
+  description: &quot;Clone rust source&quot;
+  repo: https://github.com/rust-lang/rust.git
+  dest: /opt/rust
+  register: rust_repo
+
+- type: debug
+  msg: &quot;Rust repo is at {{ rust_repo.after }}&quot;</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>[
+  {
+    &quot;type&quot;: &quot;git&quot;,
+    &quot;description&quot;: &quot;Clone rust source&quot;,
+    &quot;repo&quot;: &quot;https://github.com/rust-lang/rust.git&quot;,
+    &quot;dest&quot;: &quot;/opt/rust&quot;,
+    &quot;register&quot;: &quot;rust_repo&quot;
+  },
+  {
+    &quot;type&quot;: &quot;debug&quot;,
+    &quot;msg&quot;: &quot;Rust repo is at {{ rust_repo.after }}&quot;
+  }
+]</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;git&quot;
+description = &quot;Clone rust source&quot;
+repo = &quot;https://github.com/rust-lang/rust.git&quot;
+dest = &quot;/opt/rust&quot;
+register = &quot;rust_repo&quot;
+
+[[tasks]]
+type = &quot;debug&quot;
+msg = &quot;Rust repo is at {{ rust_repo.after }}&quot;</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.GitTask.html" title="struct driftless::apply::git::GitTask">GitTask</a></dt><dd>Git repository management task</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.checkout_version.html" title="fn driftless::apply::git::checkout_version">checkout_<wbr>version</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Checkout a specific version/branch/tag</dd><dt><a class="fn" href="fn.clone_repository.html" title="fn driftless::apply::git::clone_repository">clone_<wbr>repository</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Clone a git repository</dd><dt><a class="fn" href="fn.default_head.html" title="fn driftless::apply::git::default_head">default_<wbr>head</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Default version (HEAD)</dd><dt><a class="fn" href="fn.default_origin.html" title="fn driftless::apply::git::default_origin">default_<wbr>origin</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Default remote name (origin)</dd><dt><a class="fn" href="fn.default_true.html" title="fn driftless::apply::git::default_true">default_<wbr>true</a></dt><dd>Default true value</dd><dt><a class="fn" href="fn.execute_git_task.html" title="fn driftless::apply::git::execute_git_task">execute_<wbr>git_<wbr>task</a></dt><dd>Execute a git task</dd><dt><a class="fn" href="fn.update_repository.html" title="fn driftless::apply::git::update_repository">update_<wbr>repository</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Update an existing repository</dd><dt><a class="fn" href="fn.update_submodules.html" title="fn driftless::apply::git::update_submodules">update_<wbr>submodules</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Update git submodules</dd></dl></section></div></main></body></html>

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["checkout_version","clone_repository","default_head","default_origin","default_true","execute_git_task","update_repository","update_submodules"],"struct":["GitTask"]};

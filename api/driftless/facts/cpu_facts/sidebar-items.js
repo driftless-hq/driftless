@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["collect_cpu_facts"]};

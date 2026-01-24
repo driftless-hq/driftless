@@ -1,0 +1,90 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="User task executor"><title>driftless::apply::user - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="driftless" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module user</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../driftless/index.html">driftless</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module user</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#create-a-user-with-basic-settings" title="Create a user with basic settings">Create a user with basic settings</a></li><li><a href="#create-a-system-user" title="Create a system user">Create a system user</a></li><li><a href="#remove-a-user" title="Remove a user">Remove a user</a></li></ul></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In driftless::<wbr>apply</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">driftless</a>::<wbr><a href="../index.html">apply</a></div><h1>Module <span>user</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/driftless/apply/user.rs.html#1-451">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>User task executor</p>
+<p>Handles user and group management operations: create, modify, delete users and groups.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="create-a-user-with-basic-settings"><a class="doc-anchor" href="#create-a-user-with-basic-settings">§</a>Create a user with basic settings</h3>
+<p>This example creates a new user with a home directory and default shell.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: user
+  description: &quot;Create a web application user&quot;
+  name: webapp
+  state: present
+  uid: 1001
+  gid: 1001
+  home: /home/webapp
+  shell: /bin/bash
+  create_home: true</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;user&quot;,
+  &quot;description&quot;: &quot;Create a web application user&quot;,
+  &quot;name&quot;: &quot;webapp&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;uid&quot;: 1001,
+  &quot;gid&quot;: 1001,
+  &quot;home&quot;: &quot;/home/webapp&quot;,
+  &quot;shell&quot;: &quot;/bin/bash&quot;,
+  &quot;create_home&quot;: true
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;user&quot;
+description = &quot;Create a web application user&quot;
+name = &quot;webapp&quot;
+state = &quot;present&quot;
+uid = 1001
+gid = 1001
+home = &quot;/home/webapp&quot;
+shell = &quot;/bin/bash&quot;
+create_home = true</code></pre></div><h3 id="create-a-system-user"><a class="doc-anchor" href="#create-a-system-user">§</a>Create a system user</h3>
+<p>This example creates a system user with specific UID/GID and no home directory.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: user
+  description: &quot;Create a system user for nginx&quot;
+  name: nginx
+  state: present
+  uid: 33
+  gid: 33
+  home: /var/lib/nginx
+  shell: /usr/sbin/nologin
+  create_home: false</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;user&quot;,
+  &quot;description&quot;: &quot;Create a system user for nginx&quot;,
+  &quot;name&quot;: &quot;nginx&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;uid&quot;: 33,
+  &quot;gid&quot;: 33,
+  &quot;home&quot;: &quot;/var/lib/nginx&quot;,
+  &quot;shell&quot;: &quot;/usr/sbin/nologin&quot;,
+  &quot;create_home&quot;: false
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;user&quot;
+description = &quot;Create a system user for nginx&quot;
+name = &quot;nginx&quot;
+state = &quot;present&quot;
+uid = 33
+gid = 33
+home = &quot;/var/lib/nginx&quot;
+shell = &quot;/usr/sbin/nologin&quot;
+create_home = false</code></pre></div><h3 id="remove-a-user"><a class="doc-anchor" href="#remove-a-user">§</a>Remove a user</h3>
+<p>This example removes a user account from the system.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: user
+  description: &quot;Remove the old user account&quot;
+  name: olduser
+  state: absent</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;user&quot;,
+  &quot;description&quot;: &quot;Remove the old user account&quot;,
+  &quot;name&quot;: &quot;olduser&quot;,
+  &quot;state&quot;: &quot;absent&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;user&quot;
+description = &quot;Remove the old user account&quot;
+name = &quot;olduser&quot;
+state = &quot;absent&quot;</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.UserTask.html" title="struct driftless::apply::user::UserTask">User<wbr>Task</a></dt><dd>User and group management task</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.UserState.html" title="enum driftless::apply::user::UserState">User<wbr>State</a></dt><dd>User state enumeration</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.create_user.html" title="fn driftless::apply::user::create_user">create_<wbr>user</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Create a new user</dd><dt><a class="fn" href="fn.ensure_user_absent.html" title="fn driftless::apply::user::ensure_user_absent">ensure_<wbr>user_<wbr>absent</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure a user does not exist</dd><dt><a class="fn" href="fn.ensure_user_present.html" title="fn driftless::apply::user::ensure_user_present">ensure_<wbr>user_<wbr>present</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure a user exists with the correct configuration</dd><dt><a class="fn" href="fn.execute_user_task.html" title="fn driftless::apply::user::execute_user_task">execute_<wbr>user_<wbr>task</a></dt><dd>Execute a user task</dd><dt><a class="fn" href="fn.needs_password_update.html" title="fn driftless::apply::user::needs_password_update">needs_<wbr>password_<wbr>update</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Check if a user’s password needs updating</dd><dt><a class="fn" href="fn.remove_user.html" title="fn driftless::apply::user::remove_user">remove_<wbr>user</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Remove a user</dd><dt><a class="fn" href="fn.run_command.html" title="fn driftless::apply::user::run_command">run_<wbr>command</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Run a command and return the result</dd><dt><a class="fn" href="fn.set_user_password.html" title="fn driftless::apply::user::set_user_password">set_<wbr>user_<wbr>password</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Set a user’s password</dd><dt><a class="fn" href="fn.update_user_if_needed.html" title="fn driftless::apply::user::update_user_if_needed">update_<wbr>user_<wbr>if_<wbr>needed</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Update an existing user if properties differ</dd><dt><a class="fn" href="fn.user_exists.html" title="fn driftless::apply::user::user_exists">user_<wbr>exists</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Check if a user exists</dd></dl></section></div></main></body></html>

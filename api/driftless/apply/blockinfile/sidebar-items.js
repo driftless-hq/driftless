@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["BlockInFileState"],"fn":["default_block_marker","ensure_block_absent","ensure_block_present","execute_blockinfile_task","find_blocks","find_insert_position","find_line_end","find_line_start","write_with_backup"],"struct":["BlockInFileTask"]};

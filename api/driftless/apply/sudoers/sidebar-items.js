@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["SudoersState"],"fn":["default_all_commands","default_all_hosts","default_true","ensure_sudoers_entry_absent","ensure_sudoers_entry_present","execute_sudoers_task","format_sudoers_entry","validate_sudoers_syntax"],"struct":["SudoersTask"]};

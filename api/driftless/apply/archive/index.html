@@ -1,0 +1,104 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Archive files task executor"><title>driftless::apply::archive - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="driftless" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module archive</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../driftless/index.html">driftless</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module archive</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#create-a-tar-archive" title="Create a tar archive">Create a tar archive</a></li><li><a href="#create-a-compressed-tar-archive" title="Create a compressed tar archive">Create a compressed tar archive</a></li><li><a href="#create-a-zip-archive" title="Create a zip archive">Create a zip archive</a></li><li><a href="#remove-an-archive" title="Remove an archive">Remove an archive</a></li></ul></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In driftless::<wbr>apply</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">driftless</a>::<wbr><a href="../index.html">apply</a></div><h1>Module <span>archive</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/driftless/apply/archive.rs.html#1-524">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Archive files task executor</p>
+<p>Handles creating archives from files and directories.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="create-a-tar-archive"><a class="doc-anchor" href="#create-a-tar-archive">§</a>Create a tar archive</h3>
+<p>This example creates a tar archive from a directory.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: archive
+  description: &quot;Create backup archive&quot;
+  path: /tmp/backup.tar
+  state: present
+  format: tar
+  sources:
+    - /home/user/documents
+    - /home/user/pictures</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;archive&quot;,
+  &quot;description&quot;: &quot;Create backup archive&quot;,
+  &quot;path&quot;: &quot;/tmp/backup.tar&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;format&quot;: &quot;tar&quot;,
+  &quot;sources&quot;: [&quot;/home/user/documents&quot;, &quot;/home/user/pictures&quot;]
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;archive&quot;
+description = &quot;Create backup archive&quot;
+path = &quot;/tmp/backup.tar&quot;
+state = &quot;present&quot;
+format = &quot;tar&quot;
+sources = [&quot;/home/user/documents&quot;, &quot;/home/user/pictures&quot;]</code></pre></div><h3 id="create-a-compressed-tar-archive"><a class="doc-anchor" href="#create-a-compressed-tar-archive">§</a>Create a compressed tar archive</h3>
+<p>This example creates a gzip-compressed tar archive.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: archive
+  description: &quot;Create compressed backup&quot;
+  path: /tmp/backup.tar.gz
+  state: present
+  format: tgz
+  sources:
+    - /var/log
+  compression: 9</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;archive&quot;,
+  &quot;description&quot;: &quot;Create compressed backup&quot;,
+  &quot;path&quot;: &quot;/tmp/backup.tar.gz&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;format&quot;: &quot;tgz&quot;,
+  &quot;sources&quot;: [&quot;/var/log&quot;],
+  &quot;compression&quot;: 9
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;archive&quot;
+description = &quot;Create compressed backup&quot;
+path = &quot;/tmp/backup.tar.gz&quot;
+state = &quot;present&quot;
+format = &quot;tgz&quot;
+sources = [&quot;/var/log&quot;]
+compression = 9</code></pre></div><h3 id="create-a-zip-archive"><a class="doc-anchor" href="#create-a-zip-archive">§</a>Create a zip archive</h3>
+<p>This example creates a zip archive.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: archive
+  description: &quot;Create zip archive&quot;
+  path: /tmp/data.zip
+  state: present
+  format: zip
+  sources:
+    - /home/user/data</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;archive&quot;,
+  &quot;description&quot;: &quot;Create zip archive&quot;,
+  &quot;path&quot;: &quot;/tmp/data.zip&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;format&quot;: &quot;zip&quot;,
+  &quot;sources&quot;: [&quot;/home/user/data&quot;]
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;archive&quot;
+description = &quot;Create zip archive&quot;
+path = &quot;/tmp/data.zip&quot;
+state = &quot;present&quot;
+format = &quot;zip&quot;
+sources = [&quot;/home/user/data&quot;]</code></pre></div><h3 id="remove-an-archive"><a class="doc-anchor" href="#remove-an-archive">§</a>Remove an archive</h3>
+<p>This example removes an archive file.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: archive
+  description: &quot;Remove old backup&quot;
+  path: /tmp/old-backup.tar.gz
+  state: absent</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;archive&quot;,
+  &quot;description&quot;: &quot;Remove old backup&quot;,
+  &quot;path&quot;: &quot;/tmp/old-backup.tar.gz&quot;,
+  &quot;state&quot;: &quot;absent&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;archive&quot;
+description = &quot;Remove old backup&quot;
+path = &quot;/tmp/old-backup.tar.gz&quot;
+state = &quot;absent&quot;</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.ArchiveTask.html" title="struct driftless::apply::archive::ArchiveTask">Archive<wbr>Task</a></dt><dd>Archive files task</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.ArchiveFormat.html" title="enum driftless::apply::archive::ArchiveFormat">Archive<wbr>Format</a></dt><dd>Archive format enumeration</dd><dt><a class="enum" href="enum.ArchiveState.html" title="enum driftless::apply::archive::ArchiveState">Archive<wbr>State</a></dt><dd>Archive state enumeration</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.create_7z_archive.html" title="fn driftless::apply::archive::create_7z_archive">create_<wbr>7z_<wbr>archive</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Create 7z archive</dd><dt><a class="fn" href="fn.create_archive.html" title="fn driftless::apply::archive::create_archive">create_<wbr>archive</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Create archive using appropriate tool</dd><dt><a class="fn" href="fn.create_tar_archive.html" title="fn driftless::apply::archive::create_tar_archive">create_<wbr>tar_<wbr>archive</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Create uncompressed tar archive</dd><dt><a class="fn" href="fn.create_tar_bz2_archive.html" title="fn driftless::apply::archive::create_tar_bz2_archive">create_<wbr>tar_<wbr>bz2_<wbr>archive</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Create bzip2-compressed tar archive</dd><dt><a class="fn" href="fn.create_tar_gz_archive.html" title="fn driftless::apply::archive::create_tar_gz_archive">create_<wbr>tar_<wbr>gz_<wbr>archive</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Create gzip-compressed tar archive</dd><dt><a class="fn" href="fn.create_tar_xz_archive.html" title="fn driftless::apply::archive::create_tar_xz_archive">create_<wbr>tar_<wbr>xz_<wbr>archive</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Create xz-compressed tar archive</dd><dt><a class="fn" href="fn.create_zip_archive.html" title="fn driftless::apply::archive::create_zip_archive">create_<wbr>zip_<wbr>archive</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Create zip archive</dd><dt><a class="fn" href="fn.ensure_archive_created.html" title="fn driftless::apply::archive::ensure_archive_created">ensure_<wbr>archive_<wbr>created</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure archive is created</dd><dt><a class="fn" href="fn.ensure_archive_removed.html" title="fn driftless::apply::archive::ensure_archive_removed">ensure_<wbr>archive_<wbr>removed</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure archive is removed</dd><dt><a class="fn" href="fn.execute_archive_task.html" title="fn driftless::apply::archive::execute_archive_task">execute_<wbr>archive_<wbr>task</a></dt><dd>Execute an archive task</dd><dt><a class="fn" href="fn.run_command.html" title="fn driftless::apply::archive::run_command">run_<wbr>command</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Run external command for archive creation</dd></dl></section></div></main></body></html>

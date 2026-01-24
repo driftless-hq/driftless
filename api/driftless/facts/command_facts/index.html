@@ -1,0 +1,195 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Command facts collector"><title>driftless::facts::command_facts - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="driftless" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module command_facts</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../driftless/index.html">driftless</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module command_<wbr>facts</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#basic-command-output-collection" title="Basic command output collection">Basic command output collection</a></li><li><a href="#json-command-output-parsing" title="JSON command output parsing">JSON command output parsing</a></li><li><a href="#key-value-command-output-parsing" title="Key-value command output parsing">Key-value command output parsing</a></li><li><a href="#text-command-output-default" title="Text command output (default)">Text command output (default)</a></li><li><a href="#command-with-environment-variables-and-working-directory" title="Command with environment variables and working directory">Command with environment variables and working directory</a></li></ul></li></ul><h3><a href="#functions">Module Items</a></h3><ul class="block"><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In driftless::<wbr>facts</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">driftless</a>::<wbr><a href="../index.html">facts</a></div><h1>Module <span>command_<wbr>facts</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/driftless/facts/command_facts.rs.html#1-660">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Command facts collector</p>
+<p>Executes custom commands and collects their output as facts.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="basic-command-output-collection"><a class="doc-anchor" href="#basic-command-output-collection">§</a>Basic command output collection</h3>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>type: command
+name: uptime
+command: uptime -p
+format: text
+labels:
+  category: system</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;command&quot;,
+  &quot;name&quot;: &quot;uptime&quot;,
+  &quot;command&quot;: &quot;uptime -p&quot;,
+  &quot;format&quot;: &quot;text&quot;,
+  &quot;labels&quot;: {
+    &quot;category&quot;: &quot;system&quot;
+  }
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[collectors]]
+type = &quot;command&quot;
+name = &quot;uptime&quot;
+command = &quot;uptime -p&quot;
+format = &quot;text&quot;
+
+[collectors.labels]
+category = &quot;system&quot;</code></pre></div><h3 id="json-command-output-parsing"><a class="doc-anchor" href="#json-command-output-parsing">§</a>JSON command output parsing</h3>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>type: command
+name: docker_stats
+command: docker stats --no-stream --format json
+format: json
+cwd: /tmp
+env:
+  DOCKER_HOST: unix:///var/run/docker.sock</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;command&quot;,
+  &quot;name&quot;: &quot;docker_stats&quot;,
+  &quot;command&quot;: &quot;docker stats --no-stream --format json&quot;,
+  &quot;format&quot;: &quot;json&quot;,
+  &quot;cwd&quot;: &quot;/tmp&quot;,
+  &quot;env&quot;: {
+    &quot;DOCKER_HOST&quot;: &quot;unix:///var/run/docker.sock&quot;
+  }
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[collectors]]
+type = &quot;command&quot;
+name = &quot;docker_stats&quot;
+command = &quot;docker stats --no-stream --format json&quot;
+format = &quot;json&quot;
+cwd = &quot;/tmp&quot;
+
+[collectors.env]
+DOCKER_HOST = &quot;unix:///var/run/docker.sock&quot;</code></pre></div>
+<p><strong>Output:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>command: &quot;docker stats --no-stream --format json&quot;
+exit_code: 0
+output:
+  - container: &quot;web_server&quot;
+    cpu_percent: &quot;5.2&quot;
+    memory_usage: &quot;128MiB / 1GiB&quot;
+    net_io: &quot;1.2kB / 3.4kB&quot;
+  - container: &quot;database&quot;
+    cpu_percent: &quot;2.1&quot;
+    memory_usage: &quot;256MiB / 2GiB&quot;
+    net_io: &quot;500B / 1.2kB&quot;
+labels:
+  category: monitoring</code></pre></div><h3 id="key-value-command-output-parsing"><a class="doc-anchor" href="#key-value-command-output-parsing">§</a>Key-value command output parsing</h3>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>type: command
+name: system_info
+command: echo &quot;hostname=$(hostname)\nos_version=$(cat /etc/os-release | grep PRETTY_NAME | cut -d&#39;=&#39; -f2 | tr -d &#39;\&quot;&#39;)\nuptime=$(uptime -p)&quot;
+format: key_value
+labels:
+  category: system</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;command&quot;,
+  &quot;name&quot;: &quot;system_info&quot;,
+  &quot;command&quot;: &quot;echo \&quot;hostname=$(hostname)\\nos_version=$(cat /etc/os-release | grep PRETTY_NAME | cut -d&#39;=&#39; -f2 | tr -d &#39;\\\&quot;&#39;)\\nuptime=$(uptime -p)\&quot;&quot;,
+  &quot;format&quot;: &quot;key_value&quot;,
+  &quot;labels&quot;: {
+    &quot;category&quot;: &quot;system&quot;
+  }
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[collectors]]
+type = &quot;command&quot;
+name = &quot;system_info&quot;
+command = &quot;echo \&quot;hostname=$(hostname)\\nos_version=$(cat /etc/os-release | grep PRETTY_NAME | cut -d&#39;=&#39; -f2 | tr -d &#39;\\\&quot;&#39;)\\nuptime=$(uptime -p)\&quot;&quot;
+format = &quot;key_value&quot;
+
+[collectors.labels]
+category = &quot;system&quot;</code></pre></div>
+<p><strong>Output:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>command: &quot;echo \&quot;hostname=$(hostname)\\nos_version=$(cat /etc/os-release | grep PRETTY_NAME | cut -d&#39;=&#39; -f2 | tr -d &#39;\\\&quot;&#39;)\\nuptime=$(uptime -p)\&quot;&quot;
+exit_code: 0
+output:
+  hostname: &quot;web-server-01&quot;
+  os_version: &quot;Ubuntu 22.04.3 LTS&quot;
+  uptime: &quot;up 2 weeks, 3 days, 4 hours&quot;
+labels:
+  category: system</code></pre></div><h3 id="text-command-output-default"><a class="doc-anchor" href="#text-command-output-default">§</a>Text command output (default)</h3>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>type: command
+name: disk_usage
+command: df -h /
+format: text
+labels:
+  category: storage</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;command&quot;,
+  &quot;name&quot;: &quot;disk_usage&quot;,
+  &quot;command&quot;: &quot;df -h /&quot;,
+  &quot;format&quot;: &quot;text&quot;,
+  &quot;labels&quot;: {
+    &quot;category&quot;: &quot;storage&quot;
+  }
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[collectors]]
+type = &quot;command&quot;
+name = &quot;disk_usage&quot;
+command = &quot;df -h /&quot;
+format = &quot;text&quot;
+
+[collectors.labels]
+category = &quot;storage&quot;</code></pre></div>
+<p><strong>Output:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>command: &quot;df -h /&quot;
+exit_code: 0
+stdout: |
+  Filesystem      Size  Used Avail Use% Mounted on
+  /dev/sda1        50G   15G   33G  31% /
+labels:
+  category: storage</code></pre></div><h3 id="command-with-environment-variables-and-working-directory"><a class="doc-anchor" href="#command-with-environment-variables-and-working-directory">§</a>Command with environment variables and working directory</h3>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>type: command
+name: custom_script
+command: ./check_service.sh
+format: json
+cwd: /opt/myapp
+env:
+  SERVICE_NAME: myapp
+  LOG_LEVEL: info
+labels:
+  category: application</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;command&quot;,
+  &quot;name&quot;: &quot;custom_script&quot;,
+  &quot;command&quot;: &quot;./check_service.sh&quot;,
+  &quot;format&quot;: &quot;json&quot;,
+  &quot;cwd&quot;: &quot;/opt/myapp&quot;,
+  &quot;env&quot;: {
+    &quot;SERVICE_NAME&quot;: &quot;myapp&quot;,
+    &quot;LOG_LEVEL&quot;: &quot;info&quot;
+  },
+  &quot;labels&quot;: {
+    &quot;category&quot;: &quot;application&quot;
+  }
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[collectors]]
+type = &quot;command&quot;
+name = &quot;custom_script&quot;
+command = &quot;./check_service.sh&quot;
+format = &quot;json&quot;
+cwd = &quot;/opt/myapp&quot;
+
+[collectors.env]
+SERVICE_NAME = &quot;myapp&quot;
+LOG_LEVEL = &quot;info&quot;
+
+[collectors.labels]
+category = &quot;application&quot;</code></pre></div>
+<p><strong>Output:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>command: &quot;./check_service.sh&quot;
+exit_code: 0
+output:
+  service_status: &quot;running&quot;
+  uptime_seconds: 3600
+  version: &quot;1.2.3&quot;
+  health_checks:
+    - name: &quot;database&quot;
+      status: &quot;ok&quot;
+    - name: &quot;cache&quot;
+      status: &quot;ok&quot;
+labels:
+  category: application</code></pre></div></div></details><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.collect_command_facts.html" title="fn driftless::facts::command_facts::collect_command_facts">collect_<wbr>command_<wbr>facts</a></dt><dd>Execute command facts collection</dd></dl></section></div></main></body></html>

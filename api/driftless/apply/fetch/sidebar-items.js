@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["FetchState"],"fn":["default_fetch_timeout","ensure_file_fetched","ensure_file_not_fetched","execute_fetch_task","fetch_url_to_file"],"struct":["FetchTask"]};

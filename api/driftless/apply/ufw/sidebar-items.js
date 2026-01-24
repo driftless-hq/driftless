@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["UfwState"],"fn":["add_ufw_rule","delete_ufw_rule","ensure_ufw_disabled","ensure_ufw_enabled","execute_ufw_task","is_ufw_available","is_ufw_enabled","reload_ufw","reset_ufw","rule_exists","run_ufw_cmd","set_ufw_default","set_ufw_logging"],"struct":["UfwTask"]};

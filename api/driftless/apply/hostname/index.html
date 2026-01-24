@@ -1,0 +1,60 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Hostname task executor"><title>driftless::apply::hostname - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="driftless" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module hostname</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../driftless/index.html">driftless</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module hostname</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#set-system-hostname" title="Set system hostname">Set system hostname</a></li><li><a href="#set-hostname-temporarily" title="Set hostname temporarily">Set hostname temporarily</a></li><li><a href="#set-hostname-with-domain" title="Set hostname with domain">Set hostname with domain</a></li></ul></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In driftless::<wbr>apply</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">driftless</a>::<wbr><a href="../index.html">apply</a></div><h1>Module <span>hostname</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/driftless/apply/hostname.rs.html#1-257">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Hostname task executor</p>
+<p>Handles system hostname management.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="set-system-hostname"><a class="doc-anchor" href="#set-system-hostname">§</a>Set system hostname</h3>
+<p>This example sets the system hostname to “web-server-01”.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: hostname
+  description: &quot;Set system hostname&quot;
+  name: web-server-01
+  persist: true</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;hostname&quot;,
+  &quot;description&quot;: &quot;Set system hostname&quot;,
+  &quot;name&quot;: &quot;web-server-01&quot;,
+  &quot;persist&quot;: true
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;hostname&quot;
+description = &quot;Set system hostname&quot;
+name = &quot;web-server-01&quot;
+persist = true</code></pre></div><h3 id="set-hostname-temporarily"><a class="doc-anchor" href="#set-hostname-temporarily">§</a>Set hostname temporarily</h3>
+<p>This example sets the hostname temporarily (not persisted across reboots).</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: hostname
+  description: &quot;Set temporary hostname&quot;
+  name: temp-server
+  persist: false</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;hostname&quot;,
+  &quot;description&quot;: &quot;Set temporary hostname&quot;,
+  &quot;name&quot;: &quot;temp-server&quot;,
+  &quot;persist&quot;: false
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;hostname&quot;
+description = &quot;Set temporary hostname&quot;
+name = &quot;temp-server&quot;
+persist = false</code></pre></div><h3 id="set-hostname-with-domain"><a class="doc-anchor" href="#set-hostname-with-domain">§</a>Set hostname with domain</h3>
+<p>This example sets a fully qualified hostname.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: hostname
+  description: &quot;Set fully qualified hostname&quot;
+  name: app.example.com
+  persist: true</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;hostname&quot;,
+  &quot;description&quot;: &quot;Set fully qualified hostname&quot;,
+  &quot;name&quot;: &quot;app.example.com&quot;,
+  &quot;persist&quot;: true
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;hostname&quot;
+description = &quot;Set fully qualified hostname&quot;
+name = &quot;app.example.com&quot;
+persist = true</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.HostnameTask.html" title="struct driftless::apply::hostname::HostnameTask">Hostname<wbr>Task</a></dt><dd>System hostname management task</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.execute_hostname_task.html" title="fn driftless::apply::hostname::execute_hostname_task">execute_<wbr>hostname_<wbr>task</a></dt><dd>Execute a hostname task</dd><dt><a class="fn" href="fn.get_current_hostname.html" title="fn driftless::apply::hostname::get_current_hostname">get_<wbr>current_<wbr>hostname</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Get the current system hostname</dd><dt><a class="fn" href="fn.persist_hostname.html" title="fn driftless::apply::hostname::persist_hostname">persist_<wbr>hostname</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Persist hostname to /etc/hostname</dd><dt><a class="fn" href="fn.set_hostname.html" title="fn driftless::apply::hostname::set_hostname">set_<wbr>hostname</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Set the current hostname</dd></dl></section></div></main></body></html>

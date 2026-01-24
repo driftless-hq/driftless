@@ -1,0 +1,9 @@
+(function() {
+    var implementors = Object.fromEntries([["driftless",[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.93.0/core/marker/trait.StructuralPartialEq.html\" title=\"trait core::marker::StructuralPartialEq\">StructuralPartialEq</a> for <a class=\"enum\" href=\"driftless/apply/archive/enum.ArchiveFormat.html\" title=\"enum driftless::apply::archive::ArchiveFormat\">ArchiveFormat</a>"],["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.93.0/core/marker/trait.StructuralPartialEq.html\" title=\"trait core::marker::StructuralPartialEq\">StructuralPartialEq</a> for <a class=\"enum\" href=\"driftless/apply/journald/enum.JournaldState.html\" title=\"enum driftless::apply::journald::JournaldState\">JournaldState</a>"],["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.93.0/core/marker/trait.StructuralPartialEq.html\" title=\"trait core::marker::StructuralPartialEq\">StructuralPartialEq</a> for <a class=\"enum\" href=\"driftless/apply/logrotate/enum.LogrotateState.html\" title=\"enum driftless::apply::logrotate::LogrotateState\">LogrotateState</a>"],["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.93.0/core/marker/trait.StructuralPartialEq.html\" title=\"trait core::marker::StructuralPartialEq\">StructuralPartialEq</a> for <a class=\"enum\" href=\"driftless/apply/rsyslog/enum.RsyslogState.html\" title=\"enum driftless::apply::rsyslog::RsyslogState\">RsyslogState</a>"]]]]);
+    if (window.register_implementors) {
+        window.register_implementors(implementors);
+    } else {
+        window.pending_implementors = implementors;
+    }
+})()
+//{"start":57,"fragment_lengths":[1381]}

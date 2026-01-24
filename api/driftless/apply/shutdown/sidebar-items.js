@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["execute_shutdown_task","shutdown_system"],"struct":["ShutdownTask"]};

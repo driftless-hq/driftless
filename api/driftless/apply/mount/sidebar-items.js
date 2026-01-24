@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["MountState"],"fn":["add_to_fstab","ensure_in_fstab","ensure_mounted","ensure_not_in_fstab","ensure_unmounted","execute_mount_task","is_in_fstab","is_mounted","mount_filesystem","remove_from_fstab","run_command","unmount_filesystem"],"struct":["MountTask"]};

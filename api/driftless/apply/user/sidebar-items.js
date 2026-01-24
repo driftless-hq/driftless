@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["UserState"],"fn":["create_user","ensure_user_absent","ensure_user_present","execute_user_task","needs_password_update","remove_user","run_command","set_user_password","update_user_if_needed","user_exists"],"struct":["UserTask"]};

@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["default_cache_valid_time","ensure_package_absent","ensure_package_latest","ensure_package_present","execute_apt_task","is_package_installed","run_apt_command","update_cache"],"struct":["AptTask"]};

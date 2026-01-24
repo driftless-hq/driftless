@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ChecksumAlgorithm"],"fn":["calculate_checksum","execute_stat_task"],"struct":["StatTask"]};

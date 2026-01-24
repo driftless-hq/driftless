@@ -1,0 +1,126 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="URI/web service interaction task executor"><title>driftless::apply::uri - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="driftless" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module uri</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../driftless/index.html">driftless</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module uri</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#simple-get-request" title="Simple GET request">Simple GET request</a></li><li><a href="#post-request-with-json-body" title="POST request with JSON body">POST request with JSON body</a></li><li><a href="#request-with-authentication" title="Request with authentication">Request with authentication</a></li><li><a href="#register-uri-response" title="Register URI response">Register URI response</a></li></ul></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In driftless::<wbr>apply</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">driftless</a>::<wbr><a href="../index.html">apply</a></div><h1>Module <span>uri</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/driftless/apply/uri.rs.html#1-553">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>URI/web service interaction task executor</p>
+<p>Handles HTTP API calls with various methods, authentication, and response validation.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="simple-get-request"><a class="doc-anchor" href="#simple-get-request">§</a>Simple GET request</h3>
+<p>This example makes a GET request to check service health.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: uri
+  description: &quot;Check API health endpoint&quot;
+  url: https://api.example.com/health
+  method: GET
+  status_code: 200
+  return_content: true</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;uri&quot;,
+  &quot;description&quot;: &quot;Check API health endpoint&quot;,
+  &quot;url&quot;: &quot;https://api.example.com/health&quot;,
+  &quot;method&quot;: &quot;GET&quot;,
+  &quot;status_code&quot;: 200,
+  &quot;return_content&quot;: true
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;uri&quot;
+description = &quot;Check API health endpoint&quot;
+url = &quot;https://api.example.com/health&quot;
+method = &quot;GET&quot;
+status_code = 200
+return_content = true</code></pre></div><h3 id="post-request-with-json-body"><a class="doc-anchor" href="#post-request-with-json-body">§</a>POST request with JSON body</h3>
+<p>This example makes a POST request with JSON data.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: uri
+  description: &quot;Create a new user via API&quot;
+  url: https://api.example.com/users
+  method: POST
+  body: &quot;{\&quot;name\&quot;: \&quot;John Doe\&quot;, \&quot;email\&quot;: \&quot;john@example.com\&quot;}&quot;
+  headers:
+    Content-Type: application/json
+  status_code: 201</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;uri&quot;,
+  &quot;description&quot;: &quot;Create a new user via API&quot;,
+  &quot;url&quot;: &quot;https://api.example.com/users&quot;,
+  &quot;method&quot;: &quot;POST&quot;,
+  &quot;body&quot;: &quot;{\&quot;name\&quot;: \&quot;John Doe\&quot;, \&quot;email\&quot;: \&quot;john@example.com\&quot;}&quot;,
+  &quot;headers&quot;: {
+    &quot;Content-Type&quot;: &quot;application/json&quot;
+  },
+  &quot;status_code&quot;: 201
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;uri&quot;
+description = &quot;Create a new user via API&quot;
+url = &quot;https://api.example.com/users&quot;
+method = &quot;POST&quot;
+body = &quot;{\&quot;name\&quot;: \&quot;John Doe\&quot;, \&quot;email\&quot;: \&quot;john@example.com\&quot;}&quot;
+
+[tasks.headers]
+Content-Type = &quot;application/json&quot;
+
+[tasks]]
+status_code = 201</code></pre></div><h3 id="request-with-authentication"><a class="doc-anchor" href="#request-with-authentication">§</a>Request with authentication</h3>
+<p>This example makes an authenticated request.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: uri
+  description: &quot;Get user profile with authentication&quot;
+  url: https://api.example.com/profile
+  method: GET
+  username: myuser
+  password: mypassword
+  return_content: true</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;uri&quot;,
+  &quot;description&quot;: &quot;Get user profile with authentication&quot;,
+  &quot;url&quot;: &quot;https://api.example.com/profile&quot;,
+  &quot;method&quot;: &quot;GET&quot;,
+  &quot;username&quot;: &quot;myuser&quot;,
+  &quot;password&quot;: &quot;mypassword&quot;,
+  &quot;return_content&quot;: true
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;uri&quot;
+description = &quot;Get user profile with authentication&quot;
+url = &quot;https://api.example.com/profile&quot;
+method = &quot;GET&quot;
+username = &quot;myuser&quot;
+password = &quot;mypassword&quot;
+return_content = true</code></pre></div><h3 id="register-uri-response"><a class="doc-anchor" href="#register-uri-response">§</a>Register URI response</h3>
+<p>This example makes a request and registers the response for use in a subsequent task.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: uri
+  description: &quot;Get health status&quot;
+  url: https://api.example.com/health
+  register: health_response
+  return_content: true
+
+- type: debug
+  msg: &quot;The API status code is: {{ health_response.status }}&quot;</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>[
+  {
+    &quot;type&quot;: &quot;uri&quot;,
+    &quot;description&quot;: &quot;Get health status&quot;,
+    &quot;url&quot;: &quot;https://api.example.com/health&quot;,
+    &quot;register&quot;: &quot;health_response&quot;,
+    &quot;return_content&quot;: true
+  },
+  {
+    &quot;type&quot;: &quot;debug&quot;,
+    &quot;msg&quot;: &quot;The API status code is: {{ health_response.status }}&quot;
+  }
+]</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;uri&quot;
+description = &quot;Get health status&quot;
+url = &quot;https://api.example.com/health&quot;
+register = &quot;health_response&quot;
+return_content = true
+
+[[tasks]]
+type = &quot;debug&quot;
+msg = &quot;The API status code is: {{ health_response.status }}&quot;</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.UriTask.html" title="struct driftless::apply::uri::UriTask">UriTask</a></dt><dd>Interact with web services task</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.HttpMethod.html" title="enum driftless::apply::uri::HttpMethod">Http<wbr>Method</a></dt><dd>HTTP method enumeration</dd><dt><a class="enum" href="enum.UriState.html" title="enum driftless::apply::uri::UriState">UriState</a></dt><dd>URI state enumeration</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.build_http_client.html" title="fn driftless::apply::uri::build_http_client">build_<wbr>http_<wbr>client</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Build HTTP client with appropriate configuration</dd><dt><a class="fn" href="fn.default_uri_method.html" title="fn driftless::apply::uri::default_uri_method">default_<wbr>uri_<wbr>method</a></dt><dd>Default URI method (“GET”)</dd><dt><a class="fn" href="fn.default_uri_status_codes.html" title="fn driftless::apply::uri::default_uri_status_codes">default_<wbr>uri_<wbr>status_<wbr>codes</a></dt><dd>Default URI status codes ([200])</dd><dt><a class="fn" href="fn.default_uri_timeout.html" title="fn driftless::apply::uri::default_uri_timeout">default_<wbr>uri_<wbr>timeout</a></dt><dd>Default URI timeout (30 seconds)</dd><dt><a class="fn" href="fn.ensure_uri_request_succeeds.html" title="fn driftless::apply::uri::ensure_uri_request_succeeds">ensure_<wbr>uri_<wbr>request_<wbr>succeeds</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure URI request succeeds with expected response</dd><dt><a class="fn" href="fn.execute_uri_task.html" title="fn driftless::apply::uri::execute_uri_task">execute_<wbr>uri_<wbr>task</a></dt><dd>Execute a URI task</dd><dt><a class="fn" href="fn.format_method.html" title="fn driftless::apply::uri::format_method">format_<wbr>method</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Format HTTP method for display</dd></dl></section></div></main></body></html>

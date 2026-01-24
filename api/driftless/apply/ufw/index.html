@@ -1,0 +1,83 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="UFW (Uncomplicated Firewall) management"><title>driftless::apply::ufw - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="driftless" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module ufw</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../driftless/index.html">driftless</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module ufw</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#enable-ufw-firewall" title="Enable UFW firewall">Enable UFW firewall</a></li><li><a href="#allow-ssh-access" title="Allow SSH access">Allow SSH access</a></li><li><a href="#allow-http-and-https" title="Allow HTTP and HTTPS">Allow HTTP and HTTPS</a></li><li><a href="#deny-specific-ip-address" title="Deny specific IP address">Deny specific IP address</a></li></ul></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In driftless::<wbr>apply</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">driftless</a>::<wbr><a href="../index.html">apply</a></div><h1>Module <span>ufw</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/driftless/apply/ufw.rs.html#1-548">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>UFW (Uncomplicated Firewall) management</p>
+<p>This module manages UFW firewall rules on Ubuntu/Debian systems.
+It supports enabling/disabling UFW, adding/removing rules for ports and services.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="enable-ufw-firewall"><a class="doc-anchor" href="#enable-ufw-firewall">§</a>Enable UFW firewall</h3>
+<p>This example enables the UFW firewall.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: ufw
+  description: &quot;Enable UFW firewall&quot;
+  state: enabled</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;ufw&quot;,
+  &quot;description&quot;: &quot;Enable UFW firewall&quot;,
+  &quot;state&quot;: &quot;enabled&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;ufw&quot;
+description = &quot;Enable UFW firewall&quot;
+state = &quot;enabled&quot;</code></pre></div><h3 id="allow-ssh-access"><a class="doc-anchor" href="#allow-ssh-access">§</a>Allow SSH access</h3>
+<p>This example allows SSH connections on port 22.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: ufw
+  description: &quot;Allow SSH access&quot;
+  state: allow
+  port: &quot;22&quot;
+  proto: tcp</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;ufw&quot;,
+  &quot;description&quot;: &quot;Allow SSH access&quot;,
+  &quot;state&quot;: &quot;allow&quot;,
+  &quot;port&quot;: &quot;22&quot;,
+  &quot;proto&quot;: &quot;tcp&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;ufw&quot;
+description = &quot;Allow SSH access&quot;
+state = &quot;allow&quot;
+port = &quot;22&quot;
+proto = &quot;tcp&quot;</code></pre></div><h3 id="allow-http-and-https"><a class="doc-anchor" href="#allow-http-and-https">§</a>Allow HTTP and HTTPS</h3>
+<p>This example allows web traffic on ports 80 and 443.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: ufw
+  description: &quot;Allow web traffic&quot;
+  state: allow
+  port: &quot;80,443&quot;
+  proto: tcp</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;ufw&quot;,
+  &quot;description&quot;: &quot;Allow web traffic&quot;,
+  &quot;state&quot;: &quot;allow&quot;,
+  &quot;port&quot;: &quot;80,443&quot;,
+  &quot;proto&quot;: &quot;tcp&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;ufw&quot;
+description = &quot;Allow web traffic&quot;
+state = &quot;allow&quot;
+port = &quot;80,443&quot;
+proto = &quot;tcp&quot;</code></pre></div><h3 id="deny-specific-ip-address"><a class="doc-anchor" href="#deny-specific-ip-address">§</a>Deny specific IP address</h3>
+<p>This example denies all traffic from a specific IP address.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: ufw
+  description: &quot;Block specific IP address&quot;
+  state: deny
+  from: 192.168.1.100</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;ufw&quot;,
+  &quot;description&quot;: &quot;Block specific IP address&quot;,
+  &quot;state&quot;: &quot;deny&quot;,
+  &quot;from&quot;: &quot;192.168.1.100&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;ufw&quot;
+description = &quot;Block specific IP address&quot;
+state = &quot;deny&quot;
+from = &quot;192.168.1.100&quot;</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.UfwTask.html" title="struct driftless::apply::ufw::UfwTask">UfwTask</a></dt><dd>UFW firewall management task</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.UfwState.html" title="enum driftless::apply::ufw::UfwState">UfwState</a></dt><dd>UFW state enumeration</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.add_ufw_rule.html" title="fn driftless::apply::ufw::add_ufw_rule">add_<wbr>ufw_<wbr>rule</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Add a UFW rule</dd><dt><a class="fn" href="fn.delete_ufw_rule.html" title="fn driftless::apply::ufw::delete_ufw_rule">delete_<wbr>ufw_<wbr>rule</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Delete a UFW rule</dd><dt><a class="fn" href="fn.ensure_ufw_disabled.html" title="fn driftless::apply::ufw::ensure_ufw_disabled">ensure_<wbr>ufw_<wbr>disabled</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure UFW is disabled</dd><dt><a class="fn" href="fn.ensure_ufw_enabled.html" title="fn driftless::apply::ufw::ensure_ufw_enabled">ensure_<wbr>ufw_<wbr>enabled</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure UFW is enabled</dd><dt><a class="fn" href="fn.execute_ufw_task.html" title="fn driftless::apply::ufw::execute_ufw_task">execute_<wbr>ufw_<wbr>task</a></dt><dd>Execute UFW firewall task</dd><dt><a class="fn" href="fn.is_ufw_available.html" title="fn driftless::apply::ufw::is_ufw_available">is_<wbr>ufw_<wbr>available</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Check if UFW is available</dd><dt><a class="fn" href="fn.is_ufw_enabled.html" title="fn driftless::apply::ufw::is_ufw_enabled">is_<wbr>ufw_<wbr>enabled</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Check if UFW is enabled</dd><dt><a class="fn" href="fn.reload_ufw.html" title="fn driftless::apply::ufw::reload_ufw">reload_<wbr>ufw</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Reload UFW rules</dd><dt><a class="fn" href="fn.reset_ufw.html" title="fn driftless::apply::ufw::reset_ufw">reset_<wbr>ufw</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Reset UFW to defaults</dd><dt><a class="fn" href="fn.rule_exists.html" title="fn driftless::apply::ufw::rule_exists">rule_<wbr>exists</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Check if a rule already exists</dd><dt><a class="fn" href="fn.run_ufw_cmd.html" title="fn driftless::apply::ufw::run_ufw_cmd">run_<wbr>ufw_<wbr>cmd</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Run a UFW command and return its output</dd><dt><a class="fn" href="fn.set_ufw_default.html" title="fn driftless::apply::ufw::set_ufw_default">set_<wbr>ufw_<wbr>default</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Set UFW default policy</dd><dt><a class="fn" href="fn.set_ufw_logging.html" title="fn driftless::apply::ufw::set_ufw_logging">set_<wbr>ufw_<wbr>logging</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Set UFW logging level</dd></dl></section></div></main></body></html>

@@ -1,0 +1,103 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Mount task executor"><title>driftless::apply::mount - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="driftless" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module mount</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../driftless/index.html">driftless</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module mount</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#mount-a-filesystem" title="Mount a filesystem">Mount a filesystem</a></li><li><a href="#mount-with-fstab-entry" title="Mount with fstab entry">Mount with fstab entry</a></li><li><a href="#unmount-a-filesystem" title="Unmount a filesystem">Unmount a filesystem</a></li><li><a href="#remove-fstab-entry" title="Remove fstab entry">Remove fstab entry</a></li></ul></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In driftless::<wbr>apply</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">driftless</a>::<wbr><a href="../index.html">apply</a></div><h1>Module <span>mount</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/driftless/apply/mount.rs.html#1-562">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Mount task executor</p>
+<p>Handles filesystem mounting operations: mount, unmount, fstab management.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="mount-a-filesystem"><a class="doc-anchor" href="#mount-a-filesystem">§</a>Mount a filesystem</h3>
+<p>This example mounts a device to a mount point.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: mount
+  description: &quot;Mount data partition&quot;
+  path: /mnt/data
+  state: mounted
+  src: /dev/sdb1
+  fstype: ext4
+  opts: [&quot;defaults&quot;]</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;mount&quot;,
+  &quot;description&quot;: &quot;Mount data partition&quot;,
+  &quot;path&quot;: &quot;/mnt/data&quot;,
+  &quot;state&quot;: &quot;mounted&quot;,
+  &quot;src&quot;: &quot;/dev/sdb1&quot;,
+  &quot;fstype&quot;: &quot;ext4&quot;,
+  &quot;opts&quot;: [&quot;defaults&quot;]
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;mount&quot;
+description = &quot;Mount data partition&quot;
+path = &quot;/mnt/data&quot;
+state = &quot;mounted&quot;
+src = &quot;/dev/sdb1&quot;
+fstype = &quot;ext4&quot;
+opts = [&quot;defaults&quot;]</code></pre></div><h3 id="mount-with-fstab-entry"><a class="doc-anchor" href="#mount-with-fstab-entry">§</a>Mount with fstab entry</h3>
+<p>This example mounts a filesystem and adds it to /etc/fstab for persistence.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: mount
+  description: &quot;Mount NFS share with fstab entry&quot;
+  path: /mnt/nfs
+  state: present
+  src: 192.168.1.100:/export/data
+  fstype: nfs
+  opts: [&quot;defaults&quot;, &quot;vers=4&quot;]
+  fstab: true</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;mount&quot;,
+  &quot;description&quot;: &quot;Mount NFS share with fstab entry&quot;,
+  &quot;path&quot;: &quot;/mnt/nfs&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;src&quot;: &quot;192.168.1.100:/export/data&quot;,
+  &quot;fstype&quot;: &quot;nfs&quot;,
+  &quot;opts&quot;: [&quot;defaults&quot;, &quot;vers=4&quot;],
+  &quot;fstab&quot;: true
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;mount&quot;
+description = &quot;Mount NFS share with fstab entry&quot;
+path = &quot;/mnt/nfs&quot;
+state = &quot;present&quot;
+src = &quot;192.168.1.100:/export/data&quot;
+fstype = &quot;nfs&quot;
+opts = [&quot;defaults&quot;, &quot;vers=4&quot;]
+fstab = true</code></pre></div><h3 id="unmount-a-filesystem"><a class="doc-anchor" href="#unmount-a-filesystem">§</a>Unmount a filesystem</h3>
+<p>This example unmounts a filesystem.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: mount
+  description: &quot;Unmount temporary mount&quot;
+  path: /mnt/temp
+  state: unmounted</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;mount&quot;,
+  &quot;description&quot;: &quot;Unmount temporary mount&quot;,
+  &quot;path&quot;: &quot;/mnt/temp&quot;,
+  &quot;state&quot;: &quot;unmounted&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;mount&quot;
+description = &quot;Unmount temporary mount&quot;
+path = &quot;/mnt/temp&quot;
+state = &quot;unmounted&quot;</code></pre></div><h3 id="remove-fstab-entry"><a class="doc-anchor" href="#remove-fstab-entry">§</a>Remove fstab entry</h3>
+<p>This example removes a filesystem entry from /etc/fstab.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: mount
+  description: &quot;Remove fstab entry&quot;
+  path: /mnt/old
+  state: absent
+  fstab: true</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;mount&quot;,
+  &quot;description&quot;: &quot;Remove fstab entry&quot;,
+  &quot;path&quot;: &quot;/mnt/old&quot;,
+  &quot;state&quot;: &quot;absent&quot;,
+  &quot;fstab&quot;: true
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;mount&quot;
+description = &quot;Remove fstab entry&quot;
+path = &quot;/mnt/old&quot;
+state = &quot;absent&quot;
+fstab = true</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.MountTask.html" title="struct driftless::apply::mount::MountTask">Mount<wbr>Task</a></dt><dd>Filesystem mounting task</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.MountState.html" title="enum driftless::apply::mount::MountState">Mount<wbr>State</a></dt><dd>Mount state enumeration</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.add_to_fstab.html" title="fn driftless::apply::mount::add_to_fstab">add_<wbr>to_<wbr>fstab</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Add mount entry to fstab</dd><dt><a class="fn" href="fn.ensure_in_fstab.html" title="fn driftless::apply::mount::ensure_in_fstab">ensure_<wbr>in_<wbr>fstab</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure mount is present in fstab</dd><dt><a class="fn" href="fn.ensure_mounted.html" title="fn driftless::apply::mount::ensure_mounted">ensure_<wbr>mounted</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure filesystem is mounted</dd><dt><a class="fn" href="fn.ensure_not_in_fstab.html" title="fn driftless::apply::mount::ensure_not_in_fstab">ensure_<wbr>not_<wbr>in_<wbr>fstab</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure mount is not present in fstab</dd><dt><a class="fn" href="fn.ensure_unmounted.html" title="fn driftless::apply::mount::ensure_unmounted">ensure_<wbr>unmounted</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure filesystem is not mounted</dd><dt><a class="fn" href="fn.execute_mount_task.html" title="fn driftless::apply::mount::execute_mount_task">execute_<wbr>mount_<wbr>task</a></dt><dd>Execute a mount task</dd><dt><a class="fn" href="fn.is_in_fstab.html" title="fn driftless::apply::mount::is_in_fstab">is_<wbr>in_<wbr>fstab</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Check if mount entry exists in fstab</dd><dt><a class="fn" href="fn.is_mounted.html" title="fn driftless::apply::mount::is_mounted">is_<wbr>mounted</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Check if a path is currently mounted</dd><dt><a class="fn" href="fn.mount_filesystem.html" title="fn driftless::apply::mount::mount_filesystem">mount_<wbr>filesystem</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Mount a filesystem</dd><dt><a class="fn" href="fn.remove_from_fstab.html" title="fn driftless::apply::mount::remove_from_fstab">remove_<wbr>from_<wbr>fstab</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Remove mount entry from fstab</dd><dt><a class="fn" href="fn.run_command.html" title="fn driftless::apply::mount::run_command">run_<wbr>command</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Run a command and return the result</dd><dt><a class="fn" href="fn.unmount_filesystem.html" title="fn driftless::apply::mount::unmount_filesystem">unmount_<wbr>filesystem</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Unmount a filesystem</dd></dl></section></div></main></body></html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Block in file task executor"><title>driftless::apply::blockinfile - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="driftless" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module blockinfile</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../driftless/index.html">driftless</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module blockinfile</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#insert-a-configuration-block" title="Insert a configuration block">Insert a configuration block</a></li><li><a href="#insert-block-after-specific-content" title="Insert block after specific content">Insert block after specific content</a></li><li><a href="#insert-block-with-backup" title="Insert block with backup">Insert block with backup</a></li><li><a href="#remove-a-configuration-block" title="Remove a configuration block">Remove a configuration block</a></li></ul></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In driftless::<wbr>apply</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">driftless</a>::<wbr><a href="../index.html">apply</a></div><h1>Module <span>blockinfile</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/driftless/apply/blockinfile.rs.html#1-578">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Block in file task executor</p>
+<p>Handles inserting/updating multi-line blocks in files.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="insert-a-configuration-block"><a class="doc-anchor" href="#insert-a-configuration-block">§</a>Insert a configuration block</h3>
+<p>This example inserts a configuration block into a file.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: blockinfile
+  description: &quot;Add custom configuration block&quot;
+  path: /etc/myapp/config.conf
+  state: present
+  block: |
+    # Custom configuration
+    custom_option = true
+    custom_value = 42
+  marker: &quot;# {mark} Custom Config&quot;</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;blockinfile&quot;,
+  &quot;description&quot;: &quot;Add custom configuration block&quot;,
+  &quot;path&quot;: &quot;/etc/myapp/config.conf&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;block&quot;: &quot;# Custom configuration\ncustom_option = true\ncustom_value = 42\n&quot;,
+  &quot;marker&quot;: &quot;# {mark} Custom Config&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;blockinfile&quot;
+description = &quot;Add custom configuration block&quot;
+path = &quot;/etc/myapp/config.conf&quot;
+state = &quot;present&quot;
+block = &quot;&quot;&quot;
+# Custom configuration
+custom_option = true
+custom_value = 42
+&quot;&quot;&quot;
+marker = &quot;# {mark} Custom Config&quot;</code></pre></div><h3 id="insert-block-after-specific-content"><a class="doc-anchor" href="#insert-block-after-specific-content">§</a>Insert block after specific content</h3>
+<p>This example inserts a block after a specific line in the file.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: blockinfile
+  description: &quot;Add SSL configuration&quot;
+  path: /etc/httpd/httpd.conf
+  state: present
+  block: |
+    SSLEngine on
+    SSLCertificateFile /etc/ssl/certs/server.crt
+    SSLCertificateKeyFile /etc/ssl/private/server.key
+  insertafter: &quot;^# LoadModule ssl_module&quot;
+  marker: &quot;# {mark} SSL Config&quot;</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;blockinfile&quot;,
+  &quot;description&quot;: &quot;Add SSL configuration&quot;,
+  &quot;path&quot;: &quot;/etc/httpd/httpd.conf&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;block&quot;: &quot;SSLEngine on\nSSLCertificateFile /etc/ssl/certs/server.crt\nSSLCertificateKeyFile /etc/ssl/private/server.key\n&quot;,
+  &quot;insertafter&quot;: &quot;^# LoadModule ssl_module&quot;,
+  &quot;marker&quot;: &quot;# {mark} SSL Config&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;blockinfile&quot;
+description = &quot;Add SSL configuration&quot;
+path = &quot;/etc/httpd/httpd.conf&quot;
+state = &quot;present&quot;
+block = &quot;&quot;&quot;
+SSLEngine on
+SSLCertificateFile /etc/ssl/certs/server.crt
+SSLCertificateKeyFile /etc/ssl/private/server.key
+&quot;&quot;&quot;
+insertafter = &quot;^# LoadModule ssl_module&quot;
+marker = &quot;# {mark} SSL Config&quot;</code></pre></div><h3 id="insert-block-with-backup"><a class="doc-anchor" href="#insert-block-with-backup">§</a>Insert block with backup</h3>
+<p>This example inserts a block and creates a backup of the original file.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: blockinfile
+  description: &quot;Add firewall rules with backup&quot;
+  path: /etc/iptables/rules.v4
+  state: present
+  block: |
+    -A INPUT -p tcp --dport 80 -j ACCEPT
+    -A INPUT -p tcp --dport 443 -j ACCEPT
+  marker: &quot;# {mark} Web Rules&quot;
+  backup: true</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;blockinfile&quot;,
+  &quot;description&quot;: &quot;Add firewall rules with backup&quot;,
+  &quot;path&quot;: &quot;/etc/iptables/rules.v4&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;block&quot;: &quot;-A INPUT -p tcp --dport 80 -j ACCEPT\n-A INPUT -p tcp --dport 443 -j ACCEPT\n&quot;,
+  &quot;marker&quot;: &quot;# {mark} Web Rules&quot;,
+  &quot;backup&quot;: true
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;blockinfile&quot;
+description = &quot;Add firewall rules with backup&quot;
+path = &quot;/etc/iptables/rules.v4&quot;
+state = &quot;present&quot;
+block = &quot;&quot;&quot;
+-A INPUT -p tcp --dport 80 -j ACCEPT
+-A INPUT -p tcp --dport 443 -j ACCEPT
+&quot;&quot;&quot;
+marker = &quot;# {mark} Web Rules&quot;
+backup = true</code></pre></div><h3 id="remove-a-configuration-block"><a class="doc-anchor" href="#remove-a-configuration-block">§</a>Remove a configuration block</h3>
+<p>This example removes a configuration block from a file.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: blockinfile
+  description: &quot;Remove old configuration&quot;
+  path: /etc/myapp/config.conf
+  state: absent
+  marker: &quot;# {mark} Old Config&quot;</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;blockinfile&quot;,
+  &quot;description&quot;: &quot;Remove old configuration&quot;,
+  &quot;path&quot;: &quot;/etc/myapp/config.conf&quot;,
+  &quot;state&quot;: &quot;absent&quot;,
+  &quot;marker&quot;: &quot;# {mark} Old Config&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;blockinfile&quot;
+description = &quot;Remove old configuration&quot;
+path = &quot;/etc/myapp/config.conf&quot;
+state = &quot;absent&quot;
+marker = &quot;# {mark} Old Config&quot;</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.BlockInFileTask.html" title="struct driftless::apply::blockinfile::BlockInFileTask">Block<wbr>InFile<wbr>Task</a></dt><dd>Insert/update multi-line blocks task</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.BlockInFileState.html" title="enum driftless::apply::blockinfile::BlockInFileState">Block<wbr>InFile<wbr>State</a></dt><dd>Block in file state enumeration</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.default_block_marker.html" title="fn driftless::apply::blockinfile::default_block_marker">default_<wbr>block_<wbr>marker</a></dt><dd>Default block marker</dd><dt><a class="fn" href="fn.ensure_block_absent.html" title="fn driftless::apply::blockinfile::ensure_block_absent">ensure_<wbr>block_<wbr>absent</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure block is absent from file</dd><dt><a class="fn" href="fn.ensure_block_present.html" title="fn driftless::apply::blockinfile::ensure_block_present">ensure_<wbr>block_<wbr>present</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure block is present in file</dd><dt><a class="fn" href="fn.execute_blockinfile_task.html" title="fn driftless::apply::blockinfile::execute_blockinfile_task">execute_<wbr>blockinfile_<wbr>task</a></dt><dd>Execute a blockinfile task</dd><dt><a class="fn" href="fn.find_blocks.html" title="fn driftless::apply::blockinfile::find_blocks">find_<wbr>blocks</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Find all block positions in content</dd><dt><a class="fn" href="fn.find_insert_position.html" title="fn driftless::apply::blockinfile::find_insert_position">find_<wbr>insert_<wbr>position</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Find position to insert new block</dd><dt><a class="fn" href="fn.find_line_end.html" title="fn driftless::apply::blockinfile::find_line_end">find_<wbr>line_<wbr>end</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Find end of line containing position</dd><dt><a class="fn" href="fn.find_line_start.html" title="fn driftless::apply::blockinfile::find_line_start">find_<wbr>line_<wbr>start</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Find start of line containing position</dd><dt><a class="fn" href="fn.write_with_backup.html" title="fn driftless::apply::blockinfile::write_with_backup">write_<wbr>with_<wbr>backup</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Write content with backup if requested</dd></dl></section></div></main></body></html>

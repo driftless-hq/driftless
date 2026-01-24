@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["default_npm_executable","ensure_package_absent","ensure_package_latest","ensure_package_present","execute_npm_task","is_package_installed","run_npm_command"],"struct":["NpmTask"]};

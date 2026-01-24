@@ -1,0 +1,109 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Get URL task executor"><title>driftless::apply::get_url - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="driftless" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module get_url</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../driftless/index.html">driftless</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module get_url</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#download-a-file" title="Download a file">Download a file</a></li><li><a href="#download-with-checksum-validation" title="Download with checksum validation">Download with checksum validation</a></li><li><a href="#download-with-authentication" title="Download with authentication">Download with authentication</a></li><li><a href="#download-and-set-permissions" title="Download and set permissions">Download and set permissions</a></li></ul></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In driftless::<wbr>apply</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">driftless</a>::<wbr><a href="../index.html">apply</a></div><h1>Module <span>get_url</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/driftless/apply/get_url.rs.html#1-606">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Get URL task executor</p>
+<p>Downloads files from HTTP/HTTPS/FTP URLs with checksum validation and file management.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="download-a-file"><a class="doc-anchor" href="#download-a-file">§</a>Download a file</h3>
+<p>This example downloads a file from a URL.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: get_url
+  description: &quot;Download configuration file&quot;
+  url: https://example.com/config.yml
+  dest: /etc/myapp/config.yml
+  state: present</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;get_url&quot;,
+  &quot;description&quot;: &quot;Download configuration file&quot;,
+  &quot;url&quot;: &quot;https://example.com/config.yml&quot;,
+  &quot;dest&quot;: &quot;/etc/myapp/config.yml&quot;,
+  &quot;state&quot;: &quot;present&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;get_url&quot;
+description = &quot;Download configuration file&quot;
+url = &quot;https://example.com/config.yml&quot;
+dest = &quot;/etc/myapp/config.yml&quot;
+state = &quot;present&quot;</code></pre></div><h3 id="download-with-checksum-validation"><a class="doc-anchor" href="#download-with-checksum-validation">§</a>Download with checksum validation</h3>
+<p>This example downloads a file and validates its checksum.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: get_url
+  description: &quot;Download software with checksum validation&quot;
+  url: https://example.com/software.tar.gz
+  dest: /tmp/software.tar.gz
+  state: present
+  checksum: sha256:abc123def456...</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;get_url&quot;,
+  &quot;description&quot;: &quot;Download software with checksum validation&quot;,
+  &quot;url&quot;: &quot;https://example.com/software.tar.gz&quot;,
+  &quot;dest&quot;: &quot;/tmp/software.tar.gz&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;checksum&quot;: &quot;sha256:abc123def456...&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;get_url&quot;
+description = &quot;Download software with checksum validation&quot;
+url = &quot;https://example.com/software.tar.gz&quot;
+dest = &quot;/tmp/software.tar.gz&quot;
+state = &quot;present&quot;
+checksum = &quot;sha256:abc123def456...&quot;</code></pre></div><h3 id="download-with-authentication"><a class="doc-anchor" href="#download-with-authentication">§</a>Download with authentication</h3>
+<p>This example downloads a file using basic authentication.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: get_url
+  description: &quot;Download private file&quot;
+  url: https://private.example.com/file.txt
+  dest: /tmp/private.txt
+  state: present
+  username: myuser
+  password: mypassword</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;get_url&quot;,
+  &quot;description&quot;: &quot;Download private file&quot;,
+  &quot;url&quot;: &quot;https://private.example.com/file.txt&quot;,
+  &quot;dest&quot;: &quot;/tmp/private.txt&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;username&quot;: &quot;myuser&quot;,
+  &quot;password&quot;: &quot;mypassword&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;get_url&quot;
+description = &quot;Download private file&quot;
+url = &quot;https://private.example.com/file.txt&quot;
+dest = &quot;/tmp/private.txt&quot;
+state = &quot;present&quot;
+username = &quot;myuser&quot;
+password = &quot;mypassword&quot;</code></pre></div><h3 id="download-and-set-permissions"><a class="doc-anchor" href="#download-and-set-permissions">§</a>Download and set permissions</h3>
+<p>This example downloads a file and sets its permissions and ownership.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: get_url
+  description: &quot;Download script with proper permissions&quot;
+  url: https://example.com/script.sh
+  dest: /usr/local/bin/myscript.sh
+  state: present
+  mode: &quot;0755&quot;
+  owner: root
+  group: root</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;get_url&quot;,
+  &quot;description&quot;: &quot;Download script with proper permissions&quot;,
+  &quot;url&quot;: &quot;https://example.com/script.sh&quot;,
+  &quot;dest&quot;: &quot;/usr/local/bin/myscript.sh&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;mode&quot;: &quot;0755&quot;,
+  &quot;owner&quot;: &quot;root&quot;,
+  &quot;group&quot;: &quot;root&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;get_url&quot;
+description = &quot;Download script with proper permissions&quot;
+url = &quot;https://example.com/script.sh&quot;
+dest = &quot;/usr/local/bin/myscript.sh&quot;
+state = &quot;present&quot;
+mode = &quot;0755&quot;
+owner = &quot;root&quot;
+group = &quot;root&quot;</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.GetUrlTask.html" title="struct driftless::apply::get_url::GetUrlTask">GetUrl<wbr>Task</a></dt><dd>Download files from HTTP/HTTPS/FTP task</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.GetUrlState.html" title="enum driftless::apply::get_url::GetUrlState">GetUrl<wbr>State</a></dt><dd>Get URL state enumeration</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.default_get_url_timeout.html" title="fn driftless::apply::get_url::default_get_url_timeout">default_<wbr>get_<wbr>url_<wbr>timeout</a></dt><dd>Default get URL timeout (10 seconds)</dd><dt><a class="fn" href="fn.download_url_to_file.html" title="fn driftless::apply::get_url::download_url_to_file">download_<wbr>url_<wbr>to_<wbr>file</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Download URL content to file</dd><dt><a class="fn" href="fn.ensure_file_downloaded.html" title="fn driftless::apply::get_url::ensure_file_downloaded">ensure_<wbr>file_<wbr>downloaded</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure file is downloaded from URL</dd><dt><a class="fn" href="fn.ensure_file_removed.html" title="fn driftless::apply::get_url::ensure_file_removed">ensure_<wbr>file_<wbr>removed</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure file is removed</dd><dt><a class="fn" href="fn.execute_get_url_task.html" title="fn driftless::apply::get_url::execute_get_url_task">execute_<wbr>get_<wbr>url_<wbr>task</a></dt><dd>Execute a get URL task</dd><dt><a class="fn" href="fn.set_file_ownership.html" title="fn driftless::apply::get_url::set_file_ownership">set_<wbr>file_<wbr>ownership</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Set file ownership</dd><dt><a class="fn" href="fn.set_file_permissions.html" title="fn driftless::apply::get_url::set_file_permissions">set_<wbr>file_<wbr>permissions</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Set file permissions</dd><dt><a class="fn" href="fn.validate_checksum.html" title="fn driftless::apply::get_url::validate_checksum">validate_<wbr>checksum</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Validate file checksum</dd></dl></section></div></main></body></html>

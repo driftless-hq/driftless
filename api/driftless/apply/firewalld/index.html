@@ -1,0 +1,104 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Firewalld firewall management"><title>driftless::apply::firewalld - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="driftless" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module firewalld</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../driftless/index.html">driftless</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module firewalld</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#allow-ssh-service" title="Allow SSH service">Allow SSH service</a></li><li><a href="#allow-custom-port" title="Allow custom port">Allow custom port</a></li><li><a href="#add-rich-rule" title="Add rich rule">Add rich rule</a></li><li><a href="#remove-firewall-rule" title="Remove firewall rule">Remove firewall rule</a></li></ul></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In driftless::<wbr>apply</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">driftless</a>::<wbr><a href="../index.html">apply</a></div><h1>Module <span>firewalld</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/driftless/apply/firewalld.rs.html#1-471">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Firewalld firewall management</p>
+<p>This module manages firewalld firewall rules and configuration.
+It supports adding/removing services, ports, and rich rules.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="allow-ssh-service"><a class="doc-anchor" href="#allow-ssh-service">§</a>Allow SSH service</h3>
+<p>This example allows SSH service through the firewall.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: firewalld
+  description: &quot;Allow SSH access&quot;
+  state: present
+  service: ssh
+  zone: public
+  permanent: true</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;firewalld&quot;,
+  &quot;description&quot;: &quot;Allow SSH access&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;service&quot;: &quot;ssh&quot;,
+  &quot;zone&quot;: &quot;public&quot;,
+  &quot;permanent&quot;: true
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;firewalld&quot;
+description = &quot;Allow SSH access&quot;
+state = &quot;present&quot;
+service = &quot;ssh&quot;
+zone = &quot;public&quot;
+permanent = true</code></pre></div><h3 id="allow-custom-port"><a class="doc-anchor" href="#allow-custom-port">§</a>Allow custom port</h3>
+<p>This example allows traffic on a custom port.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: firewalld
+  description: &quot;Allow web traffic on port 8080&quot;
+  state: present
+  port: &quot;8080/tcp&quot;
+  zone: public
+  permanent: true</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;firewalld&quot;,
+  &quot;description&quot;: &quot;Allow web traffic on port 8080&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;port&quot;: &quot;8080/tcp&quot;,
+  &quot;zone&quot;: &quot;public&quot;,
+  &quot;permanent&quot;: true
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;firewalld&quot;
+description = &quot;Allow web traffic on port 8080&quot;
+state = &quot;present&quot;
+port = &quot;8080/tcp&quot;
+zone = &quot;public&quot;
+permanent = true</code></pre></div><h3 id="add-rich-rule"><a class="doc-anchor" href="#add-rich-rule">§</a>Add rich rule</h3>
+<p>This example adds a rich rule for advanced firewall configuration.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: firewalld
+  description: &quot;Allow traffic from specific IP&quot;
+  state: present
+  rich_rule: &#39;rule family=&quot;ipv4&quot; source address=&quot;192.168.1.100&quot; accept&#39;
+  zone: public
+  permanent: true</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;firewalld&quot;,
+  &quot;description&quot;: &quot;Allow traffic from specific IP&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;rich_rule&quot;: &quot;rule family=\&quot;ipv4\&quot; source address=\&quot;192.168.1.100\&quot; accept&quot;,
+  &quot;zone&quot;: &quot;public&quot;,
+  &quot;permanent&quot;: true
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;firewalld&quot;
+description = &quot;Allow traffic from specific IP&quot;
+state = &quot;present&quot;
+rich_rule = &#39;rule family=&quot;ipv4&quot; source address=&quot;192.168.1.100&quot; accept&#39;
+zone = &quot;public&quot;
+permanent = true</code></pre></div><h3 id="remove-firewall-rule"><a class="doc-anchor" href="#remove-firewall-rule">§</a>Remove firewall rule</h3>
+<p>This example removes a firewall rule.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: firewalld
+  description: &quot;Remove SSH access&quot;
+  state: absent
+  service: ssh
+  zone: public
+  permanent: true</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;firewalld&quot;,
+  &quot;description&quot;: &quot;Remove SSH access&quot;,
+  &quot;state&quot;: &quot;absent&quot;,
+  &quot;service&quot;: &quot;ssh&quot;,
+  &quot;zone&quot;: &quot;public&quot;,
+  &quot;permanent&quot;: true
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;firewalld&quot;
+description = &quot;Remove SSH access&quot;
+state = &quot;absent&quot;
+service = &quot;ssh&quot;
+zone = &quot;public&quot;
+permanent = true</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.FirewalldTask.html" title="struct driftless::apply::firewalld::FirewalldTask">Firewalld<wbr>Task</a></dt><dd>Firewalld firewall management task</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.FirewalldState.html" title="enum driftless::apply::firewalld::FirewalldState">Firewalld<wbr>State</a></dt><dd>Firewalld state enumeration</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.default_true.html" title="fn driftless::apply::firewalld::default_true">default_<wbr>true</a></dt><dt><a class="fn" href="fn.default_zone.html" title="fn driftless::apply::firewalld::default_zone">default_<wbr>zone</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dt><a class="fn" href="fn.ensure_firewalld_rule_absent.html" title="fn driftless::apply::firewalld::ensure_firewalld_rule_absent">ensure_<wbr>firewalld_<wbr>rule_<wbr>absent</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure firewalld rule is absent</dd><dt><a class="fn" href="fn.ensure_firewalld_rule_present.html" title="fn driftless::apply::firewalld::ensure_firewalld_rule_present">ensure_<wbr>firewalld_<wbr>rule_<wbr>present</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure firewalld rule is present</dd><dt><a class="fn" href="fn.execute_firewalld_task.html" title="fn driftless::apply::firewalld::execute_firewalld_task">execute_<wbr>firewalld_<wbr>task</a></dt><dd>Execute firewalld firewall task</dd><dt><a class="fn" href="fn.is_firewalld_running.html" title="fn driftless::apply::firewalld::is_firewalld_running">is_<wbr>firewalld_<wbr>running</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Check if firewalld is running</dd><dt><a class="fn" href="fn.is_port_enabled.html" title="fn driftless::apply::firewalld::is_port_enabled">is_<wbr>port_<wbr>enabled</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Check if a port is enabled in a zone</dd><dt><a class="fn" href="fn.is_rich_rule_enabled.html" title="fn driftless::apply::firewalld::is_rich_rule_enabled">is_<wbr>rich_<wbr>rule_<wbr>enabled</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Check if a rich rule is enabled in a zone</dd><dt><a class="fn" href="fn.is_service_enabled.html" title="fn driftless::apply::firewalld::is_service_enabled">is_<wbr>service_<wbr>enabled</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Check if a service is enabled in a zone</dd><dt><a class="fn" href="fn.run_firewall_cmd.html" title="fn driftless::apply::firewalld::run_firewall_cmd">run_<wbr>firewall_<wbr>cmd</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Run a firewall command and return its output</dd></dl></section></div></main></body></html>

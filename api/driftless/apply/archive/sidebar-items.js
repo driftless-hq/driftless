@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ArchiveFormat","ArchiveState"],"fn":["create_7z_archive","create_archive","create_tar_archive","create_tar_bz2_archive","create_tar_gz_archive","create_tar_xz_archive","create_zip_archive","ensure_archive_created","ensure_archive_removed","execute_archive_task","run_command"],"struct":["ArchiveTask"]};

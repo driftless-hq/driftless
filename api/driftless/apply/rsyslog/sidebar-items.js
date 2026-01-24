@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["RsyslogState"],"fn":["default_state","ensure_rsyslog_absent","ensure_rsyslog_present","execute_rsyslog_task"],"struct":["RsyslogTask"]};

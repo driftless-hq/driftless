@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["collect_network_facts"]};

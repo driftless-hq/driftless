@@ -1,0 +1,76 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Memory facts collector"><title>driftless::facts::memory_facts - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="driftless" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module memory_facts</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../driftless/index.html">driftless</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module memory_<wbr>facts</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#basic-memory-metrics-collection" title="Basic memory metrics collection">Basic memory metrics collection</a></li></ul></li></ul><h3><a href="#functions">Module Items</a></h3><ul class="block"><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In driftless::<wbr>facts</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">driftless</a>::<wbr><a href="../index.html">facts</a></div><h1>Module <span>memory_<wbr>facts</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/driftless/facts/memory_facts.rs.html#1-511">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Memory facts collector</p>
+<p>Collects memory usage statistics including total, used, free, available,
+and swap memory information.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="basic-memory-metrics-collection"><a class="doc-anchor" href="#basic-memory-metrics-collection">§</a>Basic memory metrics collection</h3>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>type: memory
+name: memory
+collect:
+  total: true
+  used: true
+  free: true
+  available: true
+  swap: true
+  percentage: true
+thresholds:
+  usage_warning: 85.0
+  usage_critical: 95.0</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;memory&quot;,
+  &quot;name&quot;: &quot;memory&quot;,
+  &quot;collect&quot;: {
+    &quot;total&quot;: true,
+    &quot;used&quot;: true,
+    &quot;free&quot;: true,
+    &quot;available&quot;: true,
+    &quot;swap&quot;: true,
+    &quot;percentage&quot;: true
+  },
+  &quot;thresholds&quot;: {
+    &quot;usage_warning&quot;: 85.0,
+    &quot;usage_critical&quot;: 95.0
+  }
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[collectors]]
+type = &quot;memory&quot;
+name = &quot;memory&quot;
+
+[collectors.collect]
+total = true
+used = true
+free = true
+available = true
+swap = true
+percentage = true
+
+[collectors.thresholds]
+usage_warning = 85.0
+usage_critical = 95.0</code></pre></div>
+<p><strong>Output:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>total_bytes: 8589934592
+total_mb: 8192
+total_gb: 8
+used_bytes: 4294967296
+used_mb: 4096
+used_gb: 4
+free_bytes: 2147483648
+free_mb: 2048
+free_gb: 2
+available_bytes: 3221225472
+available_mb: 3072
+available_gb: 3
+usage_percent: 50
+available_percent: 37
+memory_pressure: &quot;low&quot;
+swap_total_bytes: 2147483648
+swap_used_bytes: 536870912
+swap_free_bytes: 1610612736
+swap_total_mb: 2048
+swap_used_mb: 512
+swap_free_mb: 1536
+swap_usage_percent: 25
+swap_pressure: &quot;low&quot;
+usage_warning: false
+usage_critical: false</code></pre></div></div></details><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.collect_memory_facts.html" title="fn driftless::facts::memory_facts::collect_memory_facts">collect_<wbr>memory_<wbr>facts</a></dt><dd>Execute memory facts collection</dd></dl></section></div></main></body></html>

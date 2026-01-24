@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["HttpMethod","UriState"],"fn":["build_http_client","default_uri_method","default_uri_status_codes","default_uri_timeout","ensure_uri_request_succeeds","execute_uri_task","format_method"],"struct":["UriTask"]};

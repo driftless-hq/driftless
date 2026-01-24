@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["LogrotateState"],"fn":["default_state","ensure_logrotate_absent","ensure_logrotate_present","execute_logrotate_task","generate_logrotate_config"],"struct":["LogrotateTask"]};

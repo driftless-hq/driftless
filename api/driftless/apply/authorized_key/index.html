@@ -1,0 +1,99 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="SSH authorized keys management"><title>driftless::apply::authorized_key - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="driftless" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module authorized_key</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../driftless/index.html">driftless</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module authorized_<wbr>key</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#add-ssh-public-key" title="Add SSH public key">Add SSH public key</a></li><li><a href="#add-ssh-key-from-file" title="Add SSH key from file">Add SSH key from file</a></li><li><a href="#add-ssh-key-with-restrictions" title="Add SSH key with restrictions">Add SSH key with restrictions</a></li><li><a href="#remove-ssh-key" title="Remove SSH key">Remove SSH key</a></li></ul></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In driftless::<wbr>apply</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">driftless</a>::<wbr><a href="../index.html">apply</a></div><h1>Module <span>authorized_<wbr>key</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/driftless/apply/authorized_key.rs.html#1-591">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>SSH authorized keys management</p>
+<p>This module manages SSH authorized keys for user accounts.
+It supports adding, removing, and managing SSH public keys
+in authorized_keys files with proper permissions and validation.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="add-ssh-public-key"><a class="doc-anchor" href="#add-ssh-public-key">§</a>Add SSH public key</h3>
+<p>This example adds an SSH public key for a user.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: authorized_key
+  description: &quot;Add SSH key for admin user&quot;
+  user: admin
+  state: present
+  key: &quot;ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7vbqajDhS... user@host&quot;</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;authorized_key&quot;,
+  &quot;description&quot;: &quot;Add SSH key for admin user&quot;,
+  &quot;user&quot;: &quot;admin&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;key&quot;: &quot;ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7vbqajDhS... user@host&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;authorized_key&quot;
+description = &quot;Add SSH key for admin user&quot;
+user = &quot;admin&quot;
+state = &quot;present&quot;
+key = &quot;ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7vbqajDhS... user@host&quot;</code></pre></div><h3 id="add-ssh-key-from-file"><a class="doc-anchor" href="#add-ssh-key-from-file">§</a>Add SSH key from file</h3>
+<p>This example adds an SSH public key from a file.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: authorized_key
+  description: &quot;Add SSH key from file&quot;
+  user: deploy
+  state: present
+  key_file: /tmp/id_rsa.pub
+  comment: &quot;Deployment key&quot;</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;authorized_key&quot;,
+  &quot;description&quot;: &quot;Add SSH key from file&quot;,
+  &quot;user&quot;: &quot;deploy&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;key_file&quot;: &quot;/tmp/id_rsa.pub&quot;,
+  &quot;comment&quot;: &quot;Deployment key&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;authorized_key&quot;
+description = &quot;Add SSH key from file&quot;
+user = &quot;deploy&quot;
+state = &quot;present&quot;
+key_file = &quot;/tmp/id_rsa.pub&quot;
+comment = &quot;Deployment key&quot;</code></pre></div><h3 id="add-ssh-key-with-restrictions"><a class="doc-anchor" href="#add-ssh-key-with-restrictions">§</a>Add SSH key with restrictions</h3>
+<p>This example adds an SSH key with command restrictions.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: authorized_key
+  description: &quot;Add restricted SSH key&quot;
+  user: backup
+  state: present
+  key: &quot;ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7vbqajDhS... backup@host&quot;
+  key_options: &quot;command=\&quot;/usr/local/bin/backup.sh\&quot;,no-port-forwarding,no-X11-forwarding,no-agent-forwarding&quot;</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;authorized_key&quot;,
+  &quot;description&quot;: &quot;Add restricted SSH key&quot;,
+  &quot;user&quot;: &quot;backup&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;key&quot;: &quot;ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7vbqajDhS... backup@host&quot;,
+  &quot;key_options&quot;: &quot;command=\&quot;/usr/local/bin/backup.sh\&quot;,no-port-forwarding,no-X11-forwarding,no-agent-forwarding&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;authorized_key&quot;
+description = &quot;Add restricted SSH key&quot;
+user = &quot;backup&quot;
+state = &quot;present&quot;
+key = &quot;ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7vbqajDhS... backup@host&quot;
+key_options = &quot;command=\&quot;/usr/local/bin/backup.sh\&quot;,no-port-forwarding,no-X11-forwarding,no-agent-forwarding&quot;</code></pre></div><h3 id="remove-ssh-key"><a class="doc-anchor" href="#remove-ssh-key">§</a>Remove SSH key</h3>
+<p>This example removes an SSH public key for a user.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: authorized_key
+  description: &quot;Remove SSH key&quot;
+  user: olduser
+  state: absent
+  key: &quot;ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7vbqajDhS... olduser@host&quot;</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;authorized_key&quot;,
+  &quot;description&quot;: &quot;Remove SSH key&quot;,
+  &quot;user&quot;: &quot;olduser&quot;,
+  &quot;state&quot;: &quot;absent&quot;,
+  &quot;key&quot;: &quot;ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7vbqajDhS... olduser@host&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;authorized_key&quot;
+description = &quot;Remove SSH key&quot;
+user = &quot;olduser&quot;
+state = &quot;absent&quot;
+key = &quot;ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC7vbqajDhS... olduser@host&quot;</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.AuthorizedKeyTask.html" title="struct driftless::apply::authorized_key::AuthorizedKeyTask">Authorized<wbr>KeyTask</a></dt><dd>SSH authorized key management task</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.AuthorizedKeyState.html" title="enum driftless::apply::authorized_key::AuthorizedKeyState">Authorized<wbr>KeyState</a></dt><dd>Authorized key state enumeration</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.default_true.html" title="fn driftless::apply::authorized_key::default_true">default_<wbr>true</a></dt><dt><a class="fn" href="fn.ensure_key_absent.html" title="fn driftless::apply::authorized_key::ensure_key_absent">ensure_<wbr>key_<wbr>absent</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure SSH key is absent from authorized_keys file</dd><dt><a class="fn" href="fn.ensure_key_present.html" title="fn driftless::apply::authorized_key::ensure_key_present">ensure_<wbr>key_<wbr>present</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure SSH key is present in authorized_keys file</dd><dt><a class="fn" href="fn.execute_authorized_key_task.html" title="fn driftless::apply::authorized_key::execute_authorized_key_task">execute_<wbr>authorized_<wbr>key_<wbr>task</a></dt><dd>Execute SSH authorized key management task</dd><dt><a class="fn" href="fn.format_key_entry.html" title="fn driftless::apply::authorized_key::format_key_entry">format_<wbr>key_<wbr>entry</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Format a key entry with options and comment</dd><dt><a class="fn" href="fn.get_key_content.html" title="fn driftless::apply::authorized_key::get_key_content">get_<wbr>key_<wbr>content</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Get the SSH key content from task parameters</dd><dt><a class="fn" href="fn.get_user_home_dir.html" title="fn driftless::apply::authorized_key::get_user_home_dir">get_<wbr>user_<wbr>home_<wbr>dir</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Get user’s home directory</dd><dt><a class="fn" href="fn.is_valid_ssh_key.html" title="fn driftless::apply::authorized_key::is_valid_ssh_key">is_<wbr>valid_<wbr>ssh_<wbr>key</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Validate SSH key format</dd><dt><a class="fn" href="fn.parse_authorized_keys.html" title="fn driftless::apply::authorized_key::parse_authorized_keys">parse_<wbr>authorized_<wbr>keys</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Parse authorized_keys file content into individual key entries</dd></dl></section></div></main></body></html>

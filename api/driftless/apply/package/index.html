@@ -1,0 +1,121 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Package task executor"><title>driftless::apply::package - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="driftless" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module package</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../driftless/index.html">driftless</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module package</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#install-a-package" title="Install a package">Install a package</a></li><li><a href="#install-with-specific-package-manager" title="Install with specific package manager">Install with specific package manager</a></li><li><a href="#update-a-package-to-latest-version" title="Update a package to latest version">Update a package to latest version</a></li><li><a href="#remove-a-package" title="Remove a package">Remove a package</a></li><li><a href="#register-package-installation" title="Register package installation">Register package installation</a></li></ul></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In driftless::<wbr>apply</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">driftless</a>::<wbr><a href="../index.html">apply</a></div><h1>Module <span>package</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/driftless/apply/package.rs.html#1-570">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Package task executor</p>
+<p>Handles package management operations: install, remove, update packages
+using the appropriate package manager for the system.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="install-a-package"><a class="doc-anchor" href="#install-a-package">§</a>Install a package</h3>
+<p>This example installs nginx using the system’s default package manager.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: package
+  description: &quot;Install nginx web server&quot;
+  name: nginx
+  state: present</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;package&quot;,
+  &quot;description&quot;: &quot;Install nginx web server&quot;,
+  &quot;name&quot;: &quot;nginx&quot;,
+  &quot;state&quot;: &quot;present&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;package&quot;
+description = &quot;Install nginx web server&quot;
+name = &quot;nginx&quot;
+state = &quot;present&quot;</code></pre></div><h3 id="install-with-specific-package-manager"><a class="doc-anchor" href="#install-with-specific-package-manager">§</a>Install with specific package manager</h3>
+<p>This example forces the use of apt even on systems that might have multiple package managers.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: package
+  description: &quot;Install curl using apt&quot;
+  name: curl
+  state: present
+  manager: apt</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;package&quot;,
+  &quot;description&quot;: &quot;Install curl using apt&quot;,
+  &quot;name&quot;: &quot;curl&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;manager&quot;: &quot;apt&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;package&quot;
+description = &quot;Install curl using apt&quot;
+name = &quot;curl&quot;
+state = &quot;present&quot;
+manager = &quot;apt&quot;</code></pre></div><h3 id="update-a-package-to-latest-version"><a class="doc-anchor" href="#update-a-package-to-latest-version">§</a>Update a package to latest version</h3>
+<p>This example ensures a package is updated to the latest available version.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: package
+  description: &quot;Update vim to latest version&quot;
+  name: vim
+  state: latest</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;package&quot;,
+  &quot;description&quot;: &quot;Update vim to latest version&quot;,
+  &quot;name&quot;: &quot;vim&quot;,
+  &quot;state&quot;: &quot;latest&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;package&quot;
+description = &quot;Update vim to latest version&quot;
+name = &quot;vim&quot;
+state = &quot;latest&quot;</code></pre></div><h3 id="remove-a-package"><a class="doc-anchor" href="#remove-a-package">§</a>Remove a package</h3>
+<p>This example ensures a package is not installed.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: package
+  description: &quot;Remove telnet client&quot;
+  name: telnet
+  state: absent</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;package&quot;,
+  &quot;description&quot;: &quot;Remove telnet client&quot;,
+  &quot;name&quot;: &quot;telnet&quot;,
+  &quot;state&quot;: &quot;absent&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;package&quot;
+description = &quot;Remove telnet client&quot;
+name = &quot;telnet&quot;
+state = &quot;absent&quot;</code></pre></div><h3 id="register-package-installation"><a class="doc-anchor" href="#register-package-installation">§</a>Register package installation</h3>
+<p>This example installs a package and registers the result to check for changes.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: package
+  description: &quot;Install git and check if changed&quot;
+  name: git
+  state: present
+  register: git_install
+
+- type: debug
+  msg: &quot;Git was newly installed&quot;
+  when: &quot;{{ git_install.changed }}&quot;</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>[
+  {
+    &quot;type&quot;: &quot;package&quot;,
+    &quot;description&quot;: &quot;Install git and check if changed&quot;,
+    &quot;name&quot;: &quot;git&quot;,
+    &quot;state&quot;: &quot;present&quot;,
+    &quot;register&quot;: &quot;git_install&quot;
+  },
+  {
+    &quot;type&quot;: &quot;debug&quot;,
+    &quot;msg&quot;: &quot;Git was newly installed&quot;,
+    &quot;when&quot;: &quot;{{ git_install.changed }}&quot;
+  }
+]</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;package&quot;
+description = &quot;Install git and check if changed&quot;
+name = &quot;git&quot;
+state = &quot;present&quot;
+register = &quot;git_install&quot;
+
+[[tasks]]
+type = &quot;debug&quot;
+msg = &quot;Git was newly installed&quot;
+when = &quot;{{ git_install.changed }}&quot;</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.PackageTask.html" title="struct driftless::apply::package::PackageTask">Package<wbr>Task</a></dt><dd>Package management task</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.PackageState.html" title="enum driftless::apply::package::PackageState">Package<wbr>State</a></dt><dd>Package state enumeration</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.detect_package_manager.html" title="fn driftless::apply::package::detect_package_manager">detect_<wbr>package_<wbr>manager</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Detect the package manager available on the system</dd><dt><a class="fn" href="fn.ensure_package_absent.html" title="fn driftless::apply::package::ensure_package_absent">ensure_<wbr>package_<wbr>absent</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure a package is not installed</dd><dt><a class="fn" href="fn.ensure_package_latest.html" title="fn driftless::apply::package::ensure_package_latest">ensure_<wbr>package_<wbr>latest</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure a package is at the latest version</dd><dt><a class="fn" href="fn.ensure_package_present.html" title="fn driftless::apply::package::ensure_package_present">ensure_<wbr>package_<wbr>present</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure a package is present</dd><dt><a class="fn" href="fn.execute_package_task.html" title="fn driftless::apply::package::execute_package_task">execute_<wbr>package_<wbr>task</a></dt><dd>Execute a package task</dd><dt><a class="fn" href="fn.get_check_command.html" title="fn driftless::apply::package::get_check_command">get_<wbr>check_<wbr>command</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Get the check command for a package manager</dd><dt><a class="fn" href="fn.get_install_command.html" title="fn driftless::apply::package::get_install_command">get_<wbr>install_<wbr>command</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Get the install command for a package manager</dd><dt><a class="fn" href="fn.get_remove_command.html" title="fn driftless::apply::package::get_remove_command">get_<wbr>remove_<wbr>command</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Get the remove command for a package manager</dd><dt><a class="fn" href="fn.get_upgrade_command.html" title="fn driftless::apply::package::get_upgrade_command">get_<wbr>upgrade_<wbr>command</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Get the upgrade command for a package manager</dd><dt><a class="fn" href="fn.is_package_installed.html" title="fn driftless::apply::package::is_package_installed">is_<wbr>package_<wbr>installed</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Check if a package is installed</dd><dt><a class="fn" href="fn.run_command.html" title="fn driftless::apply::package::run_command">run_<wbr>command</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Run a command and return the result</dd></dl></section></div></main></body></html>

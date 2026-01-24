@@ -1,0 +1,108 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Fetch files from remote hosts task executor"><title>driftless::apply::fetch - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="driftless" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module fetch</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../driftless/index.html">driftless</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module fetch</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#download-a-file" title="Download a file">Download a file</a></li><li><a href="#download-with-authentication" title="Download with authentication">Download with authentication</a></li><li><a href="#download-with-custom-headers" title="Download with custom headers">Download with custom headers</a></li><li><a href="#force-download" title="Force download">Force download</a></li></ul></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In driftless::<wbr>apply</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">driftless</a>::<wbr><a href="../index.html">apply</a></div><h1>Module <span>fetch</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/driftless/apply/fetch.rs.html#1-446">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Fetch files from remote hosts task executor</p>
+<p>Handles downloading files from HTTP/FTP URLs.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="download-a-file"><a class="doc-anchor" href="#download-a-file">§</a>Download a file</h3>
+<p>This example downloads a file from a URL.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: fetch
+  description: &quot;Download configuration file&quot;
+  url: http://example.com/config.yml
+  dest: /etc/myapp/config.yml
+  state: present</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;fetch&quot;,
+  &quot;description&quot;: &quot;Download configuration file&quot;,
+  &quot;url&quot;: &quot;http://example.com/config.yml&quot;,
+  &quot;dest&quot;: &quot;/etc/myapp/config.yml&quot;,
+  &quot;state&quot;: &quot;present&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;fetch&quot;
+description = &quot;Download configuration file&quot;
+url = &quot;http://example.com/config.yml&quot;
+dest = &quot;/etc/myapp/config.yml&quot;
+state = &quot;present&quot;</code></pre></div><h3 id="download-with-authentication"><a class="doc-anchor" href="#download-with-authentication">§</a>Download with authentication</h3>
+<p>This example downloads a file using basic authentication.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: fetch
+  description: &quot;Download private file&quot;
+  url: https://private.example.com/file.txt
+  dest: /tmp/private.txt
+  state: present
+  username: myuser
+  password: mypassword</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;fetch&quot;,
+  &quot;description&quot;: &quot;Download private file&quot;,
+  &quot;url&quot;: &quot;https://private.example.com/file.txt&quot;,
+  &quot;dest&quot;: &quot;/tmp/private.txt&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;username&quot;: &quot;myuser&quot;,
+  &quot;password&quot;: &quot;mypassword&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;fetch&quot;
+description = &quot;Download private file&quot;
+url = &quot;https://private.example.com/file.txt&quot;
+dest = &quot;/tmp/private.txt&quot;
+state = &quot;present&quot;
+username = &quot;myuser&quot;
+password = &quot;mypassword&quot;</code></pre></div><h3 id="download-with-custom-headers"><a class="doc-anchor" href="#download-with-custom-headers">§</a>Download with custom headers</h3>
+<p>This example downloads a file with custom HTTP headers.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: fetch
+  description: &quot;Download with custom headers&quot;
+  url: https://api.example.com/data.json
+  dest: /tmp/data.json
+  state: present
+  headers:
+    Authorization: &quot;Bearer token123&quot;
+    X-API-Key: &quot;apikey456&quot;</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;fetch&quot;,
+  &quot;description&quot;: &quot;Download with custom headers&quot;,
+  &quot;url&quot;: &quot;https://api.example.com/data.json&quot;,
+  &quot;dest&quot;: &quot;/tmp/data.json&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;headers&quot;: {
+    &quot;Authorization&quot;: &quot;Bearer token123&quot;,
+    &quot;X-API-Key&quot;: &quot;apikey456&quot;
+  }
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;fetch&quot;
+description = &quot;Download with custom headers&quot;
+url = &quot;https://api.example.com/data.json&quot;
+dest = &quot;/tmp/data.json&quot;
+state = &quot;present&quot;
+headers = { Authorization = &quot;Bearer token123&quot;, &quot;X-API-Key&quot; = &quot;apikey456&quot; }</code></pre></div><h3 id="force-download"><a class="doc-anchor" href="#force-download">§</a>Force download</h3>
+<p>This example forces a download even if the file already exists.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: fetch
+  description: &quot;Force download latest version&quot;
+  url: https://example.com/latest.tar.gz
+  dest: /tmp/latest.tar.gz
+  state: present
+  force: true</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;fetch&quot;,
+  &quot;description&quot;: &quot;Force download latest version&quot;,
+  &quot;url&quot;: &quot;https://example.com/latest.tar.gz&quot;,
+  &quot;dest&quot;: &quot;/tmp/latest.tar.gz&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;force&quot;: true
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;fetch&quot;
+description = &quot;Force download latest version&quot;
+url = &quot;https://example.com/latest.tar.gz&quot;
+dest = &quot;/tmp/latest.tar.gz&quot;
+state = &quot;present&quot;
+force = true</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.FetchTask.html" title="struct driftless::apply::fetch::FetchTask">Fetch<wbr>Task</a></dt><dd>Fetch files from remote hosts task</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.FetchState.html" title="enum driftless::apply::fetch::FetchState">Fetch<wbr>State</a></dt><dd>Fetch state enumeration</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.default_fetch_timeout.html" title="fn driftless::apply::fetch::default_fetch_timeout">default_<wbr>fetch_<wbr>timeout</a></dt><dd>Default fetch timeout (10 seconds)</dd><dt><a class="fn" href="fn.ensure_file_fetched.html" title="fn driftless::apply::fetch::ensure_file_fetched">ensure_<wbr>file_<wbr>fetched</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure file is fetched from remote URL</dd><dt><a class="fn" href="fn.ensure_file_not_fetched.html" title="fn driftless::apply::fetch::ensure_file_not_fetched">ensure_<wbr>file_<wbr>not_<wbr>fetched</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure file is not fetched (remove if it exists)</dd><dt><a class="fn" href="fn.execute_fetch_task.html" title="fn driftless::apply::fetch::execute_fetch_task">execute_<wbr>fetch_<wbr>task</a></dt><dd>Execute a fetch task</dd><dt><a class="fn" href="fn.fetch_url_to_file.html" title="fn driftless::apply::fetch::fetch_url_to_file">fetch_<wbr>url_<wbr>to_<wbr>file</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Fetch URL content to file</dd></dl></section></div></main></body></html>

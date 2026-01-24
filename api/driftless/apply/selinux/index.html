@@ -1,0 +1,86 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="SELinux policy management"><title>driftless::apply::selinux - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="driftless" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module selinux</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../driftless/index.html">driftless</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module selinux</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#enable-selinux-boolean" title="Enable SELinux boolean">Enable SELinux boolean</a></li><li><a href="#set-file-context" title="Set file context">Set file context</a></li><li><a href="#set-selinux-to-enforcing-mode" title="Set SELinux to enforcing mode">Set SELinux to enforcing mode</a></li><li><a href="#restore-file-contexts" title="Restore file contexts">Restore file contexts</a></li></ul></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In driftless::<wbr>apply</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">driftless</a>::<wbr><a href="../index.html">apply</a></div><h1>Module <span>selinux</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/driftless/apply/selinux.rs.html#1-528">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>SELinux policy management</p>
+<p>This module manages SELinux policies, contexts, and boolean values.
+It supports setting file contexts, managing booleans, and policy operations.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="enable-selinux-boolean"><a class="doc-anchor" href="#enable-selinux-boolean">§</a>Enable SELinux boolean</h3>
+<p>This example enables an SELinux boolean.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: selinux
+  description: &quot;Enable httpd_can_network_connect&quot;
+  state: on
+  boolean: httpd_can_network_connect</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;selinux&quot;,
+  &quot;description&quot;: &quot;Enable httpd_can_network_connect&quot;,
+  &quot;state&quot;: &quot;on&quot;,
+  &quot;boolean&quot;: &quot;httpd_can_network_connect&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;selinux&quot;
+description = &quot;Enable httpd_can_network_connect&quot;
+state = &quot;on&quot;
+boolean = &quot;httpd_can_network_connect&quot;</code></pre></div><h3 id="set-file-context"><a class="doc-anchor" href="#set-file-context">§</a>Set file context</h3>
+<p>This example sets the SELinux context for a file.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: selinux
+  description: &quot;Set httpd context for web directory&quot;
+  state: context
+  target: /var/www/html
+  setype: httpd_sys_content_t
+  recurse: true</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;selinux&quot;,
+  &quot;description&quot;: &quot;Set httpd context for web directory&quot;,
+  &quot;state&quot;: &quot;context&quot;,
+  &quot;target&quot;: &quot;/var/www/html&quot;,
+  &quot;setype&quot;: &quot;httpd_sys_content_t&quot;,
+  &quot;recurse&quot;: true
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;selinux&quot;
+description = &quot;Set httpd context for web directory&quot;
+state = &quot;context&quot;
+target = &quot;/var/www/html&quot;
+setype = &quot;httpd_sys_content_t&quot;
+recurse = true</code></pre></div><h3 id="set-selinux-to-enforcing-mode"><a class="doc-anchor" href="#set-selinux-to-enforcing-mode">§</a>Set SELinux to enforcing mode</h3>
+<p>This example sets SELinux to enforcing mode.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: selinux
+  description: &quot;Set SELinux to enforcing mode&quot;
+  state: enforcing</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;selinux&quot;,
+  &quot;description&quot;: &quot;Set SELinux to enforcing mode&quot;,
+  &quot;state&quot;: &quot;enforcing&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;selinux&quot;
+description = &quot;Set SELinux to enforcing mode&quot;
+state = &quot;enforcing&quot;</code></pre></div><h3 id="restore-file-contexts"><a class="doc-anchor" href="#restore-file-contexts">§</a>Restore file contexts</h3>
+<p>This example restores SELinux contexts for files.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: selinux
+  description: &quot;Restore SELinux contexts&quot;
+  state: restorecon
+  target: /etc/httpd
+  recurse: true</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;selinux&quot;,
+  &quot;description&quot;: &quot;Restore SELinux contexts&quot;,
+  &quot;state&quot;: &quot;restorecon&quot;,
+  &quot;target&quot;: &quot;/etc/httpd&quot;,
+  &quot;recurse&quot;: true
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;selinux&quot;
+description = &quot;Restore SELinux contexts&quot;
+state = &quot;restorecon&quot;
+target = &quot;/etc/httpd&quot;
+recurse = true</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.SelinuxTask.html" title="struct driftless::apply::selinux::SelinuxTask">Selinux<wbr>Task</a></dt><dd>SELinux policy management task</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.SelinuxState.html" title="enum driftless::apply::selinux::SelinuxState">Selinux<wbr>State</a></dt><dd>SELinux state enumeration</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.ensure_selinux_boolean_off.html" title="fn driftless::apply::selinux::ensure_selinux_boolean_off">ensure_<wbr>selinux_<wbr>boolean_<wbr>off</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure SELinux boolean is off</dd><dt><a class="fn" href="fn.ensure_selinux_boolean_on.html" title="fn driftless::apply::selinux::ensure_selinux_boolean_on">ensure_<wbr>selinux_<wbr>boolean_<wbr>on</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure SELinux boolean is on</dd><dt><a class="fn" href="fn.execute_selinux_task.html" title="fn driftless::apply::selinux::execute_selinux_task">execute_<wbr>selinux_<wbr>task</a></dt><dd>Execute SELinux policy task</dd><dt><a class="fn" href="fn.is_selinux_available.html" title="fn driftless::apply::selinux::is_selinux_available">is_<wbr>selinux_<wbr>available</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Check if SELinux is available</dd><dt><a class="fn" href="fn.is_selinux_boolean_on.html" title="fn driftless::apply::selinux::is_selinux_boolean_on">is_<wbr>selinux_<wbr>boolean_<wbr>on</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Check if SELinux boolean is on</dd><dt><a class="fn" href="fn.is_selinux_disabled.html" title="fn driftless::apply::selinux::is_selinux_disabled">is_<wbr>selinux_<wbr>disabled</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Check if SELinux is disabled</dd><dt><a class="fn" href="fn.is_selinux_enforcing.html" title="fn driftless::apply::selinux::is_selinux_enforcing">is_<wbr>selinux_<wbr>enforcing</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Check if SELinux is in enforcing mode</dd><dt><a class="fn" href="fn.restore_selinux_context.html" title="fn driftless::apply::selinux::restore_selinux_context">restore_<wbr>selinux_<wbr>context</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Restore SELinux context from policy</dd><dt><a class="fn" href="fn.run_selinux_cmd.html" title="fn driftless::apply::selinux::run_selinux_cmd">run_<wbr>selinux_<wbr>cmd</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Run a SELinux command and return its output</dd><dt><a class="fn" href="fn.set_selinux_context.html" title="fn driftless::apply::selinux::set_selinux_context">set_<wbr>selinux_<wbr>context</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Set SELinux context on files</dd><dt><a class="fn" href="fn.set_selinux_disabled.html" title="fn driftless::apply::selinux::set_selinux_disabled">set_<wbr>selinux_<wbr>disabled</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Set SELinux to disabled mode</dd><dt><a class="fn" href="fn.set_selinux_enforcing.html" title="fn driftless::apply::selinux::set_selinux_enforcing">set_<wbr>selinux_<wbr>enforcing</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Set SELinux to enforcing mode</dd><dt><a class="fn" href="fn.set_selinux_permissive.html" title="fn driftless::apply::selinux::set_selinux_permissive">set_<wbr>selinux_<wbr>permissive</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Set SELinux to permissive mode</dd></dl></section></div></main></body></html>

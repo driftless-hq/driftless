@@ -1,0 +1,97 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="Filesystem task executor"><title>driftless::apply::filesystem - Rust</title><script>if(window.location.protocol!=="file:")document.head.insertAdjacentHTML("beforeend","SourceSerif4-Regular-6b053e98.ttf.woff2,FiraSans-Italic-81dc35de.woff2,FiraSans-Regular-0fe48ade.woff2,FiraSans-MediumItalic-ccf7e434.woff2,FiraSans-Medium-e1aa3f0a.woff2,SourceCodePro-Regular-8badfe75.ttf.woff2,SourceCodePro-Semibold-aa29a496.ttf.woff2".split(",").map(f=>`<link rel="preload" as="font" type="font/woff2"href="../../../static.files/${f}">`).join(""))</script><link rel="stylesheet" href="../../../static.files/normalize-9960930a.css"><link rel="stylesheet" href="../../../static.files/rustdoc-ca0dd0c4.css"><meta name="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="driftless" data-themes="" data-resource-suffix="" data-rustdoc-version="1.93.0 (254b59607 2026-01-19)" data-channel="1.93.0" data-search-js="search-9e2438ea.js" data-stringdex-js="stringdex-a3946164.js" data-settings-js="settings-c38705f0.js" ><script src="../../../static.files/storage-e2aeef58.js"></script><script defer src="../sidebar-items.js"></script><script defer src="../../../static.files/main-a410ff4d.js"></script><noscript><link rel="stylesheet" href="../../../static.files/noscript-263c88ec.css"></noscript><link rel="alternate icon" type="image/png" href="../../../static.files/favicon-32x32-eab170b8.png"><link rel="icon" type="image/svg+xml" href="../../../static.files/favicon-044be391.svg"></head><body class="rustdoc mod"><!--[if lte IE 11]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><rustdoc-topbar><h2><a href="#">Module filesystem</a></h2></rustdoc-topbar><nav class="sidebar"><div class="sidebar-crate"><h2><a href="../../../driftless/index.html">driftless</a><span class="version">0.1.0</span></h2></div><div class="sidebar-elems"><section id="rustdoc-toc"><h2 class="location"><a href="#">Module filesystem</a></h2><h3><a href="#">Sections</a></h3><ul class="block top-toc"><li><a href="#examples" title="Examples">Examples</a><ul><li><a href="#create-an-ext4-filesystem" title="Create an ext4 filesystem">Create an ext4 filesystem</a></li><li><a href="#create-an-xfs-filesystem" title="Create an XFS filesystem">Create an XFS filesystem</a></li><li><a href="#create-a-btrfs-filesystem" title="Create a Btrfs filesystem">Create a Btrfs filesystem</a></li><li><a href="#force-create-filesystem" title="Force create filesystem">Force create filesystem</a></li></ul></li></ul><h3><a href="#structs">Module Items</a></h3><ul class="block"><li><a href="#structs" title="Structs">Structs</a></li><li><a href="#enums" title="Enums">Enums</a></li><li><a href="#functions" title="Functions">Functions</a></li></ul></section><div id="rustdoc-modnav"><h2><a href="../index.html">In driftless::<wbr>apply</a></h2></div></div></nav><div class="sidebar-resizer" title="Drag to resize sidebar"></div><main><div class="width-limiter"><section id="main-content" class="content"><div class="main-heading"><div class="rustdoc-breadcrumbs"><a href="../../index.html">driftless</a>::<wbr><a href="../index.html">apply</a></div><h1>Module <span>filesystem</span>&nbsp;<button id="copy-path" title="Copy item path to clipboard">Copy item path</button></h1><rustdoc-toolbar></rustdoc-toolbar><span class="sub-heading"><a class="src" href="../../../src/driftless/apply/filesystem.rs.html#1-488">Source</a> </span></div><details class="toggle top-doc" open><summary class="hideme"><span>Expand description</span></summary><div class="docblock"><p>Filesystem task executor</p>
+<p>Handles filesystem creation and deletion operations.</p>
+<h2 id="examples"><a class="doc-anchor" href="#examples">§</a>Examples</h2><h3 id="create-an-ext4-filesystem"><a class="doc-anchor" href="#create-an-ext4-filesystem">§</a>Create an ext4 filesystem</h3>
+<p>This example creates an ext4 filesystem on a device.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: filesystem
+  description: &quot;Create ext4 filesystem&quot;
+  dev: /dev/sdb1
+  state: present
+  fstype: ext4</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;filesystem&quot;,
+  &quot;description&quot;: &quot;Create ext4 filesystem&quot;,
+  &quot;dev&quot;: &quot;/dev/sdb1&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;fstype&quot;: &quot;ext4&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;filesystem&quot;
+description = &quot;Create ext4 filesystem&quot;
+dev = &quot;/dev/sdb1&quot;
+state = &quot;present&quot;
+fstype = &quot;ext4&quot;</code></pre></div><h3 id="create-an-xfs-filesystem"><a class="doc-anchor" href="#create-an-xfs-filesystem">§</a>Create an XFS filesystem</h3>
+<p>This example creates an XFS filesystem with custom options.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: filesystem
+  description: &quot;Create XFS filesystem&quot;
+  dev: /dev/sdc1
+  state: present
+  fstype: xfs
+  opts: [&quot;-f&quot;, &quot;-i&quot;, &quot;size=512&quot;]</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;filesystem&quot;,
+  &quot;description&quot;: &quot;Create XFS filesystem&quot;,
+  &quot;dev&quot;: &quot;/dev/sdc1&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;fstype&quot;: &quot;xfs&quot;,
+  &quot;opts&quot;: [&quot;-f&quot;, &quot;-i&quot;, &quot;size=512&quot;]
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;filesystem&quot;
+description = &quot;Create XFS filesystem&quot;
+dev = &quot;/dev/sdc1&quot;
+state = &quot;present&quot;
+fstype = &quot;xfs&quot;
+opts = [&quot;-f&quot;, &quot;-i&quot;, &quot;size=512&quot;]</code></pre></div><h3 id="create-a-btrfs-filesystem"><a class="doc-anchor" href="#create-a-btrfs-filesystem">§</a>Create a Btrfs filesystem</h3>
+<p>This example creates a Btrfs filesystem.</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: filesystem
+  description: &quot;Create Btrfs filesystem&quot;
+  dev: /dev/sdd1
+  state: present
+  fstype: btrfs</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;filesystem&quot;,
+  &quot;description&quot;: &quot;Create Btrfs filesystem&quot;,
+  &quot;dev&quot;: &quot;/dev/sdd1&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;fstype&quot;: &quot;btrfs&quot;
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;filesystem&quot;
+description = &quot;Create Btrfs filesystem&quot;
+dev = &quot;/dev/sdd1&quot;
+state = &quot;present&quot;
+fstype = &quot;btrfs&quot;</code></pre></div><h3 id="force-create-filesystem"><a class="doc-anchor" href="#force-create-filesystem">§</a>Force create filesystem</h3>
+<p>This example forces the creation of a filesystem (dangerous operation).</p>
+<p><strong>YAML Format:</strong></p>
+<div class="example-wrap"><pre class="language-yaml"><code>- type: filesystem
+  description: &quot;Force create ext4 filesystem&quot;
+  dev: /dev/sde1
+  state: present
+  fstype: ext4
+  force: true</code></pre></div>
+<p><strong>JSON Format:</strong></p>
+<div class="example-wrap"><pre class="language-json"><code>{
+  &quot;type&quot;: &quot;filesystem&quot;,
+  &quot;description&quot;: &quot;Force create ext4 filesystem&quot;,
+  &quot;dev&quot;: &quot;/dev/sde1&quot;,
+  &quot;state&quot;: &quot;present&quot;,
+  &quot;fstype&quot;: &quot;ext4&quot;,
+  &quot;force&quot;: true
+}</code></pre></div>
+<p><strong>TOML Format:</strong></p>
+<div class="example-wrap"><pre class="language-toml"><code>[[tasks]]
+type = &quot;filesystem&quot;
+description = &quot;Force create ext4 filesystem&quot;
+dev = &quot;/dev/sde1&quot;
+state = &quot;present&quot;
+fstype = &quot;ext4&quot;
+force = true</code></pre></div></div></details><h2 id="structs" class="section-header">Structs<a href="#structs" class="anchor">§</a></h2><dl class="item-table"><dt><a class="struct" href="struct.FilesystemTask.html" title="struct driftless::apply::filesystem::FilesystemTask">Filesystem<wbr>Task</a></dt><dd>Filesystem creation/deletion task</dd></dl><h2 id="enums" class="section-header">Enums<a href="#enums" class="anchor">§</a></h2><dl class="item-table"><dt><a class="enum" href="enum.FilesystemState.html" title="enum driftless::apply::filesystem::FilesystemState">Filesystem<wbr>State</a></dt><dd>Filesystem state enumeration</dd></dl><h2 id="functions" class="section-header">Functions<a href="#functions" class="anchor">§</a></h2><dl class="item-table"><dt><a class="fn" href="fn.create_filesystem.html" title="fn driftless::apply::filesystem::create_filesystem">create_<wbr>filesystem</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Create a filesystem on a device</dd><dt><a class="fn" href="fn.ensure_filesystem_absent.html" title="fn driftless::apply::filesystem::ensure_filesystem_absent">ensure_<wbr>filesystem_<wbr>absent</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure no filesystem exists on the device</dd><dt><a class="fn" href="fn.ensure_filesystem_present.html" title="fn driftless::apply::filesystem::ensure_filesystem_present">ensure_<wbr>filesystem_<wbr>present</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Ensure a filesystem exists on the device</dd><dt><a class="fn" href="fn.execute_filesystem_task.html" title="fn driftless::apply::filesystem::execute_filesystem_task">execute_<wbr>filesystem_<wbr>task</a></dt><dd>Execute a filesystem task</dd><dt><a class="fn" href="fn.get_filesystem_type.html" title="fn driftless::apply::filesystem::get_filesystem_type">get_<wbr>filesystem_<wbr>type</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Get the filesystem type of a device</dd><dt><a class="fn" href="fn.has_filesystem.html" title="fn driftless::apply::filesystem::has_filesystem">has_<wbr>filesystem</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Check if a device has a filesystem</dd><dt><a class="fn" href="fn.remove_filesystem.html" title="fn driftless::apply::filesystem::remove_filesystem">remove_<wbr>filesystem</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Remove a filesystem from a device (WARNING: This destroys data!)</dd><dt><a class="fn" href="fn.run_command.html" title="fn driftless::apply::filesystem::run_command">run_<wbr>command</a><span title="Restricted Visibility">&nbsp;🔒</span> </dt><dd>Run a command and return the result</dd></dl></section></div></main></body></html>

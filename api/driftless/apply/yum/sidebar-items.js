@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"fn":["detect_package_manager","ensure_package_absent","ensure_package_latest","ensure_package_present","execute_yum_task","is_package_installed","run_package_command","update_cache"],"struct":["YumTask"]};
