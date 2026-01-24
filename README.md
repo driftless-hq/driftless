@@ -86,7 +86,7 @@ driftless docs --format json --output docs/schema/apply-config.schema.json
 - [Configuration Operations Reference](./docs/tasks-reference.md) - Complete operation documentation with examples in YAML, JSON, and TOML
 - [JSON Schema](./docs/schema/apply-config.schema.json) - Schema for configuration validation
 - [Example Configurations](./docs/examples/) - Comprehensive examples in all supported formats
-- [API Documentation](https://your-org.github.io/driftless/) - Generated Rust API docs
+- [API Documentation](https://driftless-hq.github.io/driftless/) - Generated Rust API docs
 
 ### Configuration Formats
 

@@ -51,6 +51,12 @@ jobs:
       run: ./scripts/generate-docs.sh
       timeout-minutes: 30
 
+    - name: Build Rust API documentation
+      run: cargo doc --no-deps --workspace
+      env:
+        RUSTDOCFLAGS: "--default-theme ayu"
+      timeout-minutes: 30
+
     - name: Build mdBook
       run: mdbook build
       timeout-minutes: 10
