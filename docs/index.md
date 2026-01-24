@@ -2,7 +2,7 @@
 
 > **Warning:** This is an experimental, AI-assisted project. Bugs and other shortcomings are expected and should be reported as GitHub Issues. PRs are welcome!
 
-Streamlined system configuration, inventory, and monitoring agent with Ansible-like configuration operations, plus facts collection and log management.
+A lightweight Rust agent for declarative system configuration, metrics gathering, and log forwarding via GitOps.
 
 ## Features
 
