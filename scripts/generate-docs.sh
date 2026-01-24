@@ -16,6 +16,9 @@ else
     ./target/debug/driftless docs --format markdown --output-dir docs
 fi
 
+echo "📋 Generating SUMMARY.md..."
+python3 scripts/generate-summary.py
+
 echo "🦀 Generating Rust API documentation..."
 cargo doc --no-deps --document-private-items
 
@@ -26,6 +29,7 @@ echo "  - docs/reference/tasks-reference.md (Task documentation)"
 echo "  - docs/reference/facts-reference.md (Facts documentation)"
 echo "  - docs/reference/logs-reference.md (Logs documentation)"
 echo "  - docs/reference/template-reference.md (Template documentation)"
+echo "  - docs/SUMMARY.md (Table of contents - auto-generated)"
 echo "  - target/doc/ (Rust API documentation)"
 echo ""
 echo "To view Rust documentation locally:"
