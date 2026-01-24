@@ -6,7 +6,6 @@ on:
     paths:
       - 'src/**'
       - 'docs/**'
-      - 'book-src/**'
       - 'book.toml'
       - 'Cargo.toml'
       - 'README.md'

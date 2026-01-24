@@ -3,7 +3,7 @@ title = "Driftless Documentation"
 description = "Streamlined system configuration, inventory, and monitoring agent with Ansible-like configuration operations"
 authors = ["Ross Peoples <ross.peoples@gmail.com>"]
 language = "en"
-src = "book-src"
+src = "docs"
 
 [build]
 build-dir = "book"
