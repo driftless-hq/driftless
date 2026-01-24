@@ -3,22 +3,8 @@ name: Deploy mdBook Documentation
 on:
   push:
     branches: [ main, master ]
-    paths:
-      - 'src/**'
-      - 'docs/**'
-      - 'book.toml'
-      - 'Cargo.toml'
-      - 'README.md'
-      - '.github/workflows/mdbook-docs.yml'
   pull_request:
     branches: [ main, master ]
-    paths:
-      - 'src/**'
-      - 'docs/**'
-      - 'book.toml'
-      - 'Cargo.toml'
-      - 'README.md'
-      - '.github/workflows/mdbook-docs.yml'
   workflow_dispatch:
 
 permissions:
