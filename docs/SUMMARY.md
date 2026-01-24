@@ -7,9 +7,11 @@
 # User Guide
 
 - [Design Overview](DESIGN.md)
-- [Apply Task Types](apply-task-types.md)
+- [Configuration Operations](operations.md)
 - [Template System](template-reference.md)
 - [Template Examples](template-examples.md)
+- [Agent Mode](agent-mode.md)
+- [Deployment](deployment.md)
 
 ---
 
@@ -18,6 +20,13 @@
 - [Tasks Reference](tasks-reference.md)
 - [Facts Reference](facts-reference.md)
 - [Logs Reference](logs-reference.md)
+- [Release Workflow](release-workflow.md)
+
+---
+
+# Examples
+
+- [Configuration Examples](examples/README.md)
 
 ---
 
