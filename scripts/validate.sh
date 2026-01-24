@@ -15,33 +15,52 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 FAILED=0
+FAIL_FAST=false
+
+# Parse command line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --fail-fast)
+            FAIL_FAST=true
+            shift
+            ;;
+        *)
+            echo "Unknown option: $1"
+            echo "Usage: $0 [--fail-fast]"
+            exit 1
+            ;;
+    esac
+done
 
 # Function to run a validation step
 run_validation() {
     local name=$1
-    local command=$2
+    shift
     
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "▶ Running: $name"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     
-    if eval "$command"; then
+    if "$@"; then
         echo -e "${GREEN}✅ $name passed${NC}"
     else
         echo -e "${RED}❌ $name failed${NC}"
         FAILED=1
+        if [ "$FAIL_FAST" = true ]; then
+            exit 1
+        fi
     fi
     echo ""
 }
 
 # 1. Check code formatting
-run_validation "Code Formatting Check" "cargo fmt --all -- --check"
+run_validation "Code Formatting Check" cargo fmt --all -- --check
 
 # 2. Run clippy linter
-run_validation "Clippy Linter" "cargo clippy -- -D warnings"
+run_validation "Clippy Linter" cargo clippy -- -D warnings
 
 # 3. Check documentation is up-to-date
-run_validation "Documentation Validation" "./scripts/check-docs.sh"
+run_validation "Documentation Validation" ./scripts/check-docs.sh
 
 # Summary
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -60,5 +79,7 @@ else
     echo "  ./scripts/generate-docs.sh"
     echo ""
     echo "For clippy warnings, fix the issues manually or check the output above."
+    echo ""
+    echo "Tip: Use --fail-fast to exit on the first failure"
     exit 1
 fi

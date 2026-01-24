@@ -40,6 +40,12 @@ This script runs all the validation checks that are performed in the CI pipeline
 2. **Clippy Linter** - Runs the Rust linter to catch common mistakes and enforce best practices (`cargo clippy -- -D warnings`)
 3. **Documentation Validation** - Verifies that generated documentation is up-to-date
 
+By default, the script runs all checks and reports all failures. To exit immediately on the first failure, use the `--fail-fast` flag:
+
+```bash
+./scripts/validate.sh --fail-fast
+```
+
 ### Fixing Validation Issues
 
 If validation checks fail, here's how to fix them:
