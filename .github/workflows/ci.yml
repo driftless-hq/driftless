@@ -16,66 +16,28 @@ on:
     - cron: '0 2 * * *'
 
 jobs:
-  # Test on multiple platforms and Rust versions
+  # Test on Linux amd64 with multiple Rust versions
   test:
     name: Test (${{ matrix.os }}, ${{ matrix.arch }}, ${{ matrix.rust }})
     runs-on: ${{ matrix.os }}
-    # Skip the entire job for platforms not yet implemented
-    if: matrix.skip_tests == false
     strategy:
       matrix:
         include:
-          # Linux amd64 (implemented)
+          # Linux amd64 - stable
           - os: ubuntu-latest
             arch: amd64
             rust: stable
             target: x86_64-unknown-linux-gnu
-            skip_tests: false
+          # Linux amd64 - beta
           - os: ubuntu-latest
             arch: amd64
             rust: beta
             target: x86_64-unknown-linux-gnu
-            skip_tests: false
+          # Linux amd64 - MSRV
           - os: ubuntu-latest
             arch: amd64
-            rust: '1.92'  # MSRV
+            rust: '1.92'
             target: x86_64-unknown-linux-gnu
-            skip_tests: false
-
-          # Linux arm64 (ready for when implemented)
-          - os: ubuntu-24.04-arm
-            arch: arm64
-            rust: stable
-            target: aarch64-unknown-linux-gnu
-            skip_tests: true
-
-          # macOS amd64 (ready for when implemented)
-          - os: macos-13
-            arch: amd64
-            rust: stable
-            target: x86_64-apple-darwin
-            skip_tests: true
-
-          # macOS arm64 (ready for when implemented)
-          - os: macos-latest
-            arch: arm64
-            rust: stable
-            target: aarch64-apple-darwin
-            skip_tests: true
-
-          # Windows amd64 (ready for when implemented)
-          - os: windows-latest
-            arch: amd64
-            rust: stable
-            target: x86_64-pc-windows-msvc
-            skip_tests: true
-
-          # Windows arm64 (ready for when implemented)
-          - os: windows-11-arm
-            arch: arm64
-            rust: stable
-            target: aarch64-pc-windows-msvc
-            skip_tests: true
 
     steps:
     - name: Checkout code

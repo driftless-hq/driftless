@@ -44,7 +44,7 @@ on:
       - 'v[0-9]+.[0-9]+.[0-9]+-*'
 
 jobs:
-  # Build release binaries for all supported platforms
+  # Build release binaries for supported platforms
   build:
     name: Build (${{ matrix.os }}, ${{ matrix.arch }})
     runs-on: ${{ matrix.os }}
@@ -53,53 +53,12 @@ jobs:
     strategy:
       matrix:
         include:
-          # Linux amd64 (implemented)
+          # Linux amd64 (currently supported)
           - os: ubuntu-latest
             arch: amd64
             target: x86_64-unknown-linux-gnu
             binary_name: driftless
             asset_name: driftless-linux-amd64
-            skip_build: false
-
-          # Linux arm64 (ready for when implemented)
-          - os: ubuntu-24.04-arm
-            arch: arm64
-            target: aarch64-unknown-linux-gnu
-            binary_name: driftless
-            asset_name: driftless-linux-arm64
-            skip_build: true
-
-          # macOS amd64 (ready for when implemented)
-          - os: macos-13
-            arch: amd64
-            target: x86_64-apple-darwin
-            binary_name: driftless
-            asset_name: driftless-macos-amd64
-            skip_build: true
-
-          # macOS arm64 (ready for when implemented)
-          - os: macos-latest
-            arch: arm64
-            target: aarch64-apple-darwin
-            binary_name: driftless
-            asset_name: driftless-macos-arm64
-            skip_build: true
-
-          # Windows amd64 (ready for when implemented)
-          - os: windows-latest
-            arch: amd64
-            target: x86_64-pc-windows-msvc
-            binary_name: driftless.exe
-            asset_name: driftless-windows-amd64.exe
-            skip_build: true
-
-          # Windows arm64 (ready for when implemented)
-          - os: windows-11-arm
-            arch: arm64
-            target: aarch64-pc-windows-msvc
-            binary_name: driftless.exe
-            asset_name: driftless-windows-arm64.exe
-            skip_build: true
 
     steps:
     - name: Checkout code
@@ -119,12 +78,10 @@ jobs:
         key: ${{ matrix.target }}-release
 
     - name: Build release binary
-      if: matrix.skip_build == false
       run: cargo build --release --target ${{ matrix.target }}
       timeout-minutes: 45
 
     - name: Prepare binary for upload
-      if: matrix.skip_build == false
       shell: bash
       run: |
         mkdir -p release-artifacts
@@ -132,7 +89,6 @@ jobs:
         chmod +x release-artifacts/${{ matrix.asset_name }} || true
 
     - name: Upload build artifact
-      if: matrix.skip_build == false
       uses: actions/upload-artifact@v4
       with:
         name: binary-${{ matrix.target }}
