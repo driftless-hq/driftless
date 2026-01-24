@@ -121,6 +121,7 @@ jobs:
     - name: Build release binary
       if: matrix.skip_build == false
       run: cargo build --release --target ${{ matrix.target }}
+      timeout-minutes: 45
 
     - name: Prepare binary for upload
       if: matrix.skip_build == false
@@ -160,6 +161,7 @@ jobs:
     - name: Install cargo-release
       run: |
         cargo install cargo-release --locked || echo "cargo-release already installed"
+      timeout-minutes: 15
 
     - name: Determine version
       id: version

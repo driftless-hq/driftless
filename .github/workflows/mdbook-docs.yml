@@ -50,6 +50,7 @@ jobs:
 
     - name: Install mdbook-autosummary
       run: cargo install mdbook-autosummary --version 0.1.9
+      timeout-minutes: 15
 
     - name: Verify mdBook installation
       run: mdbook --version && mdbook-autosummary version
@@ -58,9 +59,11 @@ jobs:
       run: cargo doc --no-deps --workspace
       env:
         RUSTDOCFLAGS: "--default-theme ayu"
+      timeout-minutes: 30
 
     - name: Build mdBook
       run: mdbook build
+      timeout-minutes: 10
 
     - name: Integrate Rust API docs into mdBook output
       run: |
