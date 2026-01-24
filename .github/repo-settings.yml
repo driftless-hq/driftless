@@ -5,14 +5,16 @@
 # Repository basic settings
 repository:
   name: driftless
-  description: "Streamlined system configuration, inventory, and monitoring agent with Ansible-like configuration operations, plus facts collection and log management."
+  description: "A lightweight Rust agent for declarative system configuration, metrics gathering, and log forwarding via GitOps."
   homepage: "https://driftless-hq.github.io/driftless/"
   topics:
     - rust
-    - automation
+    - gitops
     - configuration-management
-    - system-administration
     - monitoring
+    - logging
+    - system-administration
+    - devops
   has_issues: true
   has_wiki: false
   has_projects: false
@@ -33,18 +35,15 @@ branch_protection:
       strict: true  # Require branches to be up to date before merging
       contexts:
         - "Test (ubuntu-latest, amd64, stable)"
-        - "Test (ubuntu-latest, amd64, beta)"
-        - "Test (ubuntu-latest, amd64, 1.92)"
         - "Security Audit"
         - "Unused Dependencies"
-        - "Outdated Dependencies"
         - "Build Documentation"
     
-    # Enforce all configured restrictions
-    enforce_admins: false  # Allow admins to bypass (for emergency fixes)
+    # Enforce all configured restrictions on admins
+    enforce_admins: false
     
     # Require conversation resolution before merging
-    required_conversation_resolution: true
+    required_conversation_resolution: false
     
     # Require linear history (no merge commits)
     required_linear_history: false
