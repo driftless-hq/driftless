@@ -1,0 +1,293 @@
+name: Release
+
+# This workflow handles the release process separately from CI
+# It can be triggered manually via workflow_dispatch or by pushing version tags
+# This separation keeps the main CI pipeline fast by avoiding time-consuming release builds
+
+on:
+  # Manual trigger for releases
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 0.2.0). Leave empty to use current version from Cargo.toml'
+        required: false
+        type: string
+      bump:
+        description: 'Version bump type (only used if version is not specified)'
+        required: false
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+        default: patch
+      create_tag:
+        description: 'Create and push git tag after release'
+        required: false
+        type: boolean
+        default: true
+      prerelease:
+        description: 'Mark this as a pre-release'
+        required: false
+        type: boolean
+        default: false
+      draft:
+        description: 'Create as draft release'
+        required: false
+        type: boolean
+        default: false
+
+  # Automatic trigger on version tags
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-*'
+
+jobs:
+  # Build release binaries for all supported platforms
+  build:
+    name: Build (${{ matrix.os }}, ${{ matrix.arch }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          # Linux amd64 (implemented)
+          - os: ubuntu-latest
+            arch: amd64
+            target: x86_64-unknown-linux-gnu
+            binary_name: driftless
+            asset_name: driftless-linux-amd64
+            skip_build: false
+
+          # Linux arm64 (ready for when implemented)
+          - os: ubuntu-24.04-arm
+            arch: arm64
+            target: aarch64-unknown-linux-gnu
+            binary_name: driftless
+            asset_name: driftless-linux-arm64
+            skip_build: true
+
+          # macOS amd64 (ready for when implemented)
+          - os: macos-13
+            arch: amd64
+            target: x86_64-apple-darwin
+            binary_name: driftless
+            asset_name: driftless-macos-amd64
+            skip_build: true
+
+          # macOS arm64 (ready for when implemented)
+          - os: macos-latest
+            arch: arm64
+            target: aarch64-apple-darwin
+            binary_name: driftless
+            asset_name: driftless-macos-arm64
+            skip_build: true
+
+          # Windows amd64 (ready for when implemented)
+          - os: windows-latest
+            arch: amd64
+            target: x86_64-pc-windows-msvc
+            binary_name: driftless.exe
+            asset_name: driftless-windows-amd64.exe
+            skip_build: true
+
+          # Windows arm64 (ready for when implemented)
+          - os: windows-11-arm
+            arch: arm64
+            target: aarch64-pc-windows-msvc
+            binary_name: driftless.exe
+            asset_name: driftless-windows-arm64.exe
+            skip_build: true
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: stable
+        target: ${{ matrix.target }}
+
+    - name: Cache dependencies
+      uses: Swatinem/rust-cache@v2
+      with:
+        key: ${{ matrix.target }}-release
+
+    - name: Build release binary
+      if: matrix.skip_build == false
+      run: cargo build --release --target ${{ matrix.target }}
+
+    - name: Prepare binary for upload
+      if: matrix.skip_build == false
+      shell: bash
+      run: |
+        mkdir -p release-artifacts
+        cp target/${{ matrix.target }}/release/${{ matrix.binary_name }} release-artifacts/${{ matrix.asset_name }}
+        chmod +x release-artifacts/${{ matrix.asset_name }} || true
+
+    - name: Upload build artifact
+      if: matrix.skip_build == false
+      uses: actions/upload-artifact@v4
+      with:
+        name: binary-${{ matrix.target }}
+        path: release-artifacts/${{ matrix.asset_name }}
+        retention-days: 1
+
+  # Create GitHub release with all artifacts
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: build
+    permissions:
+      contents: write
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Setup Rust
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+        toolchain: stable
+
+    - name: Install cargo-release
+      run: |
+        cargo install cargo-release --locked || echo "cargo-release already installed"
+
+    - name: Determine version
+      id: version
+      run: |
+        if [ "${{ github.event_name }}" = "push" ] && [ -n "${{ github.ref_name }}" ]; then
+          # Extract version from tag (remove 'v' prefix)
+          VERSION="${{ github.ref_name }}"
+          VERSION="${VERSION#v}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          echo "create_tag=false" >> $GITHUB_OUTPUT
+        elif [ -n "${{ inputs.version }}" ]; then
+          # Use specified version
+          VERSION="${{ inputs.version }}"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+          echo "create_tag=${{ inputs.create_tag }}" >> $GITHUB_OUTPUT
+        else
+          # Bump version using cargo-release
+          CURRENT_VERSION=$(grep '^version = ' Cargo.toml | head -1 | sed 's/version = "\(.*\)"/\1/')
+          echo "Current version: $CURRENT_VERSION"
+          
+          # Determine new version based on bump type
+          case "${{ inputs.bump }}" in
+            major)
+              NEW_VERSION=$(cargo release version --bump major --no-confirm 2>&1 | grep -oP '\d+\.\d+\.\d+' | head -1)
+              ;;
+            minor)
+              NEW_VERSION=$(cargo release version --bump minor --no-confirm 2>&1 | grep -oP '\d+\.\d+\.\d+' | head -1)
+              ;;
+            patch|*)
+              NEW_VERSION=$(cargo release version --bump patch --no-confirm 2>&1 | grep -oP '\d+\.\d+\.\d+' | head -1)
+              ;;
+          esac
+          
+          if [ -z "$NEW_VERSION" ]; then
+            NEW_VERSION=$CURRENT_VERSION
+          fi
+          
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "create_tag=${{ inputs.create_tag }}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Update version in Cargo.toml
+      if: github.event_name == 'workflow_dispatch' && steps.version.outputs.create_tag == 'true'
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        sed -i "s/^version = \".*\"/version = \"$VERSION\"/" Cargo.toml
+        
+        git config --local user.email "action@github.com"
+        git config --local user.name "github-actions[bot]"
+        git add Cargo.toml
+        git commit -m "chore: bump version to $VERSION" || echo "No changes to commit"
+
+    - name: Create and push tag
+      if: github.event_name == 'workflow_dispatch' && steps.version.outputs.create_tag == 'true'
+      run: |
+        TAG="${{ steps.version.outputs.tag }}"
+        git tag -a "$TAG" -m "Release $TAG"
+        git push origin "$TAG"
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: release-artifacts
+        pattern: binary-*
+        merge-multiple: true
+
+    - name: List artifacts
+      run: |
+        echo "Artifacts to be included in release:"
+        ls -lah release-artifacts/ || echo "No artifacts found"
+
+    - name: Generate release notes
+      id: release_notes
+      run: |
+        VERSION="${{ steps.version.outputs.version }}"
+        TAG="${{ steps.version.outputs.tag }}"
+        
+        # Get the previous tag
+        PREV_TAG=$(git describe --tags --abbrev=0 "$TAG^" 2>/dev/null || echo "")
+        
+        # Generate release notes
+        cat > release-notes.md <<EOF
+        ## Release $VERSION
+        
+        ### Changes
+        EOF
+        
+        if [ -n "$PREV_TAG" ]; then
+          echo "" >> release-notes.md
+          git log --pretty=format:"- %s (%h)" "$PREV_TAG..$TAG" >> release-notes.md
+        else
+          echo "" >> release-notes.md
+          echo "Initial release" >> release-notes.md
+        fi
+        
+        cat >> release-notes.md <<EOF
+        
+        ### Installation
+        
+        Download the appropriate binary for your platform:
+        
+        - **Linux amd64**: \`driftless-linux-amd64\`
+        - **Linux arm64**: \`driftless-linux-arm64\` (when available)
+        - **macOS amd64**: \`driftless-macos-amd64\` (when available)
+        - **macOS arm64**: \`driftless-macos-arm64\` (when available)
+        - **Windows amd64**: \`driftless-windows-amd64.exe\` (when available)
+        - **Windows arm64**: \`driftless-windows-arm64.exe\` (when available)
+        
+        Make the binary executable (Linux/macOS):
+        \`\`\`bash
+        chmod +x driftless-*
+        sudo mv driftless-* /usr/local/bin/driftless
+        \`\`\`
+        EOF
+        
+        cat release-notes.md
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.version.outputs.tag }}
+        name: Release ${{ steps.version.outputs.version }}
+        body_path: release-notes.md
+        draft: ${{ inputs.draft || false }}
+        prerelease: ${{ inputs.prerelease || false }}
+        files: |
+          release-artifacts/*
+        fail_on_unmatched_files: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
