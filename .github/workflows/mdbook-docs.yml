@@ -10,6 +10,15 @@ on:
       - 'Cargo.toml'
       - 'README.md'
       - '.github/workflows/mdbook-docs.yml'
+  pull_request:
+    branches: [ main, master ]
+    paths:
+      - 'src/**'
+      - 'docs/**'
+      - 'book.toml'
+      - 'Cargo.toml'
+      - 'README.md'
+      - '.github/workflows/mdbook-docs.yml'
   workflow_dispatch:
 
 permissions:
@@ -24,8 +33,9 @@ concurrency:
 jobs:
   build-deploy:
     runs-on: ubuntu-latest
+    # Only set the github-pages environment on push to main
     environment:
-      name: github-pages
+      name: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'github-pages' || '' }}
       url: ${{ steps.deployment.outputs.page_url }}
     
     steps:
@@ -101,13 +111,16 @@ jobs:
         touch book/.nojekyll
 
     - name: Setup GitHub Pages
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       uses: actions/configure-pages@v5
 
     - name: Upload artifact
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       uses: actions/upload-pages-artifact@v3
       with:
         path: './book'
 
     - name: Deploy to GitHub Pages
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       id: deployment
       uses: actions/deploy-pages@v4
