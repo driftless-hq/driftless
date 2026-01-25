@@ -171,6 +171,7 @@ pub struct PluginManager {
 
 impl PluginManager {
     /// Creates a new PluginManager with secure default configuration.
+    #[allow(dead_code)]
     pub fn new(plugin_dir: PathBuf) -> Result<Self, wasmtime::Error> {
         Self::new_with_security_config(plugin_dir, PluginSecurityConfig::default())
     }
@@ -841,8 +842,8 @@ impl PluginManager {
         let input_ptr = self.allocate_string(&mut store, &instance, input)?;
 
         // Call the WASM function
-        let result_ptr = execute_log_parser_typed
-            .call(&mut store, (parser_name_ptr, config_ptr, input_ptr))?;
+        let result_ptr =
+            execute_log_parser_typed.call(&mut store, (parser_name_ptr, config_ptr, input_ptr))?;
 
         // Read the result string from WASM memory
         let result_json = self.read_string(&mut store, &instance, result_ptr)?;
@@ -1040,8 +1041,8 @@ impl PluginManager {
             self.allocate_string(&mut store, &instance, &collector_name_str)?;
 
         // Call the WASM function
-        let result_ptr = execute_facts_collector_typed
-            .call(&mut store, (collector_name_ptr, config_ptr))?;
+        let result_ptr =
+            execute_facts_collector_typed.call(&mut store, (collector_name_ptr, config_ptr))?;
 
         // Read the result string from WASM memory
         let result_json = self.read_string(&mut store, &instance, result_ptr)?;
@@ -1146,8 +1147,7 @@ impl PluginManager {
         let args_ptr = self.allocate_string(&mut store, &instance, &args_json)?;
 
         // Call the WASM function
-        let result_ptr =
-            execute_template_function_typed.call(&mut store, (name_ptr, args_ptr))?;
+        let result_ptr = execute_template_function_typed.call(&mut store, (name_ptr, args_ptr))?;
 
         // Read the result string from WASM memory
         let result_json = self.read_string(&mut store, &instance, result_ptr)?;

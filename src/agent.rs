@@ -1040,12 +1040,11 @@ impl Agent {
     /// Initialize the plugin manager and load plugins
     fn initialize_plugin_manager(&mut self) -> Result<()> {
         // Load plugin registry configuration (including security settings) from the config directory
-        let registry_config =
-            crate::config::load_plugin_registry_config(&self.config.config_dir)
-                .unwrap_or_else(|_| {
-                    eprintln!("Warning: Failed to load plugin registry config, using defaults");
-                    crate::config::PluginRegistryConfig::default()
-                });
+        let registry_config = crate::config::load_plugin_registry_config(&self.config.config_dir)
+            .unwrap_or_else(|_| {
+                eprintln!("Warning: Failed to load plugin registry config, using defaults");
+                crate::config::PluginRegistryConfig::default()
+            });
 
         let mut plugin_manager = crate::plugins::PluginManager::new_with_security_config(
             self.config.plugin_dir.clone(),
