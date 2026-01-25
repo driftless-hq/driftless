@@ -14,5 +14,8 @@ serde_json = "1.0"
 wasm-bindgen = "0.2"
 base64 = "0.21"
 
-# For development, use local path to driftless plugin interface
-driftless-plugin = { path = "../../../../../src/plugin_interface" }
+# Placeholder for the driftless plugin interface dependency.
+# The local path "../../../../../src/plugin_interface" is not a standalone Cargo crate
+# in this repository (no Cargo.toml), so this dependency is disabled to keep the
+# example buildable. When a proper crate exists (local or from crates.io), add it here.
+# driftless-plugin = { path = "../../../../../src/plugin_interface" }

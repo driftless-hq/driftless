@@ -9,7 +9,7 @@ additional build tooling and WASM compilation steps.
 """
 
 import json
-from typing import Dict, Any, List
+from typing import Dict, Any
 
 
 def get_facts_collectors() -> str:
