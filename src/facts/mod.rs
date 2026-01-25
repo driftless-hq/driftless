@@ -234,18 +234,19 @@ impl FactsRegistry {
     #[allow(unused)]
     pub fn collect_facts(collector: &Collector) -> Result<serde_yaml::Value> {
         let collector_type = match collector {
-            Collector::System(_) => "system",
-            Collector::Cpu(_) => "cpu",
-            Collector::Memory(_) => "memory",
-            Collector::Disk(_) => "disk",
-            Collector::Network(_) => "network",
-            Collector::Process(_) => "process",
-            Collector::Command(_) => "command",
+            Collector::System(_) => "system".to_string(),
+            Collector::Cpu(_) => "cpu".to_string(),
+            Collector::Memory(_) => "memory".to_string(),
+            Collector::Disk(_) => "disk".to_string(),
+            Collector::Network(_) => "network".to_string(),
+            Collector::Process(_) => "process".to_string(),
+            Collector::Command(_) => "command".to_string(),
+            Collector::Plugin(plugin_collector) => plugin_collector.name.clone(),
         };
 
         let entry = {
             let registry = FACTS_REGISTRY.read().unwrap();
-            registry.get(collector_type).cloned()
+            registry.get(&collector_type).cloned()
         };
 
         if let Some(entry) = entry {
@@ -256,6 +257,29 @@ impl FactsRegistry {
                 collector_type
             ))
         }
+    }
+
+    /// Register a plugin-provided facts collector at runtime
+    #[allow(dead_code)]
+    pub fn register_plugin_collector(
+        collector_name: &str,
+        collector: FactsCollectorFn,
+    ) -> Result<()> {
+        let mut registry = FACTS_REGISTRY.write().unwrap();
+        if registry.contains_key(collector_name) {
+            return Err(anyhow::anyhow!(
+                "Collector '{}' is already registered",
+                collector_name
+            ));
+        }
+        let entry = FactsRegistryEntry {
+            collector,
+            category: "Plugin Collectors".to_string(),
+            description: format!("Plugin-provided collector: {}", collector_name),
+            filename: "plugin".to_string(),
+        };
+        registry.insert(collector_name.to_string(), entry);
+        Ok(())
     }
 }
 
@@ -301,6 +325,18 @@ impl Default for GlobalSettings {
     }
 }
 
+/// Plugin-provided facts collector configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PluginCollector {
+    #[serde(flatten)]
+    pub base: BaseCollector,
+    /// Plugin collector name
+    pub name: String,
+    /// Collector-specific configuration
+    #[serde(flatten)]
+    pub config: serde_yaml::Value,
+}
+
 /// Types of collectors
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
@@ -319,6 +355,8 @@ pub enum Collector {
     Process(ProcessCollector),
     /// Custom command output collector
     Command(CommandCollector),
+    /// Plugin-provided facts collector
+    Plugin(PluginCollector),
 }
 
 /// Base collector configuration

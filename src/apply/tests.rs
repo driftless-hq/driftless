@@ -196,6 +196,7 @@ async fn test_include_tasks_successful_execution() {
         std::collections::HashMap::new(),
         VariableContext::new(),
         temp_dir.path().to_path_buf(),
+        None,
     );
 
     // Create include task
@@ -240,6 +241,7 @@ async fn test_include_tasks_with_condition_true() {
         vars,
         VariableContext::new(),
         temp_dir.path().to_path_buf(),
+        None,
     );
 
     // Create include task with condition
@@ -286,6 +288,7 @@ async fn test_include_tasks_with_condition_false() {
         vars,
         VariableContext::new(),
         temp_dir.path().to_path_buf(),
+        None,
     );
 
     // Create include task with condition that evaluates to false
@@ -318,6 +321,7 @@ async fn test_include_tasks_missing_file() {
         std::collections::HashMap::new(),
         VariableContext::new(),
         temp_dir.path().to_path_buf(),
+        None,
     );
 
     // Create include task pointing to non-existent file
@@ -378,6 +382,7 @@ role_var: "default_value"
         std::collections::HashMap::new(),
         VariableContext::new(),
         temp_dir.path().to_path_buf(),
+        None,
     );
 
     // Create include role task
@@ -409,6 +414,7 @@ async fn test_include_role_missing_role() {
         std::collections::HashMap::new(),
         VariableContext::new(),
         temp_dir.path().to_path_buf(),
+        None,
     );
 
     // Create include role task pointing to non-existent role
@@ -449,6 +455,7 @@ async fn test_include_role_missing_tasks_file() {
         std::collections::HashMap::new(),
         VariableContext::new(),
         temp_dir.path().to_path_buf(),
+        None,
     );
 
     // Create include role task
@@ -504,6 +511,7 @@ async fn test_include_tasks_variable_passing() {
         vars,
         VariableContext::new(),
         temp_dir.path().to_path_buf(),
+        None,
     );
 
     // Create include task with vars

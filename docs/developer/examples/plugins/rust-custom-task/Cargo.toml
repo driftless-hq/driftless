@@ -1,0 +1,19 @@
+[package]
+name = "driftless-custom-task-plugin"
+version = "0.1.0"
+edition = "2021"
+description = "Example custom task plugin for Driftless"
+license = "MIT OR Apache-2.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+wasm-bindgen = "0.2"
+
+# For development, you can add a local path to the driftless plugin interface.
+# In this repository, this is a placeholder and not a resolvable crate.
+# In your own project, replace this with a real crate or valid local path, e.g.:
+# driftless-plugin = { path = "../../../../../src/plugin_interface" }

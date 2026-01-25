@@ -91,10 +91,12 @@
 //! ```
 
 use crate::facts::{Collector, FactsConfig, FactsRegistry, PrometheusExport};
+use crate::plugins::PluginManager;
 use anyhow::Result;
-use serde_yaml::Value;
+use serde_yaml::{self, Value};
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::RwLock as StdRwLock;
 use tokio::sync::RwLock;
 use tokio::time::{interval, Duration};
 
@@ -104,17 +106,27 @@ pub struct FactsOrchestrator {
     config: FactsConfig,
     exporters: Vec<Box<dyn FactsExporter>>,
     collected_facts: Arc<RwLock<HashMap<String, Value>>>,
+    plugin_manager: Option<Arc<StdRwLock<PluginManager>>>,
 }
 
 #[allow(dead_code)]
 impl FactsOrchestrator {
     /// Create a new facts orchestrator
     pub fn new(config: FactsConfig) -> Result<Self> {
-        Self::new_with_registry(config, prometheus::Registry::new())
+        Self::new_with_registry_and_plugins(config, prometheus::Registry::new(), None)
     }
 
     /// Create a new facts orchestrator with a custom registry
     pub fn new_with_registry(config: FactsConfig, registry: prometheus::Registry) -> Result<Self> {
+        Self::new_with_registry_and_plugins(config, registry, None)
+    }
+
+    /// Create a new facts orchestrator with plugins
+    pub fn new_with_registry_and_plugins(
+        config: FactsConfig,
+        registry: prometheus::Registry,
+        plugin_manager: Option<Arc<StdRwLock<PluginManager>>>,
+    ) -> Result<Self> {
         let mut exporters = Vec::new();
 
         // Initialize exporters based on configuration
@@ -138,6 +150,7 @@ impl FactsOrchestrator {
             config,
             exporters,
             collected_facts: Arc::new(RwLock::new(HashMap::new())),
+            plugin_manager,
         })
     }
 
@@ -186,7 +199,24 @@ impl FactsOrchestrator {
             if self.is_collector_enabled(collector) {
                 let collector_name = self.get_collector_name(collector);
 
-                match FactsRegistry::collect_facts(collector) {
+                let facts_result = match collector {
+                    Collector::Plugin(_) => {
+                        // Handle plugin collectors specially
+                        if let Some(ref plugin_manager) = &self.plugin_manager {
+                            self.collect_plugin_facts(collector, plugin_manager).await
+                        } else {
+                            Err(anyhow::anyhow!(
+                                "Plugin collector configured but no plugin manager available"
+                            ))
+                        }
+                    }
+                    _ => {
+                        // Handle built-in collectors
+                        FactsRegistry::collect_facts(collector)
+                    }
+                };
+
+                match facts_result {
                     Ok(facts) => {
                         all_facts.insert(collector_name.clone(), facts);
                     }
@@ -215,9 +245,44 @@ impl FactsOrchestrator {
         Ok(())
     }
 
+    /// Collect facts from a plugin collector
+    async fn collect_plugin_facts(
+        &self,
+        collector: &Collector,
+        plugin_manager: &Arc<StdRwLock<PluginManager>>,
+    ) -> Result<serde_yaml::Value> {
+        let plugin_collector = match collector {
+            Collector::Plugin(pc) => pc,
+            _ => return Err(anyhow::anyhow!("Not a plugin collector")),
+        };
+
+        let manager = plugin_manager
+            .read()
+            .map_err(|e| anyhow::anyhow!("Failed to acquire read lock on plugin manager: {}", e))?;
+
+        // Extract plugin name and collector name from the plugin collector
+        // For now, assume the format is "plugin_name.collector_name"
+        let (plugin_name, collector_name) =
+            crate::plugins::parse_plugin_component_name(&plugin_collector.name)?;
+        let config = serde_json::to_value(&plugin_collector.config)?;
+        match manager.execute_facts_collector(plugin_name, collector_name, &config) {
+            Ok(result) => {
+                // Convert serde_json::Value to serde_yaml::Value
+                let json_str = serde_json::to_string(&result)?;
+                let yaml_value: serde_yaml::Value = serde_yaml::from_str(&json_str)?;
+                Ok(yaml_value)
+            }
+            Err(e) => Err(anyhow::anyhow!(
+                "Plugin facts collector execution failed: {}",
+                e
+            )),
+        }
+    }
+
     /// Get collected facts (for external access)
-    pub async fn get_collected_facts(&self) -> HashMap<String, Value> {
-        self.collected_facts.read().await.clone()
+    pub async fn get_collected_facts(&self) -> Result<HashMap<String, Value>> {
+        let facts = self.collected_facts.read().await;
+        Ok(facts.clone())
     }
 
     /// Get the number of configured collectors
@@ -242,6 +307,7 @@ impl FactsOrchestrator {
             Network(c) => c.base.enabled,
             Process(c) => c.base.enabled,
             Command(c) => c.base.enabled,
+            Plugin(c) => c.base.enabled,
         };
 
         self.config.global.enabled && collector_enabled
@@ -259,6 +325,7 @@ impl FactsOrchestrator {
             Network(c) => c.base.name.clone(),
             Process(c) => c.base.name.clone(),
             Command(c) => c.base.name.clone(),
+            Plugin(c) => c.name.clone(),
         }
     }
 
@@ -274,6 +341,7 @@ impl FactsOrchestrator {
             Network(c) => c.base.poll_interval,
             Process(c) => c.base.poll_interval,
             Command(c) => c.base.poll_interval,
+            Plugin(c) => c.base.poll_interval,
         }
     }
 
@@ -477,7 +545,7 @@ mod tests {
         assert!(result.is_ok());
 
         // Check that facts were collected
-        let facts = orchestrator.get_collected_facts().await;
+        let facts = orchestrator.get_collected_facts().await.unwrap();
         assert!(!facts.is_empty());
         assert!(facts.contains_key("test_cpu"));
     }

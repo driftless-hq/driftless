@@ -4,10 +4,11 @@
 //! field matching, rate limiting, and content-based filtering.
 
 use crate::logs::{FilterConfig, LogEntry};
+use crate::plugins::PluginManager;
 use anyhow::{Context, Result};
 use regex::Regex;
 use serde_json::Value;
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, RwLock};
 use std::time::{Duration, Instant};
 
 /// Trait for log filters
@@ -318,8 +319,55 @@ impl LogFilter for RateLimitFilter {
     }
 }
 
+/// Plugin-based log filter
+pub struct PluginFilter {
+    name: String,
+    config: serde_yaml::Value,
+    plugin_manager: Arc<RwLock<PluginManager>>,
+}
+
+impl PluginFilter {
+    /// Create a new plugin filter
+    pub fn new(
+        name: String,
+        config: serde_yaml::Value,
+        plugin_manager: Arc<RwLock<PluginManager>>,
+    ) -> Result<Self> {
+        Ok(Self {
+            name,
+            config,
+            plugin_manager,
+        })
+    }
+}
+
+impl LogFilter for PluginFilter {
+    fn filter(&self, entry: &LogEntry) -> Result<bool> {
+        let pm = self
+            .plugin_manager
+            .read()
+            .map_err(|e| anyhow::anyhow!("Failed to acquire read lock on PluginManager: {}", e))?;
+        // Convert config to JSON
+        let config_json =
+            serde_json::to_value(&self.config).context("Failed to convert config to JSON")?;
+        // Determine plugin and filter names.
+        // Prefer an explicit plugin name from the configuration (e.g., `plugin: my_plugin`),
+        // falling back to this filter's name to preserve existing behavior.
+        let plugin_name = crate::logs::extract_plugin_name(&self.config, &self.name);
+        let filter_name: &str = self.name.as_str();
+        // Call the plugin's execute_log_filter function
+        match pm.execute_log_filter(plugin_name, filter_name, &config_json, entry) {
+            Ok(result) => Ok(result),
+            Err(e) => Err(anyhow::anyhow!("Plugin filter execution failed: {}", e)),
+        }
+    }
+}
+
 /// Create a filter instance based on configuration
-pub fn create_filter(config: &FilterConfig) -> Result<Box<dyn LogFilter>> {
+pub fn create_filter(
+    config: &FilterConfig,
+    plugin_manager: Option<Arc<RwLock<PluginManager>>>,
+) -> Result<Box<dyn LogFilter>> {
     match config {
         FilterConfig::Include { .. } => {
             let filter = IncludeFilter::from_config(config)?;
@@ -344,6 +392,18 @@ pub fn create_filter(config: &FilterConfig) -> Result<Box<dyn LogFilter>> {
         FilterConfig::RateLimit { .. } => {
             let filter = RateLimitFilter::from_config(config)?;
             Ok(Box::new(filter))
+        }
+        FilterConfig::Plugin(plugin_filter) => {
+            if let Some(pm) = plugin_manager {
+                let filter = PluginFilter::new(
+                    plugin_filter.name.clone(),
+                    plugin_filter.config.clone(),
+                    pm,
+                )?;
+                Ok(Box::new(filter))
+            } else {
+                Err(anyhow::anyhow!("Plugin filters require a plugin manager"))
+            }
         }
     }
 }
@@ -464,7 +524,7 @@ mod tests {
             case_sensitive: Some(true),
         };
 
-        let filter = create_filter(&config).unwrap();
+        let filter = create_filter(&config, None).unwrap();
         let entry = LogEntry::new("ERROR message".to_string());
         assert!(filter.filter(&entry).unwrap());
     }

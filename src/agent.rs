@@ -11,7 +11,7 @@ use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use std::time::Instant;
 use tokio::sync::Mutex;
 use tokio::time::{interval, Duration};
@@ -145,6 +145,8 @@ pub struct LogsStatus {
 pub struct AgentConfig {
     /// Configuration directory to monitor
     pub config_dir: PathBuf,
+    /// Plugin directory to scan for plugin files
+    pub plugin_dir: PathBuf,
     /// Interval for running apply tasks (seconds)
     pub apply_interval: u64,
     /// Interval for collecting facts (seconds)
@@ -198,6 +200,7 @@ impl Default for AgentConfig {
     fn default() -> Self {
         Self {
             config_dir: PathBuf::from("~/.config/driftless/config"),
+            plugin_dir: PathBuf::from("~/.config/driftless/plugins"),
             apply_interval: 300, // 5 minutes
             facts_interval: 60,  // 1 minute
             apply_dry_run: false,
@@ -216,6 +219,7 @@ pub struct Agent {
     apply_executor: Option<Arc<Mutex<TaskExecutor>>>,
     facts_orchestrator: Option<Arc<Mutex<FactsOrchestrator>>>,
     logs_orchestrator: Option<Arc<Mutex<LogOrchestrator>>>,
+    plugin_manager: Option<Arc<RwLock<crate::plugins::PluginManager>>>,
     config_watcher: Option<RecommendedWatcher>,
     metrics_registry: prometheus::Registry,
     metrics_server_handle: Option<tokio::task::JoinHandle<()>>,
@@ -281,6 +285,7 @@ impl Agent {
             apply_executor: None,
             facts_orchestrator: None,
             logs_orchestrator: None,
+            plugin_manager: None,
             config_watcher: None,
             metrics_registry: prometheus::Registry::new(),
             metrics_server_handle: None,
@@ -690,6 +695,28 @@ impl Agent {
         })
     }
 
+    /// Get plugin information for configuration and monitoring
+    #[allow(dead_code)]
+    pub fn plugin_info(&self) -> serde_json::Value {
+        if let Some(pm) = &self.plugin_manager {
+            match pm.read() {
+                Ok(pm_guard) => match pm_guard.get_available_capabilities() {
+                    Ok(capabilities) => capabilities,
+                    Err(e) => serde_json::json!({
+                        "error": format!("Failed to get plugin capabilities: {}", e)
+                    }),
+                },
+                Err(e) => serde_json::json!({
+                    "error": format!("Plugin manager lock poisoned: {}", e)
+                }),
+            }
+        } else {
+            serde_json::json!({
+                "error": "Plugin manager not initialized"
+            })
+        }
+    }
+
     /// Run the main event loop
     #[instrument(skip(self))]
     pub async fn run_event_loop(&mut self) -> Result<()> {
@@ -954,6 +981,9 @@ impl Agent {
         // Validate agent configuration
         self.validate_config()?;
 
+        // Initialize plugin manager
+        self.initialize_plugin_manager()?;
+
         // Load configurations from the config directory
         let apply_config = self.load_apply_config()?;
         let facts_config = self.load_facts_config()?;
@@ -978,14 +1008,18 @@ impl Agent {
                 config.vars.clone(),
                 crate::apply::variables::VariableContext::new(),
                 self.config.config_dir.clone(),
+                self.plugin_manager.clone(),
             );
             self.apply_executor = Some(Arc::new(Mutex::new(executor)));
         }
 
         // Initialize facts orchestrator
         if let Some(config) = facts_config {
-            let orchestrator =
-                FactsOrchestrator::new_with_registry(config, self.metrics_registry.clone())?;
+            let orchestrator = FactsOrchestrator::new_with_registry_and_plugins(
+                config,
+                self.metrics_registry.clone(),
+                self.plugin_manager.clone(),
+            )?;
             self.facts_collector_count = orchestrator.collector_count();
             self.facts_exporter_count = orchestrator.exporter_count();
             self.facts_orchestrator = Some(Arc::new(Mutex::new(orchestrator)));
@@ -993,12 +1027,61 @@ impl Agent {
 
         // Initialize logs orchestrator
         if let Some(config) = logs_config {
-            let orchestrator = LogOrchestrator::new(config);
+            let orchestrator =
+                LogOrchestrator::new_with_plugins(config, self.plugin_manager.clone());
             self.logs_source_count = orchestrator.source_count();
             self.logs_output_count = orchestrator.output_count();
             self.logs_orchestrator = Some(Arc::new(Mutex::new(orchestrator)));
         }
 
+        Ok(())
+    }
+
+    /// Initialize the plugin manager and load plugins
+    fn initialize_plugin_manager(&mut self) -> Result<()> {
+        // Load plugin registry configuration (including security settings) from the config directory
+        let registry_config = crate::config::load_plugin_registry_config(&self.config.config_dir)
+            .unwrap_or_else(|_| {
+                eprintln!("Warning: Failed to load plugin registry config, using defaults");
+                crate::config::PluginRegistryConfig::default()
+            });
+
+        let mut plugin_manager = crate::plugins::PluginManager::new_with_security_config(
+            self.config.plugin_dir.clone(),
+            registry_config.security,
+        )
+        .map_err(|e| anyhow::anyhow!("Failed to create plugin manager: {}", e))?;
+
+        // Scan for and load plugins
+        if let Err(e) = plugin_manager.scan_plugins() {
+            eprintln!("Warning: Failed to scan plugins: {}", e);
+        }
+
+        if let Err(e) = plugin_manager.load_all_plugins() {
+            eprintln!("Warning: Failed to load plugins: {}", e);
+        }
+        // Register plugin components
+        let plugin_manager_arc = Arc::new(RwLock::new(plugin_manager));
+        {
+            let mut pm = plugin_manager_arc.write().unwrap();
+            if let Err(e) = pm.register_plugin_tasks() {
+                eprintln!("Warning: Failed to register plugin tasks: {}", e);
+            }
+            if let Err(e) = pm.register_plugin_facts_collectors() {
+                eprintln!("Warning: Failed to register plugin facts collectors: {}", e);
+            }
+            if let Err(e) = pm.register_plugin_logs_components() {
+                eprintln!("Warning: Failed to register plugin logs components: {}", e);
+            }
+            if let Err(e) = pm.register_plugin_template_extensions(plugin_manager_arc.clone()) {
+                eprintln!(
+                    "Warning: Failed to register plugin template extensions: {}",
+                    e
+                );
+            }
+        }
+
+        self.plugin_manager = Some(plugin_manager_arc);
         Ok(())
     }
 
@@ -1227,7 +1310,11 @@ impl Agent {
                 }
 
                 // Reinitialize orchestrator with new config
-                match FactsOrchestrator::new_with_registry(config, self.metrics_registry.clone()) {
+                match FactsOrchestrator::new_with_registry_and_plugins(
+                    config,
+                    self.metrics_registry.clone(),
+                    self.plugin_manager.clone(),
+                ) {
                     Ok(orchestrator) => {
                         self.facts_collector_count = orchestrator.collector_count();
                         self.facts_exporter_count = orchestrator.exporter_count();
@@ -1317,7 +1404,8 @@ impl Agent {
                     self.logs_running = false;
 
                     // Reinitialize orchestrator with new config
-                    let orchestrator = LogOrchestrator::new(config);
+                    let orchestrator =
+                        LogOrchestrator::new_with_plugins(config, self.plugin_manager.clone());
                     self.logs_source_count = orchestrator.source_count();
                     self.logs_output_count = orchestrator.output_count();
                     self.logs_orchestrator = Some(Arc::new(Mutex::new(orchestrator)));
