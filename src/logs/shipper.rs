@@ -115,6 +115,7 @@ impl LogShipper {
             Http(o) => o.enabled,
             Syslog(o) => o.enabled,
             Console(o) => o.enabled,
+            Plugin(_o) => true, // Plugin outputs are enabled by default
         }
     }
 
@@ -129,6 +130,7 @@ impl LogShipper {
             Http(o) => &o.name,
             Syslog(o) => &o.name,
             Console(o) => &o.name,
+            Plugin(o) => &o.name,
         }
     }
 }

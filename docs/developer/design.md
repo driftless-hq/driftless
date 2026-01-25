@@ -86,26 +86,21 @@ The [nix crate](https://github.com/nix-rust/nix) provides Rust bindings to *nix 
 - [ ] **KVM operations** - Kernel-based virtual machines
 
 ## TODO
-- **Apply Task Plugins**: Implement support for loading and executing custom apply tasks from plugins, ensuring idempotency and integration with the existing apply executor.
-- **Facts Task Plugins**: Implement support for loading and executing custom facts gathering tasks from plugins, allowing plugins to collect and return custom metrics or system information.
-- **Logs Task Plugins**: Implement support for loading and executing custom log processing tasks from plugins, enabling custom parsers, filters, and output handlers.
-- **Template Extensions**: Add support for plugins to register custom template filters and functions, integrating with the templating engine to allow dynamic extension of template capabilities.
-- **Plugin Registry**: Create a plugin registry system that scans a designated directory for plugin files, validates them, and makes them available for use in configurations.
 - **Plugin Lifecycle Management**: Implement functionality to list, manage, and install configured plugin executables during startup, ensuring they are available for use. This includes downloading plugins from a registry if needed, validating them, and caching them locally. It is expected that plugins will be distributed as pre-compiled WASM binaries to an artifact registry.
 - **Security Hardening**: Implement security measures such as WASM module validation, execution timeouts, memory limits, and restricted system access to prevent malicious plugins from compromising the host system.
 - **Plugin Documentation**: Write comprehensive documentation in `docs/developer/plugins.md` explaining how to create plugins, including API references, security guidelines, and deployment instructions. Be sure to include a GitHub workflow example for building and publishing plugins as WASM binaries attached to GitHub Releases.
 - **Plugin Examples**: Create example plugins in multiple programming languages (Rust, JavaScript/TypeScript, Python via pyodide if feasible) demonstrating custom tasks and template extensions, placed in `docs/developer/examples/plugins/`.
 - **Plugin Testing**: Develop unit and integration tests for the plugin system, including tests for loading, execution, error handling, and security boundaries.
 - **Plugin CLI Integration**: Update the CLI to support plugin-related commands (e.g., `driftless plugins list`, `driftless plugins validate <plugin>`) for managing and inspecting loaded plugins.
+- Finish implementing Config file merging: TODOs for supporting multiple config files (main.rs lines 400, 488, 595)
+- Finish implementing Metrics collection: TODOs for actual implementation (facts/collector.rs)
+- Finish implementing Log collection: TODO for actual implementation (main.rs line 219)
+- Finish implementing User/group property checks: TODOs for additional validation (apply/user.rs, apply/group.rs)
 - Create task prompts in the TODO list that adds support for macOS and Windows operating systems
-- Review usages of `dead_code` and `unused_imports` to silence warnings and determine if code should be used or cleaned up
+- Review usages of `dead_code`, `unsafe`, and `unused_imports` to silence warnings and determine if code should be used or cleaned up according to Rust best practices
+- Review the codebase for consistent error-handling patterns and improve as needed
+- Review the entire codebase to ensure all placeholders and `TODO` comments are replaced with actual implementations or tracked issues
 - Ensure all dependencies in `Cargo.toml` are up-to-date with the latest stable versions
-- Review the codebase for usage of Rust best-practices and guidelines
-- Review the codebase for safety and security vulnerabilities and apply mitigations as needed
-- Ensure comprehensive test coverage and cleanup any clippy warnings
-- Review the auto-generated and manually-managed documentation in the `docs/` directory and validate information is accurate against the current codebase. Look for cleanup, clarification, expansion, and reorganization opportunities. Ensure all auto-generated documentation contains a banner indicating it is auto-generated and should not be manually edited.
-- Perform a final review of the entire codebase, documentation, and project structure to ensure consistency, quality, and readiness for production use.
-- Review usages of `dead_code` and `unused_imports` to silence warnings and determine if code should be used or cleaned up
 - Review the codebase for usage of Rust best-practices and guidelines
 - Review the codebase for safety and security vulnerabilities and apply mitigations as needed
 - Ensure comprehensive test coverage and cleanup any clippy warnings

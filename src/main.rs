@@ -10,6 +10,8 @@ mod doc_extractor;
 mod docs;
 mod facts;
 mod logs;
+mod plugin_interface;
+mod plugins;
 
 use axum::{extract::State, http::StatusCode, response::Json, routing::get, Router};
 
@@ -23,6 +25,9 @@ struct Cli {
     /// Configuration directory (default: ~/.config/driftless/config)
     #[arg(short, long)]
     config: Option<PathBuf>,
+    /// Plugin directory (default: ~/.config/driftless/plugins)
+    #[arg(long)]
+    plugin_dir: Option<PathBuf>,
 
     #[command(subcommand)]
     command: Commands,
@@ -87,6 +92,52 @@ async fn main() -> anyhow::Result<()> {
             .join("config")
     });
 
+    // Use default plugin directory if not specified
+    let plugin_dir = cli.plugin_dir.unwrap_or_else(|| {
+        dirs::config_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join("driftless")
+            .join("plugins")
+    });
+
+    // Initialize plugin manager
+    let plugin_manager = match crate::plugins::PluginManager::new(plugin_dir.clone()) {
+        Ok(mut pm) => {
+            // Try to scan and load plugins
+            if let Err(e) = pm.scan_plugins() {
+                eprintln!("Warning: Failed to scan plugins: {}", e);
+            }
+            if let Err(e) = pm.load_all_plugins() {
+                eprintln!("Warning: Failed to load plugins: {}", e);
+            }
+            // Register plugin components
+            let pm_arc = std::sync::Arc::new(std::sync::RwLock::new(pm));
+            {
+                let mut pm_write = pm_arc.write().unwrap();
+                if let Err(e) = pm_write.register_plugin_tasks() {
+                    eprintln!("Warning: Failed to register plugin tasks: {}", e);
+                }
+                if let Err(e) = pm_write.register_plugin_facts_collectors() {
+                    eprintln!("Warning: Failed to register plugin facts collectors: {}", e);
+                }
+                if let Err(e) = pm_write.register_plugin_logs_components() {
+                    eprintln!("Warning: Failed to register plugin logs components: {}", e);
+                }
+                if let Err(e) = pm_write.register_plugin_template_extensions(pm_arc.clone()) {
+                    eprintln!(
+                        "Warning: Failed to register plugin template extensions: {}",
+                        e
+                    );
+                }
+            }
+            Some(pm_arc)
+        }
+        Err(e) => {
+            eprintln!("Warning: Failed to initialize plugin manager: {}", e);
+            None
+        }
+    };
+
     match cli.command {
         Commands::Apply { dry_run } => {
             println!("Applying configuration from: {}", config_dir.display());
@@ -108,6 +159,7 @@ async fn main() -> anyhow::Result<()> {
                         config.vars.clone(),
                         temp_vars,
                         config_dir.clone(),
+                        plugin_manager.clone(),
                     );
 
                     // Validate tasks first
@@ -155,9 +207,10 @@ async fn main() -> anyhow::Result<()> {
                     }
 
                     // Create and run the facts orchestrator
-                    match facts::FactsOrchestrator::new_with_registry(
+                    match facts::FactsOrchestrator::new_with_registry_and_plugins(
                         config,
                         prometheus::Registry::new(),
+                        plugin_manager.clone(),
                     ) {
                         Ok(orchestrator) => {
                             println!("Facts orchestrator created successfully");
@@ -461,6 +514,7 @@ fn is_collector_enabled(collector: &facts::Collector, global_enabled: bool) -> b
         Network(c) => c.base.enabled,
         Process(c) => c.base.enabled,
         Command(c) => c.base.enabled,
+        Plugin(c) => c.base.enabled,
     };
 
     global_enabled && collector_enabled
@@ -569,6 +623,7 @@ fn is_output_enabled(output: &logs::LogOutput) -> bool {
         Http(o) => o.enabled,
         Syslog(o) => o.enabled,
         Console(o) => o.enabled,
+        Plugin(o) => o.enabled,
     }
 }
 
@@ -768,6 +823,7 @@ mod tests {
         // Create test agent config
         let agent_config = r#"{
             "config_dir": "/tmp/test",
+            "plugin_dir": "./plugins",
             "apply_interval": 123,
             "facts_interval": 456,
             "apply_dry_run": true,

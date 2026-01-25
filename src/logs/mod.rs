@@ -600,6 +600,8 @@ pub enum ParserType {
     Syslog,
     /// Custom regex pattern
     Regex,
+    /// Plugin-provided parser
+    Plugin(PluginParser),
 }
 
 /// Multiline log configuration
@@ -614,6 +616,16 @@ pub struct MultilineConfig {
     /// Maximum number of lines per multiline entry
     #[serde(default = "default_max_lines")]
     pub max_lines: usize,
+}
+
+/// Plugin-provided parser configuration
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct PluginParser {
+    /// Plugin parser name
+    pub name: String,
+    /// Parser-specific configuration
+    #[serde(flatten)]
+    pub config: serde_yaml::Value,
 }
 
 /// Filter configuration
@@ -648,6 +660,18 @@ pub enum FilterConfig {
     },
     /// Drop lines above a certain rate (rate limiting)
     RateLimit { events_per_second: u32 },
+    /// Plugin-provided filter
+    Plugin(PluginFilter),
+}
+
+/// Plugin-provided filter configuration
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct PluginFilter {
+    /// Plugin filter name
+    pub name: String,
+    /// Filter-specific configuration
+    #[serde(flatten)]
+    pub config: serde_yaml::Value,
 }
 
 /// Log output configuration
@@ -664,6 +688,21 @@ pub enum LogOutput {
     Syslog(SyslogOutput),
     /// Send to stdout/stderr (for debugging)
     Console(ConsoleOutput),
+    /// Plugin-provided output
+    Plugin(PluginOutput),
+}
+
+/// Plugin-provided output configuration
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct PluginOutput {
+    /// Plugin output name
+    pub name: String,
+    /// Whether this output is enabled
+    #[serde(default = "default_true")]
+    pub enabled: bool,
+    /// Output-specific configuration
+    #[serde(flatten)]
+    pub config: serde_yaml::Value,
 }
 
 /// File output configuration
@@ -1008,6 +1047,20 @@ fn default_max_files() -> usize {
 }
 pub fn default_compression_level() -> u32 {
     6
+}
+
+/// Extract plugin name from configuration
+///
+/// Prefers an explicit 'plugin' field from the configuration,
+/// falling back to the provided name to preserve existing behavior.
+pub fn extract_plugin_name<'a>(config: &'a serde_yaml::Value, fallback_name: &'a str) -> &'a str {
+    match config {
+        serde_yaml::Value::Mapping(map) => map
+            .get(serde_yaml::Value::String("plugin".to_string()))
+            .and_then(|v| v.as_str())
+            .unwrap_or(fallback_name),
+        _ => fallback_name,
+    }
 }
 fn default_batch_size() -> usize {
     100

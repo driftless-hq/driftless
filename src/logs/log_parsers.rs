@@ -4,12 +4,15 @@
 //! JSON, key-value pairs, Apache/Nginx logs, syslog, and custom regex patterns.
 
 use crate::logs::{ParserConfig, ParserType};
+use crate::plugins::PluginManager;
 use anyhow::{Context, Result};
 use chrono::{DateTime, Datelike, NaiveDateTime, Utc};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
+use std::sync::Arc;
+use std::sync::RwLock;
 
 /// Parsed log entry
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -766,8 +769,62 @@ impl LogParser for RegexParser {
     }
 }
 
+/// Plugin-based log parser
+pub struct PluginParser {
+    name: String,
+    config: serde_yaml::Value,
+    plugin_manager: Arc<RwLock<PluginManager>>,
+}
+
+impl PluginParser {
+    /// Create a new plugin parser
+    pub fn new(
+        name: String,
+        config: serde_yaml::Value,
+        plugin_manager: Arc<RwLock<PluginManager>>,
+    ) -> Result<Self> {
+        Ok(Self {
+            name,
+            config,
+            plugin_manager,
+        })
+    }
+}
+
+impl LogParser for PluginParser {
+    fn parse(&self, line: &str) -> Result<LogEntry> {
+        let pm = self
+            .plugin_manager
+            .read()
+            .map_err(|e| anyhow::anyhow!("Failed to acquire read lock on PluginManager: {}", e))?;
+        // Convert config to JSON
+        let config_json =
+            serde_json::to_value(&self.config).context("Failed to convert config to JSON")?;
+        // Determine plugin and parser names.
+        // Prefer an explicit plugin name from the configuration (e.g., `plugin: my_plugin`),
+        // falling back to this parser's name to preserve existing behavior.
+        let plugin_name = crate::logs::extract_plugin_name(&self.config, &self.name);
+        let parser_name: &str = self.name.as_str();
+        // Call the plugin's execute_log_parser function
+        match pm.execute_log_parser(plugin_name, parser_name, &config_json, line) {
+            Ok(entry) => Ok(entry),
+            Err(e) => Err(anyhow::anyhow!("Plugin parser execution failed: {}", e)),
+        }
+    }
+
+    fn parser_type(&self) -> ParserType {
+        ParserType::Plugin(crate::logs::PluginParser {
+            name: self.name.clone(),
+            config: self.config.clone(),
+        })
+    }
+}
+
 /// Create a parser instance based on configuration
-pub fn create_parser(config: &ParserConfig) -> Result<Box<dyn LogParser>> {
+pub fn create_parser(
+    config: &ParserConfig,
+    plugin_manager: Option<Arc<RwLock<PluginManager>>>,
+) -> Result<Box<dyn LogParser>> {
     match &config.parser_type {
         ParserType::Plain => Ok(Box::new(PlainParser::new())),
         ParserType::Json => Ok(Box::new(JsonParser::new())),
@@ -779,6 +836,18 @@ pub fn create_parser(config: &ParserConfig) -> Result<Box<dyn LogParser>> {
         ParserType::Regex => {
             let parser = RegexParser::from_config(config)?;
             Ok(Box::new(parser))
+        }
+        ParserType::Plugin(plugin_parser) => {
+            if let Some(pm) = plugin_manager {
+                let parser = PluginParser::new(
+                    plugin_parser.name.clone(),
+                    plugin_parser.config.clone(),
+                    pm,
+                )?;
+                Ok(Box::new(parser))
+            } else {
+                Err(anyhow::anyhow!("Plugin parsers require a plugin manager"))
+            }
         }
     }
 }
@@ -939,7 +1008,7 @@ mod tests {
             ..Default::default()
         };
 
-        let parser = create_parser(&config).unwrap();
+        let parser = create_parser(&config, None).unwrap();
         assert_eq!(parser.parser_type(), ParserType::Json);
 
         let config = ParserConfig {
@@ -947,7 +1016,7 @@ mod tests {
             ..Default::default()
         };
 
-        let parser = create_parser(&config).unwrap();
+        let parser = create_parser(&config, None).unwrap();
         assert_eq!(parser.parser_type(), ParserType::Plain);
     }
 }

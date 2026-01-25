@@ -13,6 +13,7 @@ pub struct TaskExecutor {
     dry_run: bool,
     variables: VariableContext,
     config_dir: std::path::PathBuf,
+    plugin_manager: Option<std::sync::Arc<std::sync::RwLock<crate::plugins::PluginManager>>>,
 }
 
 impl TaskExecutor {
@@ -22,6 +23,7 @@ impl TaskExecutor {
             dry_run,
             variables: VariableContext::new(),
             config_dir: std::path::PathBuf::from("."),
+            plugin_manager: None,
         }
     }
 
@@ -31,6 +33,7 @@ impl TaskExecutor {
         vars: std::collections::HashMap<String, serde_yaml::Value>,
         mut context: VariableContext,
         config_dir: std::path::PathBuf,
+        plugin_manager: Option<std::sync::Arc<std::sync::RwLock<crate::plugins::PluginManager>>>,
     ) -> Self {
         // Process template expressions in variables when they're loaded
         for (key, value) in vars {
@@ -54,6 +57,7 @@ impl TaskExecutor {
             dry_run,
             variables: context,
             config_dir,
+            plugin_manager,
         }
     }
 
@@ -77,16 +81,25 @@ impl TaskExecutor {
         &self.config_dir
     }
 
+    /// Get the plugin manager
+    pub fn plugin_manager(
+        &self,
+    ) -> &Option<std::sync::Arc<std::sync::RwLock<crate::plugins::PluginManager>>> {
+        &self.plugin_manager
+    }
+
     /// Create a minimal task executor for included tasks
     pub fn minimal(
         variables: VariableContext,
         dry_run: bool,
         config_dir: std::path::PathBuf,
+        plugin_manager: Option<std::sync::Arc<std::sync::RwLock<crate::plugins::PluginManager>>>,
     ) -> Self {
         Self {
             dry_run,
             variables,
             config_dir,
+            plugin_manager,
         }
     }
 
@@ -114,6 +127,7 @@ impl TaskExecutor {
             &self.variables,
             self.dry_run,
             &self.config_dir,
+            self.plugin_manager.clone(),
         )
         .await
     }
@@ -393,6 +407,7 @@ pub async fn execute_include_tasks_task(
     variables: &VariableContext,
     dry_run: bool,
     config_dir: &std::path::Path,
+    plugin_manager: Option<std::sync::Arc<std::sync::RwLock<crate::plugins::PluginManager>>>,
 ) -> Result<()> {
     println!("Including tasks from file: {}", task.file);
 
@@ -451,6 +466,7 @@ pub async fn execute_include_tasks_task(
             variables,
             dry_run,
             config_dir,
+            plugin_manager.clone(),
         )
         .await?;
     }
@@ -469,6 +485,7 @@ pub async fn execute_include_role_task(
     variables: &VariableContext,
     dry_run: bool,
     config_dir: &std::path::Path,
+    plugin_manager: Option<std::sync::Arc<std::sync::RwLock<crate::plugins::PluginManager>>>,
 ) -> Result<()> {
     println!("Including role: {}", task.name);
 
@@ -528,6 +545,7 @@ pub async fn execute_include_role_task(
                     &merged_vars,
                     dry_run,
                     config_dir,
+                    plugin_manager.clone(),
                 )
                 .await?;
             }

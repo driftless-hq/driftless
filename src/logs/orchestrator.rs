@@ -10,7 +10,7 @@ use crate::logs::{
 };
 use anyhow::{anyhow, Result};
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use tokio::sync::{mpsc, Semaphore};
 use tokio::task::JoinHandle;
 use tokio::time::{timeout, Duration};
@@ -27,11 +27,22 @@ pub struct LogOrchestrator {
     filter_tasks: Vec<JoinHandle<Result<()>>>,
     output_tasks: Vec<JoinHandle<Result<()>>>,
     shutdown_sender: Option<mpsc::Sender<()>>,
+    #[allow(dead_code)]
+    plugin_manager: Option<Arc<RwLock<crate::plugins::PluginManager>>>,
 }
 
 impl LogOrchestrator {
     /// Create a new log orchestrator
+    #[allow(dead_code)]
     pub fn new(config: LogsConfig) -> Self {
+        Self::new_with_plugins(config, None)
+    }
+
+    /// Create a new log orchestrator with plugins
+    pub fn new_with_plugins(
+        config: LogsConfig,
+        plugin_manager: Option<Arc<RwLock<crate::plugins::PluginManager>>>,
+    ) -> Self {
         Self {
             config,
             running: false,
@@ -40,6 +51,7 @@ impl LogOrchestrator {
             filter_tasks: Vec::new(),
             output_tasks: Vec::new(),
             shutdown_sender: None,
+            plugin_manager,
         }
     }
 
@@ -166,12 +178,14 @@ impl LogOrchestrator {
             }
         }
 
+        let plugin_manager = self.plugin_manager.clone();
         let task = tokio::spawn(async move {
             Self::run_parser_pipeline(
                 lines_receiver,
                 entries_sender,
                 all_parser_configs,
                 semaphore,
+                plugin_manager,
             )
             .await
         });
@@ -186,17 +200,21 @@ impl LogOrchestrator {
         entries_sender: mpsc::Sender<LogEntry>,
         parser_configs: Vec<ParserConfig>,
         semaphore: Arc<Semaphore>,
+        plugin_manager: Option<Arc<RwLock<crate::plugins::PluginManager>>>,
     ) -> Result<()> {
         // Create parsers from configs
         let mut parsers = Vec::new();
         for config in parser_configs {
-            let parser = create_parser(&config)?;
+            let parser = create_parser(&config, plugin_manager.clone())?;
             parsers.push(parser);
         }
 
         // If no parsers configured, use default plain parser
         if parsers.is_empty() {
-            parsers.push(create_parser(&ParserConfig::default())?);
+            parsers.push(create_parser(
+                &ParserConfig::default(),
+                plugin_manager.clone(),
+            )?);
         }
 
         while let Some(line) = lines_receiver.recv().await {
@@ -234,8 +252,15 @@ impl LogOrchestrator {
             }
         }
 
+        let plugin_manager = self.plugin_manager.clone();
         let task = tokio::spawn(async move {
-            Self::run_filter_pipeline(entries_receiver, filtered_sender, all_filter_configs).await
+            Self::run_filter_pipeline(
+                entries_receiver,
+                filtered_sender,
+                all_filter_configs,
+                plugin_manager,
+            )
+            .await
         });
 
         self.filter_tasks.push(task);
@@ -247,11 +272,12 @@ impl LogOrchestrator {
         mut entries_receiver: mpsc::Receiver<LogEntry>,
         filtered_sender: mpsc::Sender<LogEntry>,
         filter_configs: Vec<FilterConfig>,
+        plugin_manager: Option<Arc<RwLock<crate::plugins::PluginManager>>>,
     ) -> Result<()> {
         // Create filters from configs
         let mut filters = Vec::new();
         for config in filter_configs {
-            let filter = create_filter(&config)?;
+            let filter = create_filter(&config, plugin_manager.clone())?;
             filters.push(filter);
         }
 
@@ -373,6 +399,10 @@ impl LogOrchestrator {
                         _ => unreachable!(),
                     };
                     create_console_output(config)?
+                }
+                LogOutput::Plugin(_) => {
+                    // TODO: Implement plugin output creation
+                    continue;
                 }
             };
             writers.push(writer);

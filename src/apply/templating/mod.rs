@@ -16,10 +16,10 @@ use std::collections::HashMap;
 use std::sync::{Arc, RwLock};
 
 // Type alias for template filter functions
-type TemplateFilterFn = Arc<dyn Fn(JinjaValue, &[JinjaValue]) -> JinjaValue + Send + Sync>;
+pub type TemplateFilterFn = Arc<dyn Fn(JinjaValue, &[JinjaValue]) -> JinjaValue + Send + Sync>;
 
 // Type alias for template function functions
-type TemplateFunctionFn = Arc<dyn Fn(&[JinjaValue]) -> JinjaValue + Send + Sync>;
+pub type TemplateFunctionFn = Arc<dyn Fn(&[JinjaValue]) -> JinjaValue + Send + Sync>;
 
 // Template filter registry entry
 #[derive(Clone)]
