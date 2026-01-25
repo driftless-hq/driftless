@@ -307,6 +307,24 @@ fn get_filesystem_type(device: &str) -> Result<Option<String>> {
     }
 }
 
+/// Check if a device is currently mounted
+fn is_device_mounted(device: &str) -> Result<bool> {
+    // Read /proc/mounts to check if the device is mounted
+    let mounts_content = std::fs::read_to_string("/proc/mounts")
+        .with_context(|| "Failed to read /proc/mounts")?;
+
+    // Check if the device appears in the mounts
+    // /proc/mounts format: device mountpoint fstype options dump pass
+    for line in mounts_content.lines() {
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        if parts.len() >= 2 && parts[0] == device {
+            return Ok(true);
+        }
+    }
+
+    Ok(false)
+}
+
 /// Create a filesystem on a device
 fn create_filesystem(task: &FilesystemTask) -> Result<()> {
     let fstype = task.fstype.as_deref().unwrap_or("ext4");
@@ -327,19 +345,40 @@ fn create_filesystem(task: &FilesystemTask) -> Result<()> {
 
 /// Remove a filesystem from a device (WARNING: This destroys data!)
 fn remove_filesystem(task: &FilesystemTask) -> Result<()> {
-    // Note: This is a simplified implementation. In reality, you might want to:
-    // 1. Unmount the filesystem first
-    // 2. Use wipefs or similar tools
-    // 3. Be very careful about data loss!
-
     println!(
         "WARNING: Removing filesystem from {} - this will destroy all data!",
         task.dev
     );
 
-    // For safety, we'll just zero out the beginning of the device
-    // In a real implementation, you'd want more sophisticated handling
-    let cmd = vec![
+    // Check if the device is currently mounted
+    if is_device_mounted(&task.dev)? {
+        return Err(anyhow::anyhow!(
+            "Cannot remove filesystem: device {} is currently mounted. Unmount it first.",
+            task.dev
+        ));
+    }
+
+    // Try to use wipefs for more sophisticated filesystem removal
+    // wipefs can remove filesystem signatures without destroying all data
+    let wipefs_cmd = vec![
+        "wipefs".to_string(),
+        "-a".to_string(), // Remove all signatures
+        task.dev.clone(),
+    ];
+
+    match run_command(&wipefs_cmd) {
+        Ok(()) => {
+            println!("Successfully removed filesystem signatures from {}", task.dev);
+            return Ok(());
+        }
+        Err(_) => {
+            // wipefs failed, fall back to zeroing the beginning of the device
+            println!("wipefs not available or failed, falling back to dd method");
+        }
+    }
+
+    // Fallback: Zero out the beginning of the device (more destructive)
+    let dd_cmd = vec![
         "dd".to_string(),
         "if=/dev/zero".to_string(),
         format!("of={}", task.dev),
@@ -347,8 +386,9 @@ fn remove_filesystem(task: &FilesystemTask) -> Result<()> {
         "count=1".to_string(),
     ];
 
-    run_command(&cmd).with_context(|| format!("Failed to wipe filesystem on {}", task.dev))?;
+    run_command(&dd_cmd).with_context(|| format!("Failed to wipe filesystem on {}", task.dev))?;
 
+    println!("Zeroed beginning of device {}", task.dev);
     Ok(())
 }
 

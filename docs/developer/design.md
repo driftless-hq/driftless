@@ -86,6 +86,7 @@ The [nix crate](https://github.com/nix-rust/nix) provides Rust bindings to *nix 
 - [ ] **KVM operations** - Kernel-based virtual machines
 
 ## TODO
+- Review the codebase for default directory paths and configuration values to ensure they follow best practices and conventions for Linux systems, prefering user directories and supporting system-wide directories.
 - Review the entire codebase to find all placeholders, `TODO`, `in practice`, and `in a real implementation` comments and add TODO list items to address them
 - Create task prompts in the TODO list that adds support for macOS and Windows operating systems in all applicable areas of the codebase
 - Review usages of `dead_code`, `unsafe`, and `unused_imports` to silence warnings and determine if code should be used or cleaned up according to Rust best practices. Use this opportunity to cleanup unused code and dependencies to reduce release binary size and improve maintainability.
@@ -100,28 +101,6 @@ The [nix crate](https://github.com/nix-rust/nix) provides Rust bindings to *nix 
 ### Codebase Implementation Gaps (from TODO, placeholder, and implementation comments)
 
 Ensure these task items have full production-ready implementations or provide additional task items if too complex for a single prompt:
-
-#### Configuration Management (Apply)
-- [ ] **Command output streaming**: Implement streaming for long-running command output (`src/apply/command.rs`)
-- [ ] **Shell parsing**: Implement proper shell command parsing instead of simplified approach (`src/apply/command.rs`)
-- [ ] **State persistence**: Implement proper state store for tracking applied changes (`src/apply/command.rs`)
-- [ ] **User interaction**: Add proper user input handling for interactive tasks (`src/apply/executor.rs`)
-- [ ] **File ownership**: Use users crate for proper file ownership handling (`src/apply/file.rs`)
-- [ ] **Filesystem operations**: Implement more sophisticated filesystem operation handling (`src/apply/filesystem.rs`)
-- [ ] **Raw task validation**: Implement proper file/directory validation for raw tasks (`src/apply/raw.rs`)
-- [ ] **Fetch tracking**: Implement proper download progress and state tracking (`src/apply/fetch.rs`)
-- [ ] **Unarchive tracking**: Implement proper extraction progress and state tracking (`src/apply/unarchive.rs`)
-- [ ] **Script validation**: Implement proper file/directory validation for script tasks (`src/apply/script.rs`)
-- [ ] **UFW status parsing**: Implement proper UFW status output parsing (`src/apply/ufw.rs`)
-- [ ] **Copy change detection**: Implement sophisticated file change detection for copy operations (`src/apply/copy.rs`)
-- [ ] **Template tracking**: Implement proper template rendering state tracking (`src/apply/template.rs`)
-- [ ] **User password hashing**: Implement proper password hashing for user password setting instead of plain text (`src/apply/user.rs`)
-- [ ] **Encoding validation**: Fail template rendering on invalid encoding operations (`src/apply/templating/encoding_filters.rs`)
-
-#### Facts Collection
-- [ ] **Disk I/O statistics**: Implement proper disk I/O statistics collection (sysinfo 0.30 placeholder) (`src/facts/disk_facts.rs`)
-- [ ] **Network interface handling**: Implement platform-specific network interface enumeration (`src/facts/network_facts.rs`)
-- [ ] **Memory information**: Replace simplified memory information collection with comprehensive implementation (`src/facts/memory_facts.rs`)
 
 #### Agent and Configuration
 - [ ] **Configuration change detection**: Implement proper configuration change detection instead of simplified comparison (`src/agent.rs`)

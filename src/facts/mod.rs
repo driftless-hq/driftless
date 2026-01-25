@@ -520,6 +520,9 @@ pub struct MemoryCollectOptions {
     /// Collect memory usage percentage
     #[serde(default = "default_true")]
     pub percentage: bool,
+    /// Collect extended memory details (buffers, cache, etc.)
+    #[serde(default)]
+    pub extended: bool,
 }
 
 /// Memory thresholds for alerting

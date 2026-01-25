@@ -75,6 +75,7 @@ urlencoding = "2.1"
 md5 = "0.7"
 sha1 = "0.10"
 sha2 = "0.10"
+bcrypt = "0.15"
 
 # Templating system
 minijinja = "2.14.0"
@@ -94,6 +95,8 @@ wasmtime = "41.0"
 # HTTP client for plugin registry
 reqwest = { version = "0.12", features = ["json"] }
 sha256 = "1.5"
+users = "0.11.0"
+futures-util = "0.3.31"
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }

@@ -172,6 +172,12 @@ pub struct ScriptTask {
     /// Force script execution
     #[serde(default)]
     pub force: bool,
+    /// Files/directories created by the script (for creates check)
+    #[serde(default)]
+    pub creates_files: Vec<String>,
+    /// Files/directories removed by the script (for removes check)
+    #[serde(default)]
+    pub removes_files: Vec<String>,
 }
 
 use anyhow::{Context, Result};
@@ -197,16 +203,40 @@ pub async fn execute_script_task(task: &ScriptTask, dry_run: bool) -> Result<()>
     }
 
     // Check if script creates/removes resources
-    if task.creates && !dry_run {
-        // Check if resources already exist
-        // This is a simplified check - in practice, you'd check for specific files/directories
-        println!("Note: 'creates' check not fully implemented for scripts");
+    if task.creates && !dry_run && !task.force && !task.creates_files.is_empty() {
+        // Check if any of the expected files/directories already exist
+        let mut all_exist = true;
+        for file_path in &task.creates_files {
+            if !Path::new(file_path).exists() {
+                all_exist = false;
+                break;
+            }
+        }
+        if all_exist {
+            println!(
+                "Script creates resources that already exist, skipping: {}",
+                task.path
+            );
+            return Ok(());
+        }
     }
 
-    if task.removes && !dry_run {
-        // Check if resources need to be removed
-        // This is a simplified check - in practice, you'd check for specific files/directories
-        println!("Note: 'removes' check not fully implemented for scripts");
+    if task.removes && !dry_run && !task.force && !task.removes_files.is_empty() {
+        // Check if any of the files/directories to be removed actually exist
+        let mut any_exist = false;
+        for file_path in &task.removes_files {
+            if Path::new(file_path).exists() {
+                any_exist = true;
+                break;
+            }
+        }
+        if !any_exist {
+            println!(
+                "Script removes resources that don't exist, skipping: {}",
+                task.path
+            );
+            return Ok(());
+        }
     }
 
     if dry_run {
@@ -334,6 +364,8 @@ mod tests {
             creates: false,
             removes: false,
             force: false,
+            creates_files: vec![],
+            removes_files: vec![],
         };
 
         let result = execute_script_task(&task, true).await;
@@ -352,6 +384,8 @@ mod tests {
             creates: false,
             removes: false,
             force: false,
+            creates_files: vec![],
+            removes_files: vec![],
         };
 
         let result = execute_script_task(&task, true).await;
@@ -386,6 +420,8 @@ mod tests {
             creates: false,
             removes: false,
             force: false,
+            creates_files: vec![],
+            removes_files: vec![],
         };
 
         let result = execute_script_task(&task, true).await;

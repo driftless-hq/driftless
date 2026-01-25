@@ -99,7 +99,78 @@ use crate::facts::DiskCollector;
 use anyhow::Result;
 use serde_yaml::Value;
 use std::collections::HashMap;
+use std::fs;
 use sysinfo::{Disks, System};
+
+/// Disk I/O statistics structure
+#[derive(Debug, Clone)]
+struct DiskIoStats {
+    read_bytes: u64,
+    written_bytes: u64,
+    read_ops: u64,
+    write_ops: u64,
+}
+
+/// Collect disk I/O statistics for a specific device
+fn collect_disk_io_stats(device_name: &str) -> Result<DiskIoStats> {
+    // For Linux systems, read from /proc/diskstats
+    #[cfg(target_os = "linux")]
+    {
+        let content = fs::read_to_string("/proc/diskstats")?;
+
+        for line in content.lines() {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() >= 14 {
+                // Extract device name (field 3)
+                let dev_name = parts[2];
+
+                // Match device name (handle both /dev/sda and sda formats)
+                let device_short = device_name.trim_start_matches("/dev/");
+                if dev_name == device_short || dev_name == device_name {
+                    // Parse I/O statistics
+                    // Field 6: sectors read
+                    // Field 10: sectors written
+                    // Field 4: reads completed
+                    // Field 8: writes completed
+                    let sectors_read: u64 = parts[5].parse().unwrap_or(0);
+                    let sectors_written: u64 = parts[9].parse().unwrap_or(0);
+                    let reads_completed: u64 = parts[3].parse().unwrap_or(0);
+                    let writes_completed: u64 = parts[7].parse().unwrap_or(0);
+
+                    // Convert sectors to bytes (assuming 512 bytes per sector)
+                    let read_bytes = sectors_read * 512;
+                    let written_bytes = sectors_written * 512;
+
+                    return Ok(DiskIoStats {
+                        read_bytes,
+                        written_bytes,
+                        read_ops: reads_completed,
+                        write_ops: writes_completed,
+                    });
+                }
+            }
+        }
+
+        // If device not found in /proc/diskstats, return zeros
+        Ok(DiskIoStats {
+            read_bytes: 0,
+            written_bytes: 0,
+            read_ops: 0,
+            write_ops: 0,
+        })
+    }
+
+    // For non-Linux systems, return zeros for now
+    #[cfg(not(target_os = "linux"))]
+    {
+        Ok(DiskIoStats {
+            read_bytes: 0,
+            written_bytes: 0,
+            read_ops: 0,
+            write_ops: 0,
+        })
+    }
+}
 
 /// Execute disk facts collection
 pub fn collect_disk_facts(collector: &DiskCollector) -> Result<Value> {
@@ -251,9 +322,35 @@ pub fn collect_disk_facts(collector: &DiskCollector) -> Result<Value> {
 
         // Collect I/O statistics if available
         if collector.collect.io {
-            // Note: sysinfo 0.30 may not have I/O stats, this is a placeholder
-            // In future versions, this might include read/write bytes, operations, etc.
-            disk_info.insert("io_supported".to_string(), Value::Bool(false));
+            // Collect I/O statistics using platform-specific methods
+            match collect_disk_io_stats(&disk_name) {
+                Ok(io_stats) => {
+                    disk_info.insert("io_supported".to_string(), Value::Bool(true));
+                    disk_info.insert(
+                        "read_bytes".to_string(),
+                        Value::Number(io_stats.read_bytes.into()),
+                    );
+                    disk_info.insert(
+                        "written_bytes".to_string(),
+                        Value::Number(io_stats.written_bytes.into()),
+                    );
+                    disk_info.insert(
+                        "read_ops".to_string(),
+                        Value::Number(io_stats.read_ops.into()),
+                    );
+                    disk_info.insert(
+                        "write_ops".to_string(),
+                        Value::Number(io_stats.write_ops.into()),
+                    );
+                }
+                Err(_) => {
+                    disk_info.insert("io_supported".to_string(), Value::Bool(false));
+                    disk_info.insert("read_bytes".to_string(), Value::Number(0.into()));
+                    disk_info.insert("written_bytes".to_string(), Value::Number(0.into()));
+                    disk_info.insert("read_ops".to_string(), Value::Number(0.into()));
+                    disk_info.insert("write_ops".to_string(), Value::Number(0.into()));
+                }
+            }
         }
 
         disks_info.push(Value::Mapping(

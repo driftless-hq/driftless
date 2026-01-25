@@ -5,7 +5,7 @@
 
 use crate::apply::wait_for::ConnectionState;
 use crate::apply::{variables::VariableContext, ApplyConfig, Task};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use tokio::net::TcpStream;
 
 /// Executor for apply tasks
@@ -356,6 +356,7 @@ pub async fn execute_wait_for_task(task: &crate::apply::WaitForTask, dry_run: bo
 /// Execute pause task
 pub async fn execute_pause_task(task: &crate::apply::PauseTask, dry_run: bool) -> Result<()> {
     use std::time::Duration;
+    use tokio::io::{AsyncBufReadExt, BufReader};
     use tokio::time::sleep;
 
     let total_seconds = task.seconds + (task.minutes * 60);
@@ -370,10 +371,34 @@ pub async fn execute_pause_task(task: &crate::apply::PauseTask, dry_run: bool) -
         }
 
         println!("{}", task.prompt);
-
-        // In a real implementation, this might wait for user input
-        // For now, just sleep
         sleep(Duration::from_secs(total_seconds)).await;
+    } else {
+        // No timeout specified, wait for user input
+        if dry_run {
+            println!(
+                "DRY RUN: Would wait for user input with message: {}",
+                task.prompt
+            );
+            return Ok(());
+        }
+
+        println!("{}", task.prompt);
+
+        // Read a line from stdin asynchronously
+        let stdin = tokio::io::stdin();
+        let mut reader = BufReader::new(stdin);
+        let mut input = String::new();
+
+        reader
+            .read_line(&mut input)
+            .await
+            .with_context(|| "Failed to read user input")?;
+
+        // Trim whitespace and check if user wants to continue
+        let input = input.trim();
+        if !input.is_empty() {
+            println!("Received input: {}", input);
+        }
     }
 
     Ok(())
@@ -597,6 +622,7 @@ mod tests {
                     exit_code: 0,
                     user: None,
                     group: None,
+                    stream_output: false,
                 }))
                 .with_register("cmd_output"),
                 Task::new(TaskAction::Debug(DebugTask {
@@ -643,6 +669,7 @@ mod tests {
                     exit_code: 0,
                     user: None,
                     group: None,
+                    stream_output: false,
                 }))
                 .with_register("cmd_success"),
                 Task::new(TaskAction::Command(CommandTask {
@@ -654,6 +681,7 @@ mod tests {
                     exit_code: 1,
                     user: None,
                     group: None,
+                    stream_output: false,
                 }))
                 .with_register("cmd_fail"),
                 Task::new(TaskAction::Debug(DebugTask {

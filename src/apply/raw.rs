@@ -196,6 +196,7 @@ pub fn default_exit_codes() -> Vec<i32> {
 use anyhow::{Context, Result};
 use std::process::{Command, Stdio};
 use std::time::Duration;
+use std::path::Path;
 
 /// Execute a raw task
 pub async fn execute_raw_task(task: &RawTask, dry_run: bool) -> Result<()> {
@@ -223,13 +224,50 @@ pub async fn execute_raw_task(task: &RawTask, dry_run: bool) -> Result<()> {
     if task.creates {
         // Check if resources already exist
         // This is a simplified check - in practice, you'd check for specific files/directories
-        println!("Note: 'creates' check not fully implemented for raw commands");
+        // For now, warn that creates validation is not fully implemented
+        println!("Warning: 'creates' flag is set but resource validation is not implemented for raw commands");
+        println!("Consider using 'script' task type for better resource validation");
     }
 
     if task.removes {
         // Check if resources need to be removed
         // This is a simplified check - in practice, you'd check for specific files/directories
-        println!("Note: 'removes' check not fully implemented for raw commands");
+        // For now, warn that removes validation is not fully implemented
+        println!("Warning: 'removes' flag is set but resource validation is not implemented for raw commands");
+        println!("Consider using 'script' task type for better resource validation");
+    }
+
+    // Validate executable exists and is executable
+    let executable_path = Path::new(&task.executable);
+    if executable_path.is_absolute() || task.executable.contains('/') {
+        // For absolute paths or paths with separators, check if the file exists
+        if !executable_path.exists() {
+            return Err(anyhow::anyhow!("Executable does not exist: {}", task.executable));
+        }
+
+        // Check if executable is actually executable
+        use std::os::unix::fs::PermissionsExt;
+        let metadata = executable_path.metadata()
+            .with_context(|| format!("Failed to get metadata for executable: {}", task.executable))?;
+
+        if (metadata.permissions().mode() & 0o111) == 0 {
+            return Err(anyhow::anyhow!("Executable is not executable: {}", task.executable));
+        }
+    } else {
+        // For commands without path separators, assume they're in PATH
+        // The actual execution will fail if they're not found
+        println!("Warning: Command '{}' specified without full path - assuming it's in PATH", task.executable);
+    }
+
+    // Validate working directory if specified
+    if let Some(ref chdir) = task.chdir {
+        let chdir_path = Path::new(chdir);
+        if !chdir_path.exists() {
+            return Err(anyhow::anyhow!("Working directory does not exist: {}", chdir));
+        }
+        if !chdir_path.is_dir() {
+            return Err(anyhow::anyhow!("Working directory is not a directory: {}", chdir));
+        }
     }
 
     // Execute the command directly (no shell processing)
@@ -441,6 +479,6 @@ mod tests {
         assert!(result
             .unwrap_err()
             .to_string()
-            .contains("Failed to execute command"));
+            .contains("Executable does not exist"));
     }
 }

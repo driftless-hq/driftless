@@ -608,13 +608,17 @@ fn set_user_password(username: &str, password: &str, dry_run: bool) -> Result<()
     if dry_run {
         println!("Would set password for user: {}", username);
     } else {
-        // Note: This is a simplified implementation
-        // In a real system, you'd need to handle password hashing properly
-        // and might use tools like chpasswd
+        // Hash the password using bcrypt for security
+        let hashed_password = bcrypt::hash(password, bcrypt::DEFAULT_COST)
+            .with_context(|| "Failed to hash password")?;
 
-        let password_line = format!("{}:{}", username, password);
+        // Use chpasswd with the hashed password
+        // Note: chpasswd expects the format "username:password" where password can be hashed
+        // The system will detect the hash format automatically
+        let password_line = format!("{}:{}", username, hashed_password);
 
         let mut passwd_cmd = Command::new("chpasswd")
+            .arg("-e") // encrypted password
             .stdin(std::process::Stdio::piped())
             .spawn()
             .with_context(|| "Failed to spawn chpasswd command")?;
