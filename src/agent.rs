@@ -1039,8 +1039,19 @@ impl Agent {
 
     /// Initialize the plugin manager and load plugins
     fn initialize_plugin_manager(&mut self) -> Result<()> {
-        let mut plugin_manager = crate::plugins::PluginManager::new(self.config.plugin_dir.clone())
-            .map_err(|e| anyhow::anyhow!("Failed to create plugin manager: {}", e))?;
+        // Load plugin registry configuration (including security settings) from the config directory
+        let registry_config =
+            crate::config::load_plugin_registry_config(&self.config.config_dir)
+                .unwrap_or_else(|_| {
+                    eprintln!("Warning: Failed to load plugin registry config, using defaults");
+                    crate::config::PluginRegistryConfig::default()
+                });
+
+        let mut plugin_manager = crate::plugins::PluginManager::new_with_security_config(
+            self.config.plugin_dir.clone(),
+            registry_config.security,
+        )
+        .map_err(|e| anyhow::anyhow!("Failed to create plugin manager: {}", e))?;
 
         // Scan for and load plugins
         if let Err(e) = plugin_manager.scan_plugins() {
@@ -1303,7 +1314,7 @@ impl Agent {
                 match FactsOrchestrator::new_with_registry_and_plugins(
                     config,
                     self.metrics_registry.clone(),
-                    None,
+                    self.plugin_manager.clone(),
                 ) {
                     Ok(orchestrator) => {
                         self.facts_collector_count = orchestrator.collector_count();
@@ -1394,7 +1405,8 @@ impl Agent {
                     self.logs_running = false;
 
                     // Reinitialize orchestrator with new config
-                    let orchestrator = LogOrchestrator::new_with_plugins(config, None);
+                    let orchestrator =
+                        LogOrchestrator::new_with_plugins(config, self.plugin_manager.clone());
                     self.logs_source_count = orchestrator.source_count();
                     self.logs_output_count = orchestrator.output_count();
                     self.logs_orchestrator = Some(Arc::new(Mutex::new(orchestrator)));

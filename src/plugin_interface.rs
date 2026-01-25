@@ -194,6 +194,10 @@ pub mod plugin_exports {
 /// Host interface functions that plugins can import
 ///
 /// These allow plugins to interact with the host environment in a controlled way.
+///
+/// **Note:** These host functions are currently documented but not yet wired into
+/// the WASM Linker. Plugins attempting to import these functions will encounter
+/// missing-import errors until the host provides these functions via the Linker.
 #[allow(dead_code)]
 pub mod host_imports {
     /// Log a message from the plugin

@@ -822,11 +822,14 @@ impl PluginManager {
         let linker = Linker::new(&self.engine);
         let instance = linker.instantiate(&mut store, module)?;
 
-        // Get the parse_log function from the plugin
-        let parse_log = instance
-            .get_func(&mut store, "parse_log")
-            .ok_or("Plugin does not export parse_log function")?;
-        let parse_log_typed = parse_log.typed::<(i32, i32, i32), i32>(&store)?;
+        // Get the execute_log_parser function from the plugin
+        let execute_log_parser = instance
+            .get_func(
+                &mut store,
+                crate::plugin_interface::plugin_exports::EXECUTE_LOG_PARSER,
+            )
+            .ok_or("Plugin does not export execute_log_parser function")?;
+        let execute_log_parser_typed = execute_log_parser.typed::<(i32, i32, i32), i32>(&store)?;
 
         // Serialize config to JSON string
         let config_json = serde_json::to_string(config)?;
@@ -838,8 +841,8 @@ impl PluginManager {
         let input_ptr = self.allocate_string(&mut store, &instance, input)?;
 
         // Call the WASM function
-        let result_ptr =
-            parse_log_typed.call(&mut store, (parser_name_ptr, config_ptr, input_ptr))?;
+        let result_ptr = execute_log_parser_typed
+            .call(&mut store, (parser_name_ptr, config_ptr, input_ptr))?;
 
         // Read the result string from WASM memory
         let result_json = self.read_string(&mut store, &instance, result_ptr)?;
@@ -922,11 +925,14 @@ impl PluginManager {
         let linker = Linker::new(&self.engine);
         let instance = linker.instantiate(&mut store, module)?;
 
-        // Get the filter_log function from the plugin
-        let filter_log = instance
-            .get_func(&mut store, "filter_log")
-            .ok_or("Plugin does not export filter_log function")?;
-        let filter_log_typed = filter_log.typed::<(i32, i32, i32), i32>(&store)?;
+        // Get the execute_log_filter function from the plugin
+        let execute_log_filter = instance
+            .get_func(
+                &mut store,
+                crate::plugin_interface::plugin_exports::EXECUTE_LOG_FILTER,
+            )
+            .ok_or("Plugin does not export execute_log_filter function")?;
+        let execute_log_filter_typed = execute_log_filter.typed::<(i32, i32, i32), i32>(&store)?;
 
         // Serialize config and entry to JSON strings
         let config_json = serde_json::to_string(config)?;
@@ -939,7 +945,8 @@ impl PluginManager {
         let entry_ptr = self.allocate_string(&mut store, &instance, &entry_json)?;
 
         // Call the WASM function
-        let result = filter_log_typed.call(&mut store, (filter_name_ptr, config_ptr, entry_ptr))?;
+        let result =
+            execute_log_filter_typed.call(&mut store, (filter_name_ptr, config_ptr, entry_ptr))?;
 
         // Convert result to boolean (0 = false, non-zero = true)
         Ok(result != 0)
@@ -1013,11 +1020,15 @@ impl PluginManager {
         let linker = Linker::new(&self.engine);
         let instance = linker.instantiate(&mut store, module)?;
 
-        // Get the collect_facts function from the plugin
-        let collect_facts = instance
-            .get_func(&mut store, "collect_facts")
-            .ok_or("Plugin does not export collect_facts function")?;
-        let collect_facts_typed = collect_facts.typed::<(i32, i32), i32>(&store)?;
+        // Get the execute_facts_collector function from the plugin
+        let execute_facts_collector = instance
+            .get_func(
+                &mut store,
+                crate::plugin_interface::plugin_exports::EXECUTE_FACTS_COLLECTOR,
+            )
+            .ok_or("Plugin does not export execute_facts_collector function")?;
+        let execute_facts_collector_typed =
+            execute_facts_collector.typed::<(i32, i32), i32>(&store)?;
 
         // Serialize config to JSON string
         let config_json = serde_json::to_string(config)?;
@@ -1029,7 +1040,8 @@ impl PluginManager {
             self.allocate_string(&mut store, &instance, &collector_name_str)?;
 
         // Call the WASM function
-        let result_ptr = collect_facts_typed.call(&mut store, (collector_name_ptr, config_ptr))?;
+        let result_ptr = execute_facts_collector_typed
+            .call(&mut store, (collector_name_ptr, config_ptr))?;
 
         // Read the result string from WASM memory
         let result_json = self.read_string(&mut store, &instance, result_ptr)?;
@@ -1061,14 +1073,15 @@ impl PluginManager {
         let linker = Linker::new(&self.engine);
         let instance = linker.instantiate(&mut store, module)?;
 
-        // Get the execute_filter function
-        let execute_filter = instance
+        // Get the execute_template_filter function
+        let execute_template_filter = instance
             .get_func(
                 &mut store,
-                crate::plugin_interface::plugin_exports::EXECUTE_FILTER,
+                crate::plugin_interface::plugin_exports::EXECUTE_TEMPLATE_FILTER,
             )
-            .ok_or("Plugin does not export execute_filter function")?;
-        let execute_filter_typed = execute_filter.typed::<(i32, i32, i32), i32>(&store)?;
+            .ok_or("Plugin does not export execute_template_filter function")?;
+        let execute_template_filter_typed =
+            execute_template_filter.typed::<(i32, i32, i32), i32>(&store)?;
 
         // Serialize input value to JSON
         let input_json = serde_json::to_string(value)?;
@@ -1082,7 +1095,8 @@ impl PluginManager {
         let args_ptr = self.allocate_string(&mut store, &instance, &args_json)?;
 
         // Call the WASM function
-        let result_ptr = execute_filter_typed.call(&mut store, (name_ptr, input_ptr, args_ptr))?;
+        let result_ptr =
+            execute_template_filter_typed.call(&mut store, (name_ptr, input_ptr, args_ptr))?;
 
         // Read the result string from WASM memory
         let result_json = self.read_string(&mut store, &instance, result_ptr)?;
@@ -1114,14 +1128,15 @@ impl PluginManager {
         let linker = Linker::new(&self.engine);
         let instance = linker.instantiate(&mut store, module)?;
 
-        // Get the execute_function function
-        let execute_function = instance
+        // Get the execute_template_function function
+        let execute_template_function = instance
             .get_func(
                 &mut store,
-                crate::plugin_interface::plugin_exports::EXECUTE_FUNCTION,
+                crate::plugin_interface::plugin_exports::EXECUTE_TEMPLATE_FUNCTION,
             )
-            .ok_or("Plugin does not export execute_function function")?;
-        let execute_function_typed = execute_function.typed::<(i32, i32), i32>(&store)?;
+            .ok_or("Plugin does not export execute_template_function function")?;
+        let execute_template_function_typed =
+            execute_template_function.typed::<(i32, i32), i32>(&store)?;
 
         // Serialize args to JSON array
         let args_json = serde_json::to_string(args)?;
@@ -1131,7 +1146,8 @@ impl PluginManager {
         let args_ptr = self.allocate_string(&mut store, &instance, &args_json)?;
 
         // Call the WASM function
-        let result_ptr = execute_function_typed.call(&mut store, (name_ptr, args_ptr))?;
+        let result_ptr =
+            execute_template_function_typed.call(&mut store, (name_ptr, args_ptr))?;
 
         // Read the result string from WASM memory
         let result_json = self.read_string(&mut store, &instance, result_ptr)?;
