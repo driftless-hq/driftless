@@ -86,12 +86,6 @@ The [nix crate](https://github.com/nix-rust/nix) provides Rust bindings to *nix 
 - [ ] **KVM operations** - Kernel-based virtual machines
 
 ## TODO
-- **Plugin Lifecycle Management**: Implement functionality to list, manage, and install configured plugin executables during startup, ensuring they are available for use. This includes downloading plugins from a registry if needed, validating them, and caching them locally. It is expected that plugins will be distributed as pre-compiled WASM binaries to an artifact registry.
-- **Security Hardening**: Implement security measures such as WASM module validation, execution timeouts, memory limits, and restricted system access to prevent malicious plugins from compromising the host system.
-- **Plugin Documentation**: Write comprehensive documentation in `docs/developer/plugins.md` explaining how to create plugins, including API references, security guidelines, and deployment instructions. Be sure to include a GitHub workflow example for building and publishing plugins as WASM binaries attached to GitHub Releases.
-- **Plugin Examples**: Create example plugins in multiple programming languages (Rust, JavaScript/TypeScript, Python via pyodide if feasible) demonstrating custom tasks and template extensions, placed in `docs/developer/examples/plugins/`.
-- **Plugin Testing**: Develop unit and integration tests for the plugin system, including tests for loading, execution, error handling, and security boundaries.
-- **Plugin CLI Integration**: Update the CLI to support plugin-related commands (e.g., `driftless plugins list`, `driftless plugins validate <plugin>`) for managing and inspecting loaded plugins.
 - Finish implementing Config file merging: TODOs for supporting multiple config files (main.rs lines 400, 488, 595)
 - Finish implementing Metrics collection: TODOs for actual implementation (facts/collector.rs)
 - Finish implementing Log collection: TODO for actual implementation (main.rs line 219)

@@ -1,0 +1,5 @@
+pyodide-build==0.23.0
+# Additional dependencies would be included here
+# Note: This is for demonstration - actual Pyodide WASM compilation
+# requires specific build tools and may not be fully compatible
+# with the Driftless plugin system at this time

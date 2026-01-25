@@ -5,6 +5,7 @@
 
 pub mod agent;
 pub mod apply;
+pub mod config;
 pub mod doc_extractor;
 pub mod docs;
 pub mod facts;
