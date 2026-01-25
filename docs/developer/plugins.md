@@ -33,7 +33,7 @@ Plugins can register the following component types:
 
 ### Examples
 
-Before diving into the details, check out our [plugin examples](../examples/plugins/README.md) that demonstrate complete working plugins in multiple languages:
+Before diving into the details, check out our [plugin examples](./examples/plugins/README.md) that demonstrate complete working plugins in multiple languages:
 
 - **Rust**: Custom tasks and template extensions
 - **JavaScript**: Custom tasks with webpack bundling
@@ -524,7 +524,5 @@ See `examples/facts-collector-plugin/` for system information gathering.
 
 ## Support
 
-- Check the [Driftless documentation](https://driftless.dev/docs)
+- Check the [Driftless documentation](https://driftless-hq.github.io/driftless/)
 - Open issues on GitHub for bugs or feature requests
-- Join the community Discord for discussions</content>
-<parameter name="filePath">/workspaces/driftless/docs/developer/plugins.md

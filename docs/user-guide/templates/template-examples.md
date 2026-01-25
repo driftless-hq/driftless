@@ -382,14 +382,115 @@ tasks:
       ssl_enabled: "{{ is_https }}"
 ```
 
-This enhanced template system provides:
+## Using Jinja2 Template Files with Task Chaining
 
-- **Variable substitution**: `{{ variable }}`
-- **Filters**: `{{ value | filter }}`
-- **Functions**: `{{ function(arg) }}`
-- **Complex expressions**: Comparisons, logical operators, membership tests
-- **Conditional execution**: `when` clauses with full expression support
-- **Built-in facts**: System information variables
-- **Template composition**: Include external task files
+Driftless supports rendering external Jinja2 template files (`.j2` extension) using the `template` task. This allows for complex templating with access to all variables, including outputs from previous tasks, demonstrating the system's ability to chain tasks together.
 
-The system is designed to be extensible, allowing for additional filters and functions to be added as needed.
+### Example: Dynamic Configuration Based on System Facts
+
+First, create a template file `nginx.conf.j2` in your configuration directory:
+
+```nginx
+# nginx.conf.j2
+server {
+    listen {{ nginx_port }};
+    server_name {{ server_name }};
+    
+    root {{ web_root }};
+    index index.html;
+    
+    # Dynamic upstream based on registered command output
+    upstream app_backend {
+        {% for server in app_servers %}
+        server {{ server }};
+        {% endfor %}
+    }
+    
+    location / {
+        proxy_pass http://app_backend;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+    
+    # SSL configuration if enabled
+    {% if enable_ssl %}
+    listen 443 ssl;
+    ssl_certificate {{ ssl_cert }};
+    ssl_certificate_key {{ ssl_key }};
+    {% endif %}
+    
+    # Custom error page with system info
+    error_page 500 502 503 504 /50x.html;
+    location = /50x.html {
+        root {{ web_root }};
+    }
+    
+    # System uptime from previous command
+    add_header X-System-Uptime "{{ system_uptime.stdout | trim }}" always;
+}
+```
+
+Then, use the following task configuration to render it:
+
+```yaml
+vars:
+  nginx_port: 80
+  server_name: "myapp.example.com"
+  web_root: "/var/www/html"
+  enable_ssl: false
+  ssl_cert: "/etc/ssl/certs/myapp.crt"
+  ssl_key: "/etc/ssl/private/myapp.key"
+
+tasks:
+  # First task: Gather system information
+  - type: command
+    description: "Get system uptime"
+    command: "uptime -p"
+    register: system_uptime
+
+  # Second task: Get list of application servers (simulated)
+  - type: command
+    description: "Get list of backend servers"
+    command: "echo -e '192.168.1.10:8080\n192.168.1.11:8080'"
+    register: backend_servers
+
+  # Third task: Process the server list into a variable
+  - type: set_fact
+    key: "app_servers"
+    value: "{{ backend_servers.stdout_lines }}"
+
+  # Fourth task: Render the template using outputs from previous tasks
+  - type: template
+    description: "Render nginx configuration with dynamic backend"
+    src: "nginx.conf.j2"
+    dest: "/etc/nginx/sites-available/myapp"
+    state: present
+    vars:
+      nginx_port: "{{ nginx_port }}"
+      server_name: "{{ server_name }}"
+      web_root: "{{ web_root }}"
+      enable_ssl: "{{ enable_ssl }}"
+      ssl_cert: "{{ ssl_cert }}"
+      ssl_key: "{{ ssl_key }}"
+      # app_servers and system_uptime are automatically available
+
+  # Fifth task: Enable the site
+  - type: file
+    path: "/etc/nginx/sites-enabled/myapp"
+    src: "/etc/nginx/sites-available/myapp"
+    state: link
+
+  # Sixth task: Reload nginx
+  - type: service
+    name: nginx
+    state: reloaded
+```
+
+This example demonstrates:
+
+- **Task Chaining**: The output of the `command` task (registered as `system_uptime`) is used in the template.
+- **Variable Processing**: The `set_fact` task processes the command output into a list (`app_servers`) used in the template loop.
+- **Complex Templating**: The `.j2` file includes conditionals (`{% if %}`), loops (`{% for %}`), and variable access.
+- **Full Integration**: Templates have access to all variables, including those set by previous tasks.
+
+The rendered output would include the actual system uptime in the HTTP header and dynamically configure the upstream servers based on the command output.

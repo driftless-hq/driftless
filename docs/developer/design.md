@@ -43,7 +43,7 @@
 	- The `apply` sub-command should include a `--dry-run` flag or similar to only output diffs
 - Additional `agent` sub-command activates agent mode
 	- Gathers built-in facts
-	- If configured, starts Prometheus metrics endpoint (i.e. `0.0.0.0:8000/metrics)
+	- If configured, starts Prometheus metrics endpoint (i.e. `0.0.0.0:8000/metrics)`
 	- Starts an event loop
 		- Reads configuration files from directory
 		- Gathers configured additional facts and metrics at requested interval
@@ -91,7 +91,7 @@ The [nix crate](https://github.com/nix-rust/nix) provides Rust bindings to *nix 
 - Finish implementing Log collection: TODO for actual implementation (main.rs line 219)
 - Finish implementing User/group property checks: TODOs for additional validation (apply/user.rs, apply/group.rs)
 - Create task prompts in the TODO list that adds support for macOS and Windows operating systems
-- Review usages of `dead_code`, `unsafe`, and `unused_imports` to silence warnings and determine if code should be used or cleaned up according to Rust best practices
+- Review usages of `dead_code`, `unsafe`, and `unused_imports` to silence warnings and determine if code should be used or cleaned up according to Rust best practices. Use this opportunity to cleanup unused code and dependencies to reduce release binary size and improve maintainability.
 - Review the codebase for consistent error-handling patterns and improve as needed
 - Review the entire codebase to ensure all placeholders and `TODO` comments are replaced with actual implementations or tracked issues
 - Ensure all dependencies in `Cargo.toml` are up-to-date with the latest stable versions
