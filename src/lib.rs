@@ -5,7 +5,10 @@
 
 pub mod agent;
 pub mod apply;
+pub mod config;
 pub mod doc_extractor;
 pub mod docs;
 pub mod facts;
 pub mod logs;
+pub mod plugin_interface;
+pub mod plugins;

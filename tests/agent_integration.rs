@@ -4,7 +4,7 @@
 //! since this is a binary-only crate without a library interface.
 
 use std::fs;
-use std::path::PathBuf;
+use std::path::Path;
 use std::time::Duration;
 use tempfile::TempDir;
 use tokio::process::Command;
@@ -55,15 +55,12 @@ async fn test_agent_cli_basic_config() {
     match result {
         Ok(Ok(_output)) => {
             // If it completed normally, that's fine
-            assert!(true, "Agent started successfully");
         }
         Ok(Err(_)) => {
             // Command failed to start
-            assert!(true, "Agent attempted to start");
         }
         Err(_) => {
             // Timeout occurred, which is expected for a long-running process
-            assert!(true, "Agent started (killed by timeout as expected)");
         }
     }
 }
@@ -107,11 +104,9 @@ invalid: yaml: content:
         }
         Ok(Err(_)) => {
             // Command failed to start
-            assert!(true, "Agent failed to start with invalid config");
         }
         Err(_) => {
             // Timeout or other error - could be either way
-            assert!(true, "Agent handled invalid config appropriately");
         }
     }
 }
@@ -145,10 +140,7 @@ async fn test_agent_config_discovery() {
     .await;
 
     // Should at least attempt to start
-    match result {
-        Ok(_) => assert!(true, "Agent found and processed config files"),
-        Err(_) => assert!(true, "Agent attempted to start with config"),
-    }
+    let _ = result;
 }
 
 /// Test agent with missing configuration
@@ -175,14 +167,11 @@ async fn test_agent_missing_config() {
     .await;
 
     // Should start even with missing config (uses defaults)
-    match result {
-        Ok(_) => assert!(true, "Agent started with defaults when config missing"),
-        Err(_) => assert!(true, "Agent handled missing config appropriately"),
-    }
+    let _ = result;
 }
 
 /// Helper function to create basic test configuration files
-fn create_basic_config(config_dir: &PathBuf) {
+fn create_basic_config(config_dir: &Path) {
     // Create agent config
     let agent_config = r#"
 config_dir: "/tmp/test"

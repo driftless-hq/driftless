@@ -69,6 +69,7 @@ impl MetricsCollector {
             Network(c) => c.base.enabled,
             Process(c) => c.base.enabled,
             Command(c) => c.base.enabled,
+            Plugin(c) => c.base.enabled,
         };
 
         self.config.global.enabled && collector_enabled
@@ -86,6 +87,7 @@ impl MetricsCollector {
             Network(c) => &c.base.name,
             Process(c) => &c.base.name,
             Command(c) => &c.base.name,
+            Plugin(c) => &c.name,
         }
     }
 
@@ -101,6 +103,7 @@ impl MetricsCollector {
             Network(c) => c.base.poll_interval,
             Process(c) => c.base.poll_interval,
             Command(c) => c.base.poll_interval,
+            Plugin(c) => c.base.poll_interval,
         }
     }
 }

@@ -582,6 +582,7 @@ impl TaskRegistry {
                             executor.variables(),
                             executor.dry_run(),
                             executor.config_dir(),
+                            executor.plugin_manager().clone(),
                         )
                         .await?;
                         Ok(serde_yaml::Value::Null)
@@ -618,6 +619,7 @@ impl TaskRegistry {
                             executor.variables(),
                             executor.dry_run(),
                             executor.config_dir(),
+                            executor.plugin_manager().clone(),
                         )
                         .await?;
                         Ok(serde_yaml::Value::Null)
@@ -1822,12 +1824,38 @@ impl TaskRegistry {
         variables: &crate::apply::variables::VariableContext,
         dry_run: bool,
         config_dir: &std::path::Path,
+        plugin_manager: Option<std::sync::Arc<std::sync::RwLock<crate::plugins::PluginManager>>>,
     ) -> Result<serde_yaml::Value> {
         let task_type = task.task_type();
 
+        // Handle plugin tasks specially
+        if let TaskAction::Plugin(plugin_task) = &task.action {
+            if let Some(pm) = &plugin_manager {
+                let pm_read = pm.read().map_err(|_| {
+                    anyhow::anyhow!(
+                        "Failed to acquire read lock on plugin manager - lock is poisoned"
+                    )
+                })?;
+                // Extract plugin name and task name from the plugin task
+                // For now, assume the format is "plugin_name.task_name"
+                let (plugin_name, task_name) =
+                    crate::plugins::parse_plugin_component_name(&plugin_task.name)?;
+                let config_json = serde_json::to_value(&plugin_task.config)?;
+                match pm_read.execute_apply_task(plugin_name, task_name, &config_json) {
+                    Ok(result) => return Ok(result),
+                    Err(e) => return Err(anyhow::anyhow!("Plugin task execution failed: {}", e)),
+                }
+            } else {
+                return Err(anyhow::anyhow!(
+                    "Plugin task '{}' requires plugin manager, but none is available",
+                    plugin_task.name
+                ));
+            }
+        }
+
         let entry = {
             let registry = TASK_REGISTRY.read().unwrap();
-            registry.get(task_type).cloned()
+            registry.get(task_type.as_str()).cloned()
         };
 
         if let Some(entry) = entry {
@@ -1836,6 +1864,7 @@ impl TaskRegistry {
                 variables.clone(),
                 dry_run,
                 config_dir.to_path_buf(),
+                plugin_manager,
             );
             (entry.executor)(task, &mut minimal_executor).await
         } else {
@@ -1848,11 +1877,16 @@ impl TaskRegistry {
 
     /// Validate a task using the registry
     pub fn validate_task(task: &Task, task_index: usize) -> Result<()> {
+        // Handle plugin tasks specially - plugins handle their own validation
+        if let TaskAction::Plugin(_) = &task.action {
+            return Ok(());
+        }
+
         let task_type = task.task_type();
 
         let entry = {
             let registry = TASK_REGISTRY.read().unwrap();
-            registry.get(task_type).cloned()
+            registry.get(task_type.as_str()).cloned()
         };
 
         if let Some(entry) = entry {
@@ -1878,6 +1912,11 @@ impl TaskRegistry {
 
     /// Get the category for a task type
     pub fn get_task_category(task_type: &str) -> String {
+        // Check if this is a plugin task (contains a dot)
+        if task_type.contains('.') {
+            return "Plugin Tasks".to_string();
+        }
+
         let registry = TASK_REGISTRY.read().unwrap();
         registry
             .get(task_type)
@@ -1887,11 +1926,36 @@ impl TaskRegistry {
 
     /// Get the filename for a task type
     pub fn get_task_filename(task_type: &str) -> String {
+        // Check if this is a plugin task (contains a dot)
+        if task_type.contains('.') {
+            return "plugin".to_string();
+        }
+
         let registry = TASK_REGISTRY.read().unwrap();
         registry
             .get(task_type)
             .map(|e| e.filename.clone())
             .unwrap_or_else(|| task_type.to_string())
+    }
+
+    /// Register a plugin-provided task executor at runtime
+    #[allow(dead_code)]
+    pub fn register_plugin_task(task_name: &str, executor: TaskExecutorFn) -> Result<()> {
+        let mut registry = TASK_REGISTRY.write().unwrap();
+        if registry.contains_key(task_name) {
+            return Err(anyhow::anyhow!(
+                "Task type '{}' is already registered",
+                task_name
+            ));
+        }
+        let entry = TaskRegistryEntry {
+            executor,
+            validator: None, // Plugins handle their own validation
+            category: "Plugin Tasks".to_string(),
+            filename: "plugin".to_string(),
+        };
+        registry.insert(task_name.to_string(), entry);
+        Ok(())
     }
 }
 
@@ -2070,7 +2134,7 @@ impl Task {
     }
 
     /// Get the string representation of the task type
-    pub fn task_type(&self) -> &'static str {
+    pub fn task_type(&self) -> String {
         self.action.task_type()
     }
 }
@@ -2083,6 +2147,16 @@ impl Task {
 /// Configuration operations are distinct from:
 /// - **Facts collectors**: Gather system metrics and information
 /// - **Log sources/outputs**: Handle log collection and forwarding
+/// - **Plugin-provided task configuration**
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PluginTask {
+    /// The plugin task name
+    pub name: String,
+    /// Task-specific configuration
+    #[serde(flatten)]
+    pub config: serde_yaml::Value,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum TaskAction {
@@ -2192,65 +2266,68 @@ pub enum TaskAction {
     Rsyslog(RsyslogTask),
     /// systemd journal configuration management
     Journald(JournaldTask),
+    /// Plugin-provided tasks
+    Plugin(PluginTask),
 }
 
 impl TaskAction {
     /// Get the string representation of the task type
-    pub fn task_type(&self) -> &'static str {
+    pub fn task_type(&self) -> String {
         match self {
-            TaskAction::File(_) => "file",
-            TaskAction::Package(_) => "package",
-            TaskAction::Service(_) => "service",
-            TaskAction::User(_) => "user",
-            TaskAction::Command(_) => "command",
-            TaskAction::Directory(_) => "directory",
-            TaskAction::Group(_) => "group",
-            TaskAction::Cron(_) => "cron",
-            TaskAction::Mount(_) => "mount",
-            TaskAction::Filesystem(_) => "filesystem",
-            TaskAction::Sysctl(_) => "sysctl",
-            TaskAction::Hostname(_) => "hostname",
-            TaskAction::Timezone(_) => "timezone",
-            TaskAction::Reboot(_) => "reboot",
-            TaskAction::Shutdown(_) => "shutdown",
-            TaskAction::Copy(_) => "copy",
-            TaskAction::Template(_) => "template",
-            TaskAction::LineInFile(_) => "lineinfile",
-            TaskAction::BlockInFile(_) => "blockinfile",
-            TaskAction::Replace(_) => "replace",
-            TaskAction::Fetch(_) => "fetch",
-            TaskAction::Uri(_) => "uri",
-            TaskAction::GetUrl(_) => "geturl",
-            TaskAction::Unarchive(_) => "unarchive",
-            TaskAction::Archive(_) => "archive",
-            TaskAction::Stat(_) => "stat",
-            TaskAction::Apt(_) => "apt",
-            TaskAction::Yum(_) => "yum",
-            TaskAction::Pacman(_) => "pacman",
-            TaskAction::Zypper(_) => "zypper",
-            TaskAction::Pip(_) => "pip",
-            TaskAction::Npm(_) => "npm",
-            TaskAction::Gem(_) => "gem",
-            TaskAction::Script(_) => "script",
-            TaskAction::Raw(_) => "raw",
-            TaskAction::Debug(_) => "debug",
-            TaskAction::Assert(_) => "assert",
-            TaskAction::Fail(_) => "fail",
-            TaskAction::WaitFor(_) => "waitfor",
-            TaskAction::Pause(_) => "pause",
-            TaskAction::SetFact(_) => "setfact",
-            TaskAction::IncludeTasks(_) => "includetasks",
-            TaskAction::IncludeRole(_) => "includerole",
-            TaskAction::AuthorizedKey(_) => "authorizedkey",
-            TaskAction::Sudoers(_) => "sudoers",
-            TaskAction::Firewalld(_) => "firewalld",
-            TaskAction::Ufw(_) => "ufw",
-            TaskAction::Selinux(_) => "selinux",
-            TaskAction::Iptables(_) => "iptables",
-            TaskAction::Git(_) => "git",
-            TaskAction::Logrotate(_) => "logrotate",
-            TaskAction::Rsyslog(_) => "rsyslog",
-            TaskAction::Journald(_) => "journald",
+            TaskAction::File(_) => "file".to_string(),
+            TaskAction::Package(_) => "package".to_string(),
+            TaskAction::Service(_) => "service".to_string(),
+            TaskAction::User(_) => "user".to_string(),
+            TaskAction::Command(_) => "command".to_string(),
+            TaskAction::Directory(_) => "directory".to_string(),
+            TaskAction::Group(_) => "group".to_string(),
+            TaskAction::Cron(_) => "cron".to_string(),
+            TaskAction::Mount(_) => "mount".to_string(),
+            TaskAction::Filesystem(_) => "filesystem".to_string(),
+            TaskAction::Sysctl(_) => "sysctl".to_string(),
+            TaskAction::Hostname(_) => "hostname".to_string(),
+            TaskAction::Timezone(_) => "timezone".to_string(),
+            TaskAction::Reboot(_) => "reboot".to_string(),
+            TaskAction::Shutdown(_) => "shutdown".to_string(),
+            TaskAction::Copy(_) => "copy".to_string(),
+            TaskAction::Template(_) => "template".to_string(),
+            TaskAction::LineInFile(_) => "lineinfile".to_string(),
+            TaskAction::BlockInFile(_) => "blockinfile".to_string(),
+            TaskAction::Replace(_) => "replace".to_string(),
+            TaskAction::Fetch(_) => "fetch".to_string(),
+            TaskAction::Uri(_) => "uri".to_string(),
+            TaskAction::GetUrl(_) => "geturl".to_string(),
+            TaskAction::Unarchive(_) => "unarchive".to_string(),
+            TaskAction::Archive(_) => "archive".to_string(),
+            TaskAction::Stat(_) => "stat".to_string(),
+            TaskAction::Apt(_) => "apt".to_string(),
+            TaskAction::Yum(_) => "yum".to_string(),
+            TaskAction::Pacman(_) => "pacman".to_string(),
+            TaskAction::Zypper(_) => "zypper".to_string(),
+            TaskAction::Pip(_) => "pip".to_string(),
+            TaskAction::Npm(_) => "npm".to_string(),
+            TaskAction::Gem(_) => "gem".to_string(),
+            TaskAction::Script(_) => "script".to_string(),
+            TaskAction::Raw(_) => "raw".to_string(),
+            TaskAction::Debug(_) => "debug".to_string(),
+            TaskAction::Assert(_) => "assert".to_string(),
+            TaskAction::Fail(_) => "fail".to_string(),
+            TaskAction::WaitFor(_) => "waitfor".to_string(),
+            TaskAction::Pause(_) => "pause".to_string(),
+            TaskAction::SetFact(_) => "setfact".to_string(),
+            TaskAction::IncludeTasks(_) => "includetasks".to_string(),
+            TaskAction::IncludeRole(_) => "includerole".to_string(),
+            TaskAction::AuthorizedKey(_) => "authorizedkey".to_string(),
+            TaskAction::Sudoers(_) => "sudoers".to_string(),
+            TaskAction::Firewalld(_) => "firewalld".to_string(),
+            TaskAction::Ufw(_) => "ufw".to_string(),
+            TaskAction::Selinux(_) => "selinux".to_string(),
+            TaskAction::Iptables(_) => "iptables".to_string(),
+            TaskAction::Git(_) => "git".to_string(),
+            TaskAction::Logrotate(_) => "logrotate".to_string(),
+            TaskAction::Rsyslog(_) => "rsyslog".to_string(),
+            TaskAction::Journald(_) => "journald".to_string(),
+            TaskAction::Plugin(task) => task.name.clone(),
         }
     }
 
