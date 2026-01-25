@@ -22,6 +22,8 @@ impl super::LogOutputWriter for PluginLogOutput {
             fields: entry.fields.clone(),
             level: None,
             message: Some(entry.message.clone()),
+            source: entry.source.clone(),
+            labels: entry.labels.clone(),
         };
 
         // Execute the plugin output

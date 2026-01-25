@@ -27,6 +27,10 @@ pub struct LogEntry {
     pub level: Option<String>,
     /// Log message (if extracted)
     pub message: Option<String>,
+    /// Source that generated this entry
+    pub source: String,
+    /// Additional labels
+    pub labels: HashMap<String, String>,
 }
 
 impl LogEntry {
@@ -38,6 +42,8 @@ impl LogEntry {
             fields: HashMap::new(),
             level: None,
             message: None,
+            source: String::new(),
+            labels: HashMap::new(),
         }
     }
 
@@ -50,6 +56,8 @@ impl LogEntry {
             fields,
             level: None,
             message: None,
+            source: String::new(),
+            labels: HashMap::new(),
         }
     }
 }
@@ -496,9 +504,157 @@ impl NginxParser {
 
 impl LogParser for NginxParser {
     fn parse(&self, line: &str) -> Result<LogEntry> {
-        // Use the same parsing as Apache combined for now
-        // In a real implementation, this might have Nginx-specific formats
-        ApacheCombinedParser::new().parse(line)
+        let mut entry = LogEntry::new(line.to_string());
+
+        // Try different common Nginx log formats
+        // Format 1: Standard combined-like format (most common)
+        // $remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"
+        let combined_pattern = r##"^(?P<remote_addr>\S+) - (?P<remote_user>\S+) \[(?P<time_local>[^\]]+)\] "(?P<request>[^"]*)" (?P<status>\d+) (?P<body_bytes_sent>\S+) "(?P<http_referer>[^"]*)" "(?P<http_user_agent>[^"]*)"(?: "(?P<http_x_forwarded_for>[^"]*)")?(?: (?P<request_time>\S+))?(?: (?P<upstream_response_time>\S+))?$"##;
+
+        // Format 2: Extended format with more fields
+        let extended_pattern = r##"^(?P<remote_addr>\S+) - (?P<remote_user>\S+) \[(?P<time_local>[^\]]+)\] "(?P<request>[^"]*)" (?P<status>\d+) (?P<body_bytes_sent>\S+) "(?P<http_referer>[^"]*)" "(?P<http_user_agent>[^"]*)" "(?P<http_x_forwarded_for>[^"]*)" (?P<request_time>\S+) (?P<upstream_addr>\S+) (?P<upstream_response_time>\S+) (?P<pipe>\S+)$"##;
+
+        let mut fields = HashMap::new();
+        let mut parsed = false;
+
+        // Try extended format first, then combined format
+        for pattern in &[extended_pattern, combined_pattern] {
+            if let Ok(re) = Regex::new(pattern) {
+                if let Some(caps) = re.captures(line) {
+                    parsed = true;
+
+                    // Extract common fields
+                    if let Some(remote_addr) = caps.name("remote_addr") {
+                        fields.insert(
+                            "remote_addr".to_string(),
+                            Value::String(remote_addr.as_str().to_string()),
+                        );
+                    }
+
+                    if let Some(remote_user) = caps.name("remote_user") {
+                        if remote_user.as_str() != "-" {
+                            fields.insert(
+                                "remote_user".to_string(),
+                                Value::String(remote_user.as_str().to_string()),
+                            );
+                        }
+                    }
+
+                    if let Some(time_local) = caps.name("time_local") {
+                        // Parse Nginx timestamp format: 10/Oct/2023:13:55:36 +0000
+                        if let Ok(dt) =
+                            DateTime::parse_from_str(time_local.as_str(), "%d/%b/%Y:%H:%M:%S %z")
+                        {
+                            entry.timestamp = Some(dt.with_timezone(&Utc));
+                        }
+                    }
+
+                    if let Some(request) = caps.name("request") {
+                        fields.insert(
+                            "request".to_string(),
+                            Value::String(request.as_str().to_string()),
+                        );
+                        // Parse request method, URI, and protocol
+                        if let Some((method, rest)) = request.as_str().split_once(' ') {
+                            fields.insert("method".to_string(), Value::String(method.to_string()));
+                            if let Some((uri, protocol)) = rest.rsplit_once(' ') {
+                                fields.insert("uri".to_string(), Value::String(uri.to_string()));
+                                fields.insert(
+                                    "protocol".to_string(),
+                                    Value::String(protocol.to_string()),
+                                );
+                            }
+                        }
+                    }
+
+                    if let Some(status) = caps.name("status") {
+                        if let Ok(status_code) = status.as_str().parse::<i64>() {
+                            fields.insert("status".to_string(), Value::Number(status_code.into()));
+                        }
+                    }
+
+                    if let Some(body_bytes_sent) = caps.name("body_bytes_sent") {
+                        if let Ok(bytes) = body_bytes_sent.as_str().parse::<i64>() {
+                            fields
+                                .insert("body_bytes_sent".to_string(), Value::Number(bytes.into()));
+                        }
+                    }
+
+                    if let Some(http_referer) = caps.name("http_referer") {
+                        if !http_referer.as_str().is_empty() && http_referer.as_str() != "-" {
+                            fields.insert(
+                                "http_referer".to_string(),
+                                Value::String(http_referer.as_str().to_string()),
+                            );
+                        }
+                    }
+
+                    if let Some(http_user_agent) = caps.name("http_user_agent") {
+                        if !http_user_agent.as_str().is_empty() && http_user_agent.as_str() != "-" {
+                            fields.insert(
+                                "http_user_agent".to_string(),
+                                Value::String(http_user_agent.as_str().to_string()),
+                            );
+                        }
+                    }
+
+                    // Extended format fields
+                    if let Some(http_x_forwarded_for) = caps.name("http_x_forwarded_for") {
+                        if !http_x_forwarded_for.as_str().is_empty()
+                            && http_x_forwarded_for.as_str() != "-"
+                        {
+                            fields.insert(
+                                "http_x_forwarded_for".to_string(),
+                                Value::String(http_x_forwarded_for.as_str().to_string()),
+                            );
+                        }
+                    }
+
+                    if let Some(request_time) = caps.name("request_time") {
+                        if let Ok(rt) = request_time.as_str().parse::<f64>() {
+                            fields.insert(
+                                "request_time".to_string(),
+                                Value::Number(serde_json::Number::from_f64(rt).unwrap()),
+                            );
+                        }
+                    }
+
+                    if let Some(upstream_addr) = caps.name("upstream_addr") {
+                        if upstream_addr.as_str() != "-" {
+                            fields.insert(
+                                "upstream_addr".to_string(),
+                                Value::String(upstream_addr.as_str().to_string()),
+                            );
+                        }
+                    }
+
+                    if let Some(upstream_response_time) = caps.name("upstream_response_time") {
+                        if upstream_response_time.as_str() != "-" {
+                            if let Ok(urt) = upstream_response_time.as_str().parse::<f64>() {
+                                fields.insert(
+                                    "upstream_response_time".to_string(),
+                                    Value::Number(serde_json::Number::from_f64(urt).unwrap()),
+                                );
+                            }
+                        }
+                    }
+
+                    if let Some(pipe) = caps.name("pipe") {
+                        fields.insert("pipe".to_string(), Value::String(pipe.as_str().to_string()));
+                    }
+
+                    break;
+                }
+            }
+        }
+
+        if !parsed {
+            // If no format matched, fall back to plain text parsing
+            return Ok(entry);
+        }
+
+        entry.fields = fields;
+        Ok(entry)
     }
 
     fn parser_type(&self) -> ParserType {
@@ -1018,5 +1174,107 @@ mod tests {
 
         let parser = create_parser(&config, None).unwrap();
         assert_eq!(parser.parser_type(), ParserType::Plain);
+    }
+
+    #[test]
+    fn test_nginx_parser_combined_format() {
+        let parser = NginxParser::new();
+        let line = r#"192.168.1.100 - - [10/Oct/2023:13:55:36 +0000] "GET /api/users HTTP/1.1" 200 1234 "https://example.com" "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" "10.0.0.1" 0.123"#;
+        let entry = parser.parse(line).unwrap();
+
+        assert_eq!(entry.raw, line);
+        assert!(entry.timestamp.is_some());
+        assert_eq!(
+            entry.fields.get("remote_addr"),
+            Some(&Value::String("192.168.1.100".to_string()))
+        );
+        assert_eq!(
+            entry.fields.get("method"),
+            Some(&Value::String("GET".to_string()))
+        );
+        assert_eq!(
+            entry.fields.get("uri"),
+            Some(&Value::String("/api/users".to_string()))
+        );
+        assert_eq!(
+            entry.fields.get("protocol"),
+            Some(&Value::String("HTTP/1.1".to_string()))
+        );
+        assert_eq!(entry.fields.get("status"), Some(&Value::Number(200.into())));
+        assert_eq!(
+            entry.fields.get("body_bytes_sent"),
+            Some(&Value::Number(1234.into()))
+        );
+        assert_eq!(
+            entry.fields.get("http_referer"),
+            Some(&Value::String("https://example.com".to_string()))
+        );
+        assert!(entry.fields.contains_key("http_user_agent"));
+        assert_eq!(
+            entry.fields.get("http_x_forwarded_for"),
+            Some(&Value::String("10.0.0.1".to_string()))
+        );
+        assert_eq!(
+            entry.fields.get("request_time"),
+            Some(&Value::Number(serde_json::Number::from_f64(0.123).unwrap()))
+        );
+    }
+
+    #[test]
+    fn test_nginx_parser_extended_format() {
+        let parser = NginxParser::new();
+        let line = r#"192.168.1.100 - - [10/Oct/2023:13:55:36 +0000] "POST /api/login HTTP/1.1" 200 567 "https://example.com/login" "Mozilla/5.0" "-" 0.045 127.0.0.1:8080 0.034 ."#;
+        let entry = parser.parse(line).unwrap();
+
+        assert_eq!(entry.raw, line);
+        assert!(entry.timestamp.is_some());
+        assert_eq!(
+            entry.fields.get("method"),
+            Some(&Value::String("POST".to_string()))
+        );
+        assert_eq!(entry.fields.get("status"), Some(&Value::Number(200.into())));
+        assert_eq!(
+            entry.fields.get("body_bytes_sent"),
+            Some(&Value::Number(567.into()))
+        );
+        assert_eq!(
+            entry.fields.get("upstream_addr"),
+            Some(&Value::String("127.0.0.1:8080".to_string()))
+        );
+        assert_eq!(
+            entry.fields.get("upstream_response_time"),
+            Some(&Value::Number(serde_json::Number::from_f64(0.034).unwrap()))
+        );
+        assert_eq!(
+            entry.fields.get("pipe"),
+            Some(&Value::String(".".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_nginx_parser_minimal_format() {
+        let parser = NginxParser::new();
+        let line =
+            r#"127.0.0.1 - - [10/Oct/2023:13:55:36 +0000] "GET / HTTP/1.1" 200 1024 "-" "-""#;
+        let entry = parser.parse(line).unwrap();
+
+        assert_eq!(entry.raw, line);
+        assert!(entry.timestamp.is_some());
+        assert_eq!(
+            entry.fields.get("remote_addr"),
+            Some(&Value::String("127.0.0.1".to_string()))
+        );
+        assert_eq!(
+            entry.fields.get("method"),
+            Some(&Value::String("GET".to_string()))
+        );
+        assert_eq!(entry.fields.get("status"), Some(&Value::Number(200.into())));
+        assert_eq!(
+            entry.fields.get("body_bytes_sent"),
+            Some(&Value::Number(1024.into()))
+        );
+        // Referer and user agent should not be present when they are "-"
+        assert!(!entry.fields.contains_key("http_referer"));
+        assert!(!entry.fields.contains_key("http_user_agent"));
     }
 }

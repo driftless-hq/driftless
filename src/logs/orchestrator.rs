@@ -15,6 +15,17 @@ use tokio::sync::{mpsc, Semaphore};
 use tokio::task::JoinHandle;
 use tokio::time::{timeout, Duration};
 
+/// Raw log entry with source information
+#[derive(Debug, Clone)]
+pub struct RawLogEntry {
+    /// Raw log line
+    pub line: String,
+    /// Source name that generated this entry
+    pub source: String,
+    /// Labels associated with this source
+    pub labels: HashMap<String, String>,
+}
+
 /// Log Processing Pipeline Orchestrator
 ///
 /// Coordinates the complete log processing pipeline with async task management,
@@ -68,7 +79,8 @@ impl LogOrchestrator {
         self.shutdown_sender = Some(shutdown_tx);
 
         // Create channels for pipeline communication
-        let (raw_lines_tx, raw_lines_rx) = mpsc::channel::<String>(self.config.global.buffer_size);
+        let (raw_lines_tx, raw_lines_rx) =
+            mpsc::channel::<RawLogEntry>(self.config.global.buffer_size);
         let (parsed_entries_tx, parsed_entries_rx) =
             mpsc::channel::<LogEntry>(self.config.global.buffer_size);
         let (filtered_entries_tx, filtered_entries_rx) =
@@ -134,7 +146,7 @@ impl LogOrchestrator {
     }
 
     /// Start source tasks for each configured log source
-    async fn start_source_tasks(&mut self, lines_sender: mpsc::Sender<String>) -> Result<()> {
+    async fn start_source_tasks(&mut self, lines_sender: mpsc::Sender<RawLogEntry>) -> Result<()> {
         for source in &self.config.sources {
             if !source.enabled {
                 continue;
@@ -157,14 +169,34 @@ impl LogOrchestrator {
     /// Run a single source task
     async fn run_source_task(
         source: LogSource,
-        lines_sender: mpsc::Sender<String>,
+        lines_sender: mpsc::Sender<RawLogEntry>,
         plugin_manager: Option<Arc<RwLock<crate::plugins::PluginManager>>>,
     ) -> Result<()> {
+        // Create an internal channel for raw strings
+        let (string_tx, mut string_rx) = mpsc::channel::<String>(100);
+
+        // Spawn a task to convert strings to RawLogEntry
+        let source_name = source.name.clone();
+        let source_labels = source.labels.clone();
+        let converter_sender = lines_sender.clone();
+        tokio::spawn(async move {
+            while let Some(line) = string_rx.recv().await {
+                let raw_entry = RawLogEntry {
+                    line,
+                    source: source_name.clone(),
+                    labels: source_labels.clone(),
+                };
+                if converter_sender.send(raw_entry).await.is_err() {
+                    break; // Receiver closed
+                }
+            }
+        });
+
         // Support different source types
         match source.source_type.as_str() {
             "file" => {
                 let file_source = FileLogSource::new(source.clone())?;
-                file_source.start_tailing(lines_sender).await?;
+                file_source.start_tailing(string_tx).await?;
             }
             "plugin" => {
                 // Handle plugin sources
@@ -202,7 +234,7 @@ impl LogOrchestrator {
 
                                 if let Some(entries) = entries {
                                     for entry in entries {
-                                        if lines_sender.send(entry.raw.clone()).await.is_err() {
+                                        if string_tx.send(entry.raw.clone()).await.is_err() {
                                             return; // Channel closed
                                         }
                                     }
@@ -230,7 +262,7 @@ impl LogOrchestrator {
             _ => {
                 // Default to file source for backward compatibility
                 let file_source = FileLogSource::new(source.clone())?;
-                file_source.start_tailing(lines_sender).await?;
+                file_source.start_tailing(string_tx).await?;
             }
         }
         Ok(())
@@ -239,7 +271,7 @@ impl LogOrchestrator {
     /// Start parser tasks
     async fn start_parser_tasks(
         &mut self,
-        lines_receiver: mpsc::Receiver<String>,
+        lines_receiver: mpsc::Receiver<RawLogEntry>,
         entries_sender: mpsc::Sender<LogEntry>,
         semaphore: Arc<Semaphore>,
     ) -> Result<()> {
@@ -269,7 +301,7 @@ impl LogOrchestrator {
 
     /// Run the parser pipeline
     async fn run_parser_pipeline(
-        mut lines_receiver: mpsc::Receiver<String>,
+        mut lines_receiver: mpsc::Receiver<RawLogEntry>,
         entries_sender: mpsc::Sender<LogEntry>,
         parser_configs: Vec<ParserConfig>,
         semaphore: Arc<Semaphore>,
@@ -290,12 +322,16 @@ impl LogOrchestrator {
             )?);
         }
 
-        while let Some(line) = lines_receiver.recv().await {
+        while let Some(raw_entry) = lines_receiver.recv().await {
             let _permit = semaphore.acquire().await?;
 
             for parser in &parsers {
-                match parser.parse(&line) {
-                    Ok(entry) => {
+                match parser.parse(&raw_entry.line) {
+                    Ok(mut entry) => {
+                        // Populate source and labels from the raw entry
+                        entry.source = raw_entry.source.clone();
+                        entry.labels = raw_entry.labels.clone();
+
                         if entries_sender.send(entry).await.is_err() {
                             break; // Channel closed
                         }

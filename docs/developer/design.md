@@ -101,16 +101,6 @@ The [nix crate](https://github.com/nix-rust/nix) provides Rust bindings to *nix 
 
 Ensure these task items have full production-ready implementations or provide additional task items if too complex for a single prompt:
 
-#### Log Processing
-- [ ] **Log source tracking**: Track source information through the log processing pipeline (`src/logs/orchestrator.rs`)
-- [ ] **Log label tracking**: Track labels through the log processing pipeline (`src/logs/orchestrator.rs`)
-- [ ] **S3 batch size configuration**: Make S3 log output batch size configurable instead of hardcoded 1000 (`src/logs/s3_log_output.rs`)
-- [ ] **Multiline config parsing**: Replace simplified multiline configuration parsing with more robust implementation (`src/logs/mod.rs`)
-- [ ] **Log shipper outputs**: Replace placeholder single-task implementation with proper multi-output handling (`src/logs/shipper.rs`)
-- [ ] **Plugin output support**: Implement plugin outputs in the log shipper instead of returning early (`src/logs/shipper.rs`)
-- [ ] **Filename templating**: Implement proper filename templating instead of simple pattern replacement (`src/logs/file_log_output.rs`)
-- [ ] **Nginx log formats**: Add Nginx-specific log format support to parsers (`src/logs/log_parsers.rs`)
-
 #### Configuration Management (Apply)
 - [ ] **Command output streaming**: Implement streaming for long-running command output (`src/apply/command.rs`)
 - [ ] **Shell parsing**: Implement proper shell command parsing instead of simplified approach (`src/apply/command.rs`)

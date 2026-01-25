@@ -719,12 +719,27 @@ pub struct MultilineConfig {
     /// Whether multiline parsing is enabled
     #[serde(default)]
     pub enabled: bool,
-    /// Pattern to match the start of a multiline log entry
+    /// Pattern to match lines that indicate the start of a new log entry
     #[serde(skip_serializing_if = "Option::is_none")]
     pub start_pattern: Option<String>,
+    /// Pattern to match lines that should be combined with the previous line
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub continue_pattern: Option<String>,
+    /// Pattern to match lines that should end a multiline entry
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub end_pattern: Option<String>,
+    /// How to handle multiline matching
+    #[serde(default)]
+    pub match_type: MultilineMatchType,
+    /// Whether to negate the pattern match (invert the logic)
+    #[serde(default)]
+    pub negate: bool,
     /// Maximum number of lines per multiline entry
     #[serde(default = "default_max_lines")]
     pub max_lines: usize,
+    /// Timeout for multiline assembly (seconds)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub timeout: Option<u64>,
 }
 
 /// Plugin-provided parser configuration
@@ -857,6 +872,9 @@ pub struct S3Output {
     /// Upload interval (seconds)
     #[serde(default = "default_upload_interval")]
     pub upload_interval: u64,
+    /// Maximum batch size before upload
+    #[serde(default = "default_s3_batch_size")]
+    pub batch_size: usize,
     /// Compression configuration
     #[serde(default)]
     pub compression: CompressionConfig,
@@ -1145,6 +1163,9 @@ fn default_s3_prefix() -> String {
 }
 fn default_upload_interval() -> u64 {
     300
+}
+fn default_s3_batch_size() -> usize {
+    1000
 }
 fn default_http_method() -> String {
     "POST".to_string()

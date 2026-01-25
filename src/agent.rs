@@ -278,10 +278,11 @@ struct ResourceCache {
 /// Compare two log configurations to see if they are equivalent
 fn configs_are_equal(a: &crate::logs::LogsConfig, b: &crate::logs::LogsConfig) -> bool {
     // Compare global settings
-    if a.global.enabled != b.global.enabled ||
-       a.global.buffer_size != b.global.buffer_size ||
-       a.global.flush_interval != b.global.flush_interval ||
-       a.global.labels != b.global.labels {
+    if a.global.enabled != b.global.enabled
+        || a.global.buffer_size != b.global.buffer_size
+        || a.global.flush_interval != b.global.flush_interval
+        || a.global.labels != b.global.labels
+    {
         return false;
     }
 
@@ -290,10 +291,11 @@ fn configs_are_equal(a: &crate::logs::LogsConfig, b: &crate::logs::LogsConfig) -
         return false;
     }
     for (source_a, source_b) in a.sources.iter().zip(b.sources.iter()) {
-        if source_a.name != source_b.name ||
-           source_a.enabled != source_b.enabled ||
-           source_a.source_type != source_b.source_type ||
-           source_a.paths != source_b.paths {
+        if source_a.name != source_b.name
+            || source_a.enabled != source_b.enabled
+            || source_a.source_type != source_b.source_type
+            || source_a.paths != source_b.paths
+        {
             return false;
         }
     }
@@ -311,9 +313,10 @@ fn configs_are_equal(a: &crate::logs::LogsConfig, b: &crate::logs::LogsConfig) -
     }
 
     // Compare processing config
-    if a.processing.enabled != b.processing.enabled ||
-       a.processing.global_filters.len() != b.processing.global_filters.len() ||
-       a.processing.transformations.len() != b.processing.transformations.len() {
+    if a.processing.enabled != b.processing.enabled
+        || a.processing.global_filters.len() != b.processing.global_filters.len()
+        || a.processing.transformations.len() != b.processing.transformations.len()
+    {
         return false;
     }
 
@@ -1468,8 +1471,10 @@ impl Agent {
                         self.logs_running = false;
 
                         // Reinitialize orchestrator with new config
-                        let orchestrator =
-                            LogOrchestrator::new_with_plugins(config.clone(), self.plugin_manager.clone());
+                        let orchestrator = LogOrchestrator::new_with_plugins(
+                            config.clone(),
+                            self.plugin_manager.clone(),
+                        );
                         self.logs_source_count = orchestrator.source_count();
                         self.logs_output_count = orchestrator.output_count();
                         self.logs_orchestrator = Some(Arc::new(Mutex::new(orchestrator)));
