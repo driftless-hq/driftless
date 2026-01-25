@@ -301,6 +301,35 @@ pub struct FactsConfig {
     pub export: ExportConfig,
 }
 
+impl FactsConfig {
+    /// Merge another FactsConfig into this one
+    pub fn merge(&mut self, other: FactsConfig) {
+        // Merge global settings (other takes precedence for simple fields)
+        if other.global.poll_interval != default_poll_interval() {
+            self.global.poll_interval = other.global.poll_interval;
+        }
+        if !other.global.enabled {
+            self.global.enabled = other.global.enabled;
+        }
+        // Merge labels (other labels take precedence)
+        for (key, value) in other.global.labels {
+            self.global.labels.insert(key, value);
+        }
+
+        // Merge collectors (extend the list)
+        self.collectors.extend(other.collectors);
+
+        // Merge export config (other takes precedence)
+        if other.export.enabled {
+            self.export.enabled = true;
+        }
+        self.export.prometheus = other.export.prometheus.clone();
+        if let Some(ref s3) = other.export.s3 {
+            self.export.s3 = Some(s3.clone());
+        }
+    }
+}
+
 /// Global settings for facts collection
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GlobalSettings {
@@ -654,6 +683,9 @@ pub enum CommandOutputFormat {
 /// Export configuration
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ExportConfig {
+    /// Whether exporting is enabled
+    #[serde(default)]
+    pub enabled: bool,
     /// Prometheus export settings
     #[serde(default)]
     pub prometheus: PrometheusExport,

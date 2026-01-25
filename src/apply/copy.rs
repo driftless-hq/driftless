@@ -158,6 +158,7 @@ pub struct CopyTask {
 use anyhow::{Context, Result};
 use std::fs;
 use std::path::Path;
+use std::process::Command;
 
 /// Execute a copy task
 pub async fn execute_copy_task(task: &CopyTask, dry_run: bool) -> Result<()> {
@@ -232,15 +233,14 @@ async fn ensure_file_copied(task: &CopyTask, dry_run: bool) -> Result<()> {
             }
         }
 
-        // Note: Ownership preservation would require additional privileges
-        // and is not implemented in this basic version
+        // Preserve ownership if requested
         if task.owner {
-            println!("Note: Ownership preservation not implemented");
+            preserve_ownership(&task.src, &task.dest)?;
         }
 
-        // Note: Timestamp preservation is complex and not implemented
+        // Preserve timestamp if requested
         if task.timestamp {
-            println!("Note: Timestamp preservation not implemented");
+            preserve_timestamp(&task.src, &task.dest)?;
         }
     }
 
@@ -290,6 +290,38 @@ fn file_contents_differ(path1: &Path, path2: &Path) -> Result<bool> {
         fs::read(path2).with_context(|| format!("Failed to read {}", path2.display()))?;
 
     Ok(content1 != content2)
+}
+
+/// Preserve ownership from source file to destination
+fn preserve_ownership(src: &str, dest: &str) -> Result<()> {
+    let output = Command::new("chown")
+        .args(["--reference", src, dest])
+        .output()
+        .with_context(|| format!("Failed to preserve ownership from {} to {}", src, dest))?;
+
+    if output.status.success() {
+        println!("Preserved ownership on {}", dest);
+        Ok(())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(anyhow::anyhow!("chown failed: {}", stderr))
+    }
+}
+
+/// Preserve timestamp from source file to destination
+fn preserve_timestamp(src: &str, dest: &str) -> Result<()> {
+    let output = Command::new("touch")
+        .args(["-r", src, dest])
+        .output()
+        .with_context(|| format!("Failed to preserve timestamp from {} to {}", src, dest))?;
+
+    if output.status.success() {
+        println!("Preserved timestamp on {}", dest);
+        Ok(())
+    } else {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        Err(anyhow::anyhow!("touch failed: {}", stderr))
+    }
 }
 
 #[cfg(test)]

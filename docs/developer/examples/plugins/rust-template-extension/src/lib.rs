@@ -87,6 +87,14 @@ pub fn get_template_extensions() -> String {
 }
 
 #[wasm_bindgen]
+pub fn get_plugin_metadata() -> String {
+    serde_json::json!({
+        "version": "1.0.0",
+        "description": "Example template extension plugin demonstrating custom filters"
+    }).to_string()
+}
+
+#[wasm_bindgen]
 pub fn execute_template_filter(
     name: &str,
     _config_json: &str,

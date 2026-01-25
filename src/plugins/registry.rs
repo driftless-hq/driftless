@@ -354,9 +354,10 @@ impl PluginLifecycleManager {
 
             if path.extension().and_then(|s| s.to_str()) == Some("wasm") {
                 if let Some(file_stem) = path.file_stem().and_then(|s| s.to_str()) {
-                    // For now, assume version is embedded or use a default
-                    // In a real implementation, you'd extract version from metadata
-                    let version = "latest".to_string();
+                    // Extract version from plugin metadata
+                    let version = self
+                        .extract_plugin_version_from_file(&path)
+                        .unwrap_or_else(|_| "latest".to_string());
                     installed.push((file_stem.to_string(), version, path));
                 }
             }
@@ -379,6 +380,79 @@ impl PluginLifecycleManager {
 
         info!("Plugin {} validated successfully", name);
         Ok(())
+    }
+
+    /// Extract plugin version from a WASM file
+    fn extract_plugin_version_from_file(&self, plugin_path: &Path) -> Result<String> {
+        use wasmtime::{Config, Engine, Linker, Module, Store};
+
+        // Create engine and load module
+        let engine = Engine::new(&Config::new())?;
+        let module = Module::from_file(&engine, plugin_path)?;
+
+        // Create store and linker
+        let mut store = Store::new(&engine, ());
+        let linker = Linker::new(&engine);
+
+        // Instantiate the module
+        let instance = linker.instantiate(&mut store, &module)?;
+
+        // Try to get metadata from the plugin
+        if let Ok(metadata_func) =
+            instance.get_typed_func::<(), i32>(&mut store, "get_plugin_metadata")
+        {
+            if let Ok(metadata_ptr) = metadata_func.call(&mut store, ()) {
+                if let Ok(metadata_json) =
+                    self.read_string_from_wasm(&mut store, &instance, metadata_ptr)
+                {
+                    if let Ok(metadata) = serde_json::from_str::<serde_json::Value>(&metadata_json)
+                    {
+                        if let Some(version) = metadata.get("version").and_then(|v| v.as_str()) {
+                            return Ok(version.to_string());
+                        }
+                    }
+                }
+            }
+        }
+
+        // Fallback to "latest" if metadata extraction fails
+        Ok("latest".to_string())
+    }
+
+    /// Helper method to read a string from WASM memory
+    fn read_string_from_wasm(
+        &self,
+        store: &mut wasmtime::Store<()>,
+        instance: &wasmtime::Instance,
+        ptr: i32,
+    ) -> Result<String> {
+        let memory = instance
+            .get_memory(&mut *store, "memory")
+            .ok_or_else(|| anyhow::anyhow!("Plugin does not export memory"))?;
+
+        // Check that the pointer is within valid memory bounds
+        let memory_size = memory.data_size(&store);
+        if ptr < 0 || ptr as usize >= memory_size {
+            anyhow::bail!("Pointer is outside valid memory bounds");
+        }
+
+        let mut offset = ptr as usize;
+        let mut bytes = Vec::new();
+
+        // Read until null terminator
+        loop {
+            if offset >= memory_size {
+                anyhow::bail!("String extends beyond memory bounds");
+            }
+            let byte = memory.data(&store)[offset];
+            if byte == 0 {
+                break;
+            }
+            bytes.push(byte);
+            offset += 1;
+        }
+
+        String::from_utf8(bytes).map_err(|e| anyhow::anyhow!("Invalid UTF-8 string: {}", e))
     }
 
     /// Parse plugin specification: "name", "name@version", or "registry/name@version"

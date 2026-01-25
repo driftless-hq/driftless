@@ -179,7 +179,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
-use std::process::Command;
+use tokio::process::Command as TokioCommand;
+use tokio::time::{timeout, Duration};
 
 /// Execute a script task
 pub async fn execute_script_task(task: &ScriptTask, dry_run: bool) -> Result<()> {
@@ -226,7 +227,7 @@ pub async fn execute_script_task(task: &ScriptTask, dry_run: bool) -> Result<()>
     }
 
     // Execute the script
-    let mut command = Command::new(&task.path);
+    let mut command = TokioCommand::new(&task.path);
 
     // Add parameters
     command.args(&task.params);
@@ -241,19 +242,33 @@ pub async fn execute_script_task(task: &ScriptTask, dry_run: bool) -> Result<()>
         command.env(key, value);
     }
 
-    // Set timeout if specified
-    if let Some(timeout_secs) = task.timeout {
-        // Note: In a real implementation, you'd use tokio::process::Command
-        // with timeout handling. For now, we'll execute synchronously.
+    // Execute with timeout if specified
+    let output = if let Some(timeout_secs) = task.timeout {
         println!(
-            "Note: Script timeout not implemented (would timeout after {}s)",
-            timeout_secs
+            "Executing script with {}s timeout: {}",
+            timeout_secs, task.path
         );
-    }
 
-    let output = command
-        .output()
-        .with_context(|| format!("Failed to execute script: {}", task.path))?;
+        let timeout_duration = Duration::from_secs(timeout_secs as u64);
+        match timeout(timeout_duration, command.output()).await {
+            Ok(result) => {
+                result.with_context(|| format!("Failed to execute script: {}", task.path))?
+            }
+            Err(_) => {
+                return Err(anyhow::anyhow!(
+                    "Script execution timed out after {} seconds: {}",
+                    timeout_secs,
+                    task.path
+                ));
+            }
+        }
+    } else {
+        println!("Executing script: {}", task.path);
+        command
+            .output()
+            .await
+            .with_context(|| format!("Failed to execute script: {}", task.path))?
+    };
 
     // Check exit status
     if !output.status.success() {

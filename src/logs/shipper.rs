@@ -3,7 +3,7 @@
 //! This module handles the collection and shipping of logs as defined
 //! in the logs schema.
 
-use crate::logs::{LogOutput, LogSource, LogsConfig};
+use crate::logs::{LogOutput, LogsConfig};
 use anyhow::Result;
 use std::collections::HashMap;
 use tokio::sync::mpsc;
@@ -31,25 +31,94 @@ impl LogShipper {
         );
 
         // Create channels for log processing pipeline
-        let (_log_tx, mut _log_rx) = mpsc::channel::<LogEntry>(1000);
+        let (log_tx, mut log_rx) = mpsc::channel::<LogEntry>(1000);
 
-        // TODO: Start file tailing tasks for each source
-        // TODO: Start output forwarding tasks
-
-        // For now, just show what would be started
+        // Start file tailing tasks for each source
+        let mut source_tasks = Vec::new();
         for source in &self.config.sources {
             if source.enabled {
-                println!("Would tail logs from: {}", source.name);
-                for path in &source.paths {
-                    println!("  - {}", path);
+                println!("Starting log source: {}", source.name);
+
+                // Create file log source for actual file tailing
+                let source_name = source.name.clone();
+                match crate::logs::FileLogSource::new(source.clone()) {
+                    Ok(file_source) => {
+                        let tx = log_tx.clone();
+                        let source_name_clone = source_name.clone();
+                        let task = tokio::spawn(async move {
+                            println!("Log source '{}' started", source_name);
+
+                            // Create a channel for raw lines from file tailing
+                            let (line_tx, mut line_rx) = mpsc::channel::<String>(100);
+
+                            // Start file tailing in a separate task
+                            let tail_handle = tokio::spawn(async move {
+                                if let Err(e) = file_source.start_tailing(line_tx).await {
+                                    eprintln!(
+                                        "Error tailing files for source {}: {}",
+                                        source_name_clone, e
+                                    );
+                                }
+                            });
+
+                            // Process lines from file tailing
+                            while let Some(line) = line_rx.recv().await {
+                                // Parse the line into a LogEntry
+                                let entry = LogEntry::new(line, source_name.clone());
+                                if tx.send(entry).await.is_err() {
+                                    // Receiver closed, stop processing
+                                    break;
+                                }
+                            }
+
+                            // Wait for tailing to finish
+                            let _ = tail_handle.await;
+                        });
+                        source_tasks.push(task);
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to create file source for {}: {}", source_name, e);
+                    }
                 }
             }
         }
 
-        for output in &self.config.outputs {
-            if self.is_output_enabled(output) {
-                println!("Would forward to: {}", self.get_output_name(output));
-            }
+        // Start output forwarding tasks
+        let mut output_tasks = Vec::new();
+        // For placeholder implementation, create a single task that handles all outputs
+        let output_names: Vec<String> = self
+            .config
+            .outputs
+            .iter()
+            .filter(|output| self.is_output_enabled(output))
+            .map(|output| self.get_output_name(output).to_string())
+            .collect();
+
+        if !output_names.is_empty() {
+            let config = self.config.clone();
+            let task = tokio::spawn(async move {
+                println!("Log outputs started: {:?}", output_names);
+                while let Some(entry) = log_rx.recv().await {
+                    // Apply filtering for each source
+                    let should_forward = Self::should_forward_entry(&config, &entry).await;
+
+                    if should_forward {
+                        // Forward to all enabled outputs
+                        for output in &config.outputs {
+                            if Self::is_output_enabled_static(output) {
+                                if let Err(e) = Self::forward_to_output(output, &entry).await {
+                                    eprintln!(
+                                        "Error forwarding to output {}: {}",
+                                        Self::get_output_name_static(output),
+                                        e
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            output_tasks.push(task);
         }
 
         Ok(())
@@ -58,10 +127,27 @@ impl LogShipper {
     /// Process a single log entry
     #[allow(dead_code)]
     pub async fn process_log_entry(&self, entry: LogEntry) -> Result<()> {
-        // TODO: Apply filters and transformations
-        // TODO: Forward to configured outputs
+        // Apply filters and transformations
+        let processed_entry = entry;
 
-        println!("Processing log entry: {}", entry.message);
+        // Apply configured filters (same logic as in main processing loop)
+        let should_forward = Self::should_forward_entry(&self.config, &processed_entry).await;
+
+        if should_forward {
+            // Forward to configured outputs
+            for output in &self.config.outputs {
+                if self.is_output_enabled(output) {
+                    if let Err(e) = Self::forward_to_output(output, &processed_entry).await {
+                        eprintln!(
+                            "Error forwarding to output {}: {}",
+                            self.get_output_name(output),
+                            e
+                        );
+                    }
+                }
+            }
+        }
+
         Ok(())
     }
 
@@ -130,8 +216,97 @@ impl LogShipper {
             Http(o) => &o.name,
             Syslog(o) => &o.name,
             Console(o) => &o.name,
+            Plugin(o) => &o.output_name,
+        }
+    }
+
+    /// Check if an entry should be forwarded based on source filters
+    async fn should_forward_entry(config: &LogsConfig, entry: &LogEntry) -> bool {
+        // Find the source configuration
+        if let Some(source) = config.sources.iter().find(|s| s.name == entry.source) {
+            // Apply filters
+            for filter_config in &source.filters {
+                match crate::logs::create_filter(filter_config, None) {
+                    Ok(filter) => {
+                        // Convert shipper LogEntry to log_parsers LogEntry for filtering
+                        let parser_entry = crate::logs::log_parsers::LogEntry {
+                            raw: entry.message.clone(),
+                            timestamp: entry.timestamp,
+                            fields: entry.fields.clone(),
+                            level: None, // Not available in shipper entry
+                            message: Some(entry.message.clone()),
+                        };
+                        if let Ok(should_keep) = filter.filter(&parser_entry) {
+                            if !should_keep {
+                                return false;
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        eprintln!("Error creating filter: {}", e);
+                    }
+                }
+            }
+        }
+        true
+    }
+
+    /// Static version of is_output_enabled for use in async contexts
+    fn is_output_enabled_static(output: &LogOutput) -> bool {
+        use crate::logs::LogOutput::*;
+
+        match output {
+            File(o) => o.enabled,
+            S3(o) => o.enabled,
+            Http(o) => o.enabled,
+            Syslog(o) => o.enabled,
+            Console(o) => o.enabled,
+            Plugin(o) => o.enabled,
+        }
+    }
+
+    /// Static version of get_output_name for use in async contexts
+    fn get_output_name_static(output: &LogOutput) -> &str {
+        use crate::logs::LogOutput::*;
+
+        match output {
+            File(o) => &o.name,
+            S3(o) => &o.name,
+            Http(o) => &o.name,
+            Syslog(o) => &o.name,
+            Console(o) => &o.name,
             Plugin(o) => &o.name,
         }
+    }
+
+    /// Forward an entry to a specific output
+    async fn forward_to_output(output: &LogOutput, entry: &LogEntry) -> Result<()> {
+        use crate::logs::LogOutput::*;
+
+        let shipper_entry = crate::logs::ShipperLogEntry {
+            message: entry.message.clone(),
+            timestamp: entry.timestamp,
+            fields: entry.fields.clone(),
+            source: entry.source.clone(),
+            labels: entry.labels.clone(),
+        };
+
+        let mut writer: Box<dyn crate::logs::LogOutputWriter> = match output {
+            File(config) => crate::logs::create_file_output(config.clone())?,
+            S3(config) => crate::logs::create_s3_output(config.clone()).await?,
+            Http(config) => crate::logs::create_http_output(config.clone()).await?,
+            Syslog(config) => crate::logs::create_syslog_output(config.clone())?,
+            Console(config) => crate::logs::create_console_output(config.clone())?,
+            Plugin(_) => {
+                // Plugin outputs not implemented yet
+                return Ok(());
+            }
+        };
+
+        writer.write_entry(&shipper_entry).await?;
+        writer.flush().await?;
+
+        Ok(())
     }
 }
 
@@ -175,39 +350,6 @@ impl LogEntry {
     pub fn with_label(mut self, key: String, value: String) -> Self {
         self.labels.insert(key, value);
         self
-    }
-}
-
-/// File tailer for monitoring log files
-#[allow(dead_code)]
-pub struct FileTailer {
-    source: LogSource,
-}
-
-impl FileTailer {
-    /// Create a new file tailer
-    #[allow(dead_code)]
-    pub fn new(source: LogSource) -> Self {
-        Self { source }
-    }
-
-    /// Start tailing the configured files
-    #[allow(dead_code)]
-    pub async fn start_tailing(&self) -> Result<()> {
-        println!(
-            "Starting to tail {} files for source: {}",
-            self.source.paths.len(),
-            self.source.name
-        );
-
-        // TODO: Implement actual file watching and tailing
-        // This would use notify crate for file changes and tokio for async processing
-
-        for path in &self.source.paths {
-            println!("Would tail file: {}", path);
-        }
-
-        Ok(())
     }
 }
 

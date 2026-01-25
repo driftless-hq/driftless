@@ -86,17 +86,56 @@ The [nix crate](https://github.com/nix-rust/nix) provides Rust bindings to *nix 
 - [ ] **KVM operations** - Kernel-based virtual machines
 
 ## TODO
-- Finish implementing Config file merging: TODOs for supporting multiple config files (main.rs lines 400, 488, 595)
-- Finish implementing Metrics collection: TODOs for actual implementation (facts/collector.rs)
-- Finish implementing Log collection: TODO for actual implementation (main.rs line 219)
-- Finish implementing User/group property checks: TODOs for additional validation (apply/user.rs, apply/group.rs)
-- Create task prompts in the TODO list that adds support for macOS and Windows operating systems
+- Review the entire codebase to find all placeholders, `TODO`, `in practice`, and `in a real implementation` comments and add TODO list items to address them
+- Create task prompts in the TODO list that adds support for macOS and Windows operating systems in all applicable areas of the codebase
 - Review usages of `dead_code`, `unsafe`, and `unused_imports` to silence warnings and determine if code should be used or cleaned up according to Rust best practices. Use this opportunity to cleanup unused code and dependencies to reduce release binary size and improve maintainability.
 - Review the codebase for consistent error-handling patterns and improve as needed
-- Review the entire codebase to ensure all placeholders and `TODO` comments are replaced with actual implementations or tracked issues
 - Ensure all dependencies in `Cargo.toml` are up-to-date with the latest stable versions
 - Review the codebase for usage of Rust best-practices and guidelines
 - Review the codebase for safety and security vulnerabilities and apply mitigations as needed
-- Ensure comprehensive test coverage and cleanup any clippy warnings
+- Ensure comprehensive test coverage and cleanup any clippy warnings. Tests should be written for the intent of the code not the implementation details.
 - Review the auto-generated and manually-managed documentation in the `docs/` directory and validate information is accurate against the current codebase. Look for cleanup, clarification, expansion, and reorganization opportunities. Ensure all auto-generated documentation contains a banner indicating it is auto-generated and should not be manually edited.
 - Perform a final review of the entire codebase, documentation, and project structure to ensure consistency, quality, and readiness for production use.
+
+### Codebase Implementation Gaps (from TODO, placeholder, and implementation comments)
+
+Ensure these task items have full production-ready implementations or provide additional task items if too complex for a single prompt:
+
+#### Log Processing
+- [ ] **Log source tracking**: Track source information through the log processing pipeline (`src/logs/orchestrator.rs`)
+- [ ] **Log label tracking**: Track labels through the log processing pipeline (`src/logs/orchestrator.rs`)
+- [ ] **S3 batch size configuration**: Make S3 log output batch size configurable instead of hardcoded 1000 (`src/logs/s3_log_output.rs`)
+- [ ] **Multiline config parsing**: Replace simplified multiline configuration parsing with more robust implementation (`src/logs/mod.rs`)
+- [ ] **Log shipper outputs**: Replace placeholder single-task implementation with proper multi-output handling (`src/logs/shipper.rs`)
+- [ ] **Plugin output support**: Implement plugin outputs in the log shipper instead of returning early (`src/logs/shipper.rs`)
+- [ ] **Filename templating**: Implement proper filename templating instead of simple pattern replacement (`src/logs/file_log_output.rs`)
+- [ ] **Nginx log formats**: Add Nginx-specific log format support to parsers (`src/logs/log_parsers.rs`)
+
+#### Configuration Management (Apply)
+- [ ] **Command output streaming**: Implement streaming for long-running command output (`src/apply/command.rs`)
+- [ ] **Shell parsing**: Implement proper shell command parsing instead of simplified approach (`src/apply/command.rs`)
+- [ ] **State persistence**: Implement proper state store for tracking applied changes (`src/apply/command.rs`)
+- [ ] **User interaction**: Add proper user input handling for interactive tasks (`src/apply/executor.rs`)
+- [ ] **File ownership**: Use users crate for proper file ownership handling (`src/apply/file.rs`)
+- [ ] **Filesystem operations**: Implement more sophisticated filesystem operation handling (`src/apply/filesystem.rs`)
+- [ ] **Raw task validation**: Implement proper file/directory validation for raw tasks (`src/apply/raw.rs`)
+- [ ] **Fetch tracking**: Implement proper download progress and state tracking (`src/apply/fetch.rs`)
+- [ ] **Unarchive tracking**: Implement proper extraction progress and state tracking (`src/apply/unarchive.rs`)
+- [ ] **Script validation**: Implement proper file/directory validation for script tasks (`src/apply/script.rs`)
+- [ ] **UFW status parsing**: Implement proper UFW status output parsing (`src/apply/ufw.rs`)
+- [ ] **Copy change detection**: Implement sophisticated file change detection for copy operations (`src/apply/copy.rs`)
+- [ ] **Template tracking**: Implement proper template rendering state tracking (`src/apply/template.rs`)
+- [ ] **User password hashing**: Implement proper password hashing for user password setting instead of plain text (`src/apply/user.rs`)
+- [ ] **Encoding validation**: Fail template rendering on invalid encoding operations (`src/apply/templating/encoding_filters.rs`)
+
+#### Facts Collection
+- [ ] **Disk I/O statistics**: Implement proper disk I/O statistics collection (sysinfo 0.30 placeholder) (`src/facts/disk_facts.rs`)
+- [ ] **Network interface handling**: Implement platform-specific network interface enumeration (`src/facts/network_facts.rs`)
+- [ ] **Memory information**: Replace simplified memory information collection with comprehensive implementation (`src/facts/memory_facts.rs`)
+
+#### Agent and Configuration
+- [ ] **Configuration change detection**: Implement proper configuration change detection instead of simplified comparison (`src/agent.rs`)
+- [ ] **Secrets management**: Add appropriate crate and implementation for secrets management (`Cargo.toml`)
+
+#### Dependencies and Infrastructure
+- [ ] **Secrets crate**: Add and implement secrets management crate dependency

@@ -138,8 +138,98 @@ pub struct GroupTask {
 use anyhow::{Context, Result};
 use std::process::Command;
 
+/// Validate group task parameters
+fn validate_group_task(task: &GroupTask) -> Result<()> {
+    // Validate group name
+    if task.name.is_empty() {
+        return Err(anyhow::anyhow!("Group name cannot be empty"));
+    }
+
+    if task.name.len() > 32 {
+        return Err(anyhow::anyhow!("Group name too long (max 32 characters)"));
+    }
+
+    // Group name should contain only alphanumeric characters, underscore, dash, and dot
+    if !task
+        .name
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '_' || c == '-' || c == '.')
+    {
+        return Err(anyhow::anyhow!("Group name contains invalid characters (only alphanumeric, underscore, dash, and dot allowed)"));
+    }
+
+    // Check for reserved group names, but allow if the group already exists
+    let reserved_names = [
+        "root",
+        "daemon",
+        "bin",
+        "sys",
+        "adm",
+        "tty",
+        "disk",
+        "lp",
+        "mem",
+        "kmem",
+        "wheel",
+        "cdrom",
+        "mail",
+        "man",
+        "dialout",
+        "floppy",
+        "games",
+        "tape",
+        "video",
+        "audio",
+        "cdrom",
+        "cdrw",
+        "usb",
+        "users",
+        "nogroup",
+        "systemd-journal",
+        "systemd-network",
+        "systemd-resolve",
+        "input",
+        "sgx",
+        "kvm",
+        "render",
+        "systemd-timesync",
+        "systemd-coredump",
+        "_apt",
+        "tss",
+        "uuidd",
+        "tcpdump",
+        "landscape",
+        "pollinate",
+        "sshd",
+        "systemd-oom",
+    ];
+    if reserved_names.contains(&task.name.as_str()) {
+        // Allow reserved names if the group already exists
+        if group_exists(&task.name).unwrap_or(false) {
+            // Group exists, allow it
+        } else {
+            return Err(anyhow::anyhow!("Group name '{}' is reserved", task.name));
+        }
+    }
+
+    // Validate GID range (if provided)
+    if let Some(gid) = task.gid {
+        if gid == 0 && task.name != "root" {
+            return Err(anyhow::anyhow!("Only root group can have GID 0"));
+        }
+        if gid > 65535 {
+            return Err(anyhow::anyhow!("GID must be between 0 and 65535"));
+        }
+    }
+
+    Ok(())
+}
+
 /// Execute a group task
 pub async fn execute_group_task(task: &GroupTask, dry_run: bool) -> Result<()> {
+    // Validate task parameters
+    validate_group_task(task)?;
+
     match task.state {
         GroupState::Present => ensure_group_present(task, dry_run).await,
         GroupState::Absent => ensure_group_absent(task, dry_run).await,
@@ -150,7 +240,23 @@ pub async fn execute_group_task(task: &GroupTask, dry_run: bool) -> Result<()> {
 async fn ensure_group_present(task: &GroupTask, dry_run: bool) -> Result<()> {
     if group_exists(&task.name)? {
         println!("Group {} already exists", task.name);
-        // TODO: Check if GID needs updating (would require usermod equivalent for groups)
+        // Check if GID needs updating
+        let current_gid = get_current_group_gid(&task.name)?;
+        if let Some(desired_gid) = task.gid {
+            if current_gid != desired_gid {
+                if dry_run {
+                    println!(
+                        "Would update group {} GID from {} to {}",
+                        task.name, current_gid, desired_gid
+                    );
+                } else {
+                    update_group_gid(&task.name, desired_gid)?;
+                    println!("Updated group {} GID to {}", task.name, desired_gid);
+                }
+            } else {
+                println!("Group {} GID is already correct", task.name);
+            }
+        }
         return Ok(());
     }
 
@@ -184,6 +290,46 @@ async fn ensure_group_absent(task: &GroupTask, dry_run: bool) -> Result<()> {
         remove_group(&task.name)?;
         println!("Removed group: {}", task.name);
     }
+
+    Ok(())
+}
+
+/// Get current GID of a group
+fn get_current_group_gid(groupname: &str) -> Result<u32> {
+    let output = Command::new("getent")
+        .args(["group", groupname])
+        .output()
+        .with_context(|| format!("Failed to get group info for {}", groupname))?;
+
+    if !output.status.success() {
+        return Err(anyhow::anyhow!("Group {} not found", groupname));
+    }
+
+    let group_line =
+        String::from_utf8(output.stdout).with_context(|| "Failed to parse getent output")?;
+
+    let fields: Vec<&str> = group_line.trim().split(':').collect();
+    if fields.len() < 3 {
+        return Err(anyhow::anyhow!("Invalid group entry format"));
+    }
+
+    let gid = fields[2]
+        .parse::<u32>()
+        .with_context(|| format!("Invalid GID in group entry: {}", fields[2]))?;
+
+    Ok(gid)
+}
+
+/// Update a group's GID
+fn update_group_gid(groupname: &str, new_gid: u32) -> Result<()> {
+    let cmd = vec![
+        "groupmod".to_string(),
+        "-g".to_string(),
+        new_gid.to_string(),
+        groupname.to_string(),
+    ];
+
+    run_command(&cmd).with_context(|| format!("Failed to update GID for group {}", groupname))?;
 
     Ok(())
 }

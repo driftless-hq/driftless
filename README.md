@@ -1,6 +1,7 @@
 # Driftless
 
 [![Build Status](https://github.com/driftless-hq/driftless/workflows/CI/badge.svg)](https://github.com/driftless-hq/driftless/actions)
+[![codecov](https://codecov.io/gh/driftless-hq/driftless/branch/main/graph/badge.svg)](https://codecov.io/gh/driftless-hq/driftless)
 [![Documentation](https://img.shields.io/badge/docs-generated-blue)](https://driftless-hq.github.io/driftless/)
 
 > **Warning:** This is an experimental, AI-assisted project. Bugs and other shortcomings are expected and should be reported as GitHub Issues. PRs are welcome!

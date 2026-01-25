@@ -13,6 +13,18 @@ use crate::config::PluginSecurityConfig;
 /// Default fuel limit for plugin execution (1 billion instructions)
 const PLUGIN_FUEL_LIMIT: u64 = 1_000_000_000;
 
+/// Type alias for the complex global plugin manager type
+type GlobalPluginManager = Arc<RwLock<Option<Arc<RwLock<PluginManager>>>>>;
+
+/// Global plugin manager instance for registry callbacks
+static GLOBAL_PLUGIN_MANAGER: once_cell::sync::Lazy<GlobalPluginManager> =
+    once_cell::sync::Lazy::new(|| Arc::new(RwLock::new(None)));
+
+/// Set the global plugin manager instance
+pub fn set_global_plugin_manager(manager: Arc<RwLock<PluginManager>>) {
+    *GLOBAL_PLUGIN_MANAGER.write().unwrap() = Some(manager);
+}
+
 /// Parse a plugin component name in the format "plugin_name.component_name"
 ///
 /// Returns a tuple of (plugin_name, component_name) or an error if the format is invalid.
@@ -683,8 +695,67 @@ impl PluginManager {
             // Register each facts collector
             for collector_def in collector_defs {
                 if let Some(name) = collector_def.get("name").and_then(|v| v.as_str()) {
+                    let description = collector_def
+                        .get("description")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("Plugin-provided facts collector");
+                    let category = collector_def
+                        .get("category")
+                        .and_then(|v| v.as_str())
+                        .unwrap_or("Plugin");
+
                     info!("Plugin {} provides facts collector: {}", plugin_name, name);
-                    // TODO: Register the collector in the facts registry
+
+                    // Create a closure that will execute the plugin collector
+                    let plugin_name_clone = plugin_name.clone();
+                    let name_clone = name.to_string();
+
+                    let collector_fn = Arc::new(move |collector: &crate::facts::Collector| {
+                        if let crate::facts::Collector::Plugin(plugin_collector) = collector {
+                            // Get the global plugin manager
+                            if let Some(pm_arc) = &*GLOBAL_PLUGIN_MANAGER.read().unwrap() {
+                                let pm = pm_arc.read().unwrap();
+                                // Convert YAML config to JSON
+                                let config_json = serde_json::to_value(&plugin_collector.config)
+                                    .unwrap_or(serde_json::Value::Null);
+                                match pm.execute_facts_collector(
+                                    &plugin_name_clone,
+                                    &name_clone,
+                                    &config_json,
+                                ) {
+                                    Ok(result) => {
+                                        // Convert JSON to YAML
+                                        let yaml_str = serde_yaml::to_string(&result)?;
+                                        serde_yaml::from_str(&yaml_str).map_err(|e| {
+                                            anyhow::anyhow!("YAML conversion failed: {}", e)
+                                        })
+                                    }
+                                    Err(e) => Err(anyhow::anyhow!(
+                                        "Plugin collector execution failed: {}",
+                                        e
+                                    )),
+                                }
+                            } else {
+                                Err(anyhow::anyhow!("Global plugin manager not initialized"))
+                            }
+                        } else {
+                            Err(anyhow::anyhow!("Invalid collector type for plugin facts"))
+                        }
+                    });
+
+                    // Register the collector in the facts registry
+                    crate::facts::FactsRegistry::register_collector(
+                        &format!("plugin_{}_{}", plugin_name, name),
+                        category,
+                        description,
+                        &format!("plugin_{}", plugin_name),
+                        collector_fn,
+                    );
+
+                    info!(
+                        "Registered facts collector '{}' from plugin {}",
+                        name, plugin_name
+                    );
                 }
             }
         }
@@ -703,7 +774,8 @@ impl PluginManager {
             for source_def in source_defs {
                 if let Some(name) = source_def.get("name").and_then(|v| v.as_str()) {
                     info!("Plugin {} provides log source: {}", plugin_name, name);
-                    // TODO: Register the source in the logs registry
+                    // Log sources are used by specifying source_type: "plugin" with plugin_name and plugin_source_name
+                    info!("Log source '{}' from plugin {} can be used by setting source_type: 'plugin', plugin_name: '{}', plugin_source_name: '{}' in config", name, plugin_name, plugin_name, name);
                 }
             }
 
@@ -716,7 +788,8 @@ impl PluginManager {
             for parser_def in parser_defs {
                 if let Some(name) = parser_def.get("name").and_then(|v| v.as_str()) {
                     info!("Plugin {} provides log parser: {}", plugin_name, name);
-                    // TODO: Register the parser in the logs registry
+                    // Parsers are used by specifying parser_type: { type: "plugin", name: "..." } in config
+                    info!("Log parser '{}' from plugin {} can be used by setting parser_type: {{ type: 'plugin', name: '{}' }} in config", name, plugin_name, name);
                 }
             }
 
@@ -729,7 +802,11 @@ impl PluginManager {
             for filter_def in filter_defs {
                 if let Some(name) = filter_def.get("name").and_then(|v| v.as_str()) {
                     info!("Plugin {} provides log filter: {}", plugin_name, name);
-                    // TODO: Register the filter in the logs registry
+                    // Filters are used in the filters array in config
+                    info!(
+                        "Log filter '{}' from plugin {} can be used in the filters array in config",
+                        name, plugin_name
+                    );
                 }
             }
 
@@ -742,7 +819,11 @@ impl PluginManager {
             for output_def in output_defs {
                 if let Some(name) = output_def.get("name").and_then(|v| v.as_str()) {
                     info!("Plugin {} provides log output: {}", plugin_name, name);
-                    // TODO: Register the output in the logs registry
+                    // Outputs are used in the outputs array in config
+                    info!(
+                        "Log output '{}' from plugin {} can be used in the outputs array in config",
+                        name, plugin_name
+                    );
                 }
             }
         }
@@ -754,7 +835,140 @@ impl PluginManager {
         &mut self,
         _plugin_manager: Arc<RwLock<Self>>,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        // TODO: Implement template extension registration
+        for (plugin_name, module) in &self.loaded_plugins {
+            // Check if plugin provides template extensions
+            if let Ok(extension_defs) = self.call_plugin_json_function(
+                plugin_name,
+                module,
+                crate::plugin_interface::plugin_exports::GET_TEMPLATE_EXTENSIONS,
+            ) {
+                for extension_def in extension_defs {
+                    if let (Some(name), Some(ext_type)) = (
+                        extension_def.get("name").and_then(|v| v.as_str()),
+                        extension_def.get("type").and_then(|v| v.as_str()),
+                    ) {
+                        let description = extension_def
+                            .get("description")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("Plugin-provided template extension");
+                        let category = extension_def
+                            .get("category")
+                            .and_then(|v| v.as_str())
+                            .unwrap_or("Plugin");
+
+                        let arguments = extension_def
+                            .get("arguments")
+                            .and_then(|v| v.as_array())
+                            .map(|arr| {
+                                arr.iter()
+                                    .filter_map(|arg| {
+                                        if let Some(name) = arg.get("name").and_then(|v| v.as_str())
+                                        {
+                                            let desc = arg
+                                                .get("description")
+                                                .and_then(|v| v.as_str())
+                                                .unwrap_or("");
+                                            Some((name.to_string(), desc.to_string()))
+                                        } else {
+                                            None
+                                        }
+                                    })
+                                    .collect::<Vec<_>>()
+                            })
+                            .unwrap_or_default();
+
+                        info!(
+                            "Plugin {} provides template extension: {} ({})",
+                            plugin_name, name, ext_type
+                        );
+
+                        let plugin_name_clone = plugin_name.clone();
+                        let name_clone = name.to_string();
+
+                        match ext_type {
+                            "filter" => {
+                                let filter_fn = Arc::new(
+                                    move |value: minijinja::Value, args: &[minijinja::Value]| {
+                                        // Get the global plugin manager
+                                        if let Some(pm_arc) =
+                                            &*GLOBAL_PLUGIN_MANAGER.read().unwrap()
+                                        {
+                                            let pm = pm_arc.read().unwrap();
+                                            match pm.execute_template_filter(
+                                                &plugin_name_clone,
+                                                &name_clone,
+                                                &serde_json::Value::Null,
+                                                &value,
+                                                args,
+                                            ) {
+                                                Ok(result) => result,
+                                                Err(e) => {
+                                                    eprintln!("Plugin template filter execution failed: {}", e);
+                                                    minijinja::Value::from("ERROR")
+                                                }
+                                            }
+                                        } else {
+                                            eprintln!("Global plugin manager not initialized for template filter");
+                                            minijinja::Value::from("ERROR")
+                                        }
+                                    },
+                                );
+
+                                crate::apply::templating::TemplateRegistry::register_custom_filter(
+                                    name,
+                                    description,
+                                    category,
+                                    arguments,
+                                    filter_fn,
+                                );
+                            }
+                            "function" => {
+                                let function_fn = Arc::new(move |args: &[minijinja::Value]| {
+                                    // Get the global plugin manager
+                                    if let Some(pm_arc) = &*GLOBAL_PLUGIN_MANAGER.read().unwrap() {
+                                        let pm = pm_arc.read().unwrap();
+                                        match pm.execute_template_function(
+                                            &plugin_name_clone,
+                                            &name_clone,
+                                            &serde_json::Value::Null,
+                                            args,
+                                        ) {
+                                            Ok(result) => result,
+                                            Err(e) => {
+                                                eprintln!(
+                                                    "Plugin template function execution failed: {}",
+                                                    e
+                                                );
+                                                minijinja::Value::from("ERROR")
+                                            }
+                                        }
+                                    } else {
+                                        eprintln!("Global plugin manager not initialized for template function");
+                                        minijinja::Value::from("ERROR")
+                                    }
+                                });
+
+                                crate::apply::templating::TemplateRegistry::register_custom_function(
+                                    name,
+                                    description,
+                                    category,
+                                    arguments,
+                                    function_fn,
+                                );
+                            }
+                            _ => {
+                                warn!("Unknown template extension type: {}", ext_type);
+                            }
+                        }
+
+                        info!(
+                            "Registered template extension '{}' ({}) from plugin {}",
+                            name, ext_type, plugin_name
+                        );
+                    }
+                }
+            }
+        }
         Ok(())
     }
 
@@ -1333,9 +1547,14 @@ impl PluginManager {
         store: &mut Store<()>,
         _plugin_name: &str,
     ) -> Result<(Option<String>, Option<String>), Box<dyn std::error::Error>> {
+        use std::sync::mpsc;
+
         // Set epoch deadline for timeout
         let timeout_epoch = self.security_config.execution_timeout_secs;
         store.set_epoch_deadline(timeout_epoch);
+
+        // Create a channel for thread cancellation
+        let (cancel_tx, cancel_rx) = mpsc::channel();
 
         // Start timeout monitoring in a separate thread
         let epoch_counter = Arc::clone(&self.epoch_counter);
@@ -1343,6 +1562,10 @@ impl PluginManager {
         let timeout_secs = self.security_config.execution_timeout_secs;
         let timeout_handle = std::thread::spawn(move || {
             for _ in 0..timeout_secs {
+                // Check for cancellation signal
+                if cancel_rx.try_recv().is_ok() {
+                    return;
+                }
                 std::thread::sleep(Duration::from_secs(1));
                 let current_epoch = epoch_counter.load(std::sync::atomic::Ordering::SeqCst);
                 if current_epoch >= timeout_epoch {
@@ -1355,10 +1578,13 @@ impl PluginManager {
         // Extract metadata
         let result = self.extract_plugin_metadata(instance, store);
 
-        // Stop timeout monitoring
-        // Note: In a real implementation, we'd want to properly cancel the thread
-        // For now, we'll let it finish naturally
-        drop(timeout_handle);
+        // Signal the timeout thread to stop
+        let _ = cancel_tx.send(());
+
+        // Wait for the timeout thread to finish
+        if let Err(e) = timeout_handle.join() {
+            error!("Timeout monitoring thread panicked: {:?}", e);
+        }
 
         Ok(result)
     }
@@ -1521,5 +1747,39 @@ mod tests {
         assert!(result.is_err());
     }
 
-    // TODO: Add test with a valid minimal WASM module
+    #[test]
+    fn test_load_valid_plugin() {
+        use tempfile::TempDir;
+
+        // Create a minimal valid WASM module
+        let wat = r#"
+        (module
+            (func (export "get_plugin_info") (result i32)
+                i32.const 42
+            )
+        )
+        "#;
+
+        let wasm_bytes = wat::parse_str(wat).unwrap();
+
+        // Create a temporary directory for plugins
+        let temp_dir = TempDir::new().unwrap();
+        let plugin_path = temp_dir.path().join("test_plugin.wasm");
+
+        // Write the WASM module to the temp directory
+        std::fs::write(&plugin_path, &wasm_bytes).unwrap();
+
+        let mut manager = PluginManager::new(temp_dir.path().to_path_buf()).unwrap();
+
+        // Scan for plugins first
+        manager.scan_plugins().unwrap();
+
+        // Test loading the valid plugin
+        let result = manager.load_plugin("test_plugin");
+        assert!(
+            result.is_ok(),
+            "Failed to load valid WASM plugin: {:?}",
+            result.err()
+        );
+    }
 }

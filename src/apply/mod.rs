@@ -2092,6 +2092,19 @@ pub struct ApplyConfig {
     pub tasks: Vec<Task>,
 }
 
+impl ApplyConfig {
+    /// Merge another ApplyConfig into this one
+    pub fn merge(&mut self, other: ApplyConfig) {
+        // Merge variables (other variables take precedence)
+        for (key, value) in other.vars {
+            self.vars.insert(key, value);
+        }
+
+        // Merge tasks (extend the list)
+        self.tasks.extend(other.tasks);
+    }
+}
+
 /// Generic task wrapper that includes common fields
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Task {

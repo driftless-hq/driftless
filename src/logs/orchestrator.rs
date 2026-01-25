@@ -4,9 +4,9 @@
 //! log sources, parsers, filters, and outputs with proper buffering and error handling.
 
 use crate::logs::{
-    create_console_output, create_file_output, create_filter, create_parser, create_s3_output,
-    create_syslog_output, FileLogSource, FilterConfig, LogEntry, LogOutput, LogOutputWriter,
-    LogSource, LogsConfig, ParserConfig, ShipperLogEntry,
+    create_console_output, create_file_output, create_filter, create_http_output, create_parser,
+    create_plugin_output, create_s3_output, create_syslog_output, FileLogSource, FilterConfig,
+    LogEntry, LogOutput, LogOutputWriter, LogSource, LogsConfig, ParserConfig, ShipperLogEntry,
 };
 use anyhow::{anyhow, Result};
 use std::collections::HashMap;
@@ -143,10 +143,10 @@ impl LogOrchestrator {
             let source_clone = source.clone();
             let sender_clone = lines_sender.clone();
 
-            let task =
-                tokio::spawn(
-                    async move { Self::run_source_task(source_clone, sender_clone).await },
-                );
+            let plugin_manager = self.plugin_manager.clone();
+            let task = tokio::spawn(async move {
+                Self::run_source_task(source_clone, sender_clone, plugin_manager).await
+            });
 
             self.source_tasks.push(task);
         }
@@ -155,11 +155,84 @@ impl LogOrchestrator {
     }
 
     /// Run a single source task
-    async fn run_source_task(source: LogSource, lines_sender: mpsc::Sender<String>) -> Result<()> {
-        // For now, only support file sources
-        // TODO: Add support for other source types
-        let file_source = FileLogSource::new(source.clone())?;
-        file_source.start_tailing(lines_sender).await?;
+    async fn run_source_task(
+        source: LogSource,
+        lines_sender: mpsc::Sender<String>,
+        plugin_manager: Option<Arc<RwLock<crate::plugins::PluginManager>>>,
+    ) -> Result<()> {
+        // Support different source types
+        match source.source_type.as_str() {
+            "file" => {
+                let file_source = FileLogSource::new(source.clone())?;
+                file_source.start_tailing(lines_sender).await?;
+            }
+            "plugin" => {
+                // Handle plugin sources
+                if let (Some(plugin_name), Some(plugin_source_name)) =
+                    (&source.plugin_name, &source.plugin_source_name)
+                {
+                    if let Some(pm) = plugin_manager {
+                        let pm_clone = pm.clone();
+                        let plugin_name = plugin_name.clone();
+                        let plugin_source_name = plugin_source_name.clone();
+                        let config = serde_json::to_value(&source).unwrap_or_default();
+
+                        // Run plugin source in a task
+                        tokio::spawn(async move {
+                            loop {
+                                // Call the plugin to get log data and handle result immediately
+                                let entries = {
+                                    let pm_read = pm_clone.read().unwrap();
+                                    match pm_read.execute_log_source(
+                                        &plugin_name,
+                                        &plugin_source_name,
+                                        &config,
+                                    ) {
+                                        Ok(entries) => Some(entries),
+                                        Err(e) => {
+                                            let error_msg = format!("{}", e);
+                                            eprintln!(
+                                                "Error executing plugin log source {}:{}: {}",
+                                                plugin_name, plugin_source_name, error_msg
+                                            );
+                                            None
+                                        }
+                                    }
+                                };
+
+                                if let Some(entries) = entries {
+                                    for entry in entries {
+                                        if lines_sender.send(entry.raw.clone()).await.is_err() {
+                                            return; // Channel closed
+                                        }
+                                    }
+                                    tokio::time::sleep(Duration::from_millis(100)).await;
+                                // Polling interval
+                                } else {
+                                    // Error occurred, wait before retrying
+                                    tokio::time::sleep(Duration::from_secs(5)).await;
+                                }
+                            }
+                        });
+                    } else {
+                        eprintln!(
+                            "Plugin manager not available for plugin source: {}",
+                            source.name
+                        );
+                    }
+                } else {
+                    eprintln!(
+                        "Plugin source missing plugin_name or plugin_source_name: {}",
+                        source.name
+                    );
+                }
+            }
+            _ => {
+                // Default to file source for backward compatibility
+                let file_source = FileLogSource::new(source.clone())?;
+                file_source.start_tailing(lines_sender).await?;
+            }
+        }
         Ok(())
     }
 
@@ -332,8 +405,8 @@ impl LogOrchestrator {
                 message: entry.message.unwrap_or_else(|| entry.raw.clone()),
                 timestamp: entry.timestamp,
                 fields: entry.fields,
-                source: "orchestrator".to_string(), // TODO: Pass actual source
-                labels: HashMap::new(),             // TODO: Add labels
+                source: "orchestrator".to_string(), // TODO: Track source information through pipeline
+                labels: HashMap::new(),             // TODO: Track labels through pipeline
             };
 
             if output_sender.send(shipper_entry).await.is_err() {
@@ -351,8 +424,10 @@ impl LogOrchestrator {
     ) -> Result<()> {
         let outputs = self.config.outputs.clone();
 
-        let task =
-            tokio::spawn(async move { Self::run_shipper_tasks(output_receiver, outputs).await });
+        let plugin_manager = self.plugin_manager.clone();
+        let task = tokio::spawn(async move {
+            Self::run_shipper_tasks(output_receiver, outputs, plugin_manager).await
+        });
 
         self.output_tasks.push(task);
         Ok(())
@@ -362,6 +437,7 @@ impl LogOrchestrator {
     async fn run_shipper_tasks(
         mut receiver: mpsc::Receiver<ShipperLogEntry>,
         outputs: Vec<LogOutput>,
+        plugin_manager: Option<Arc<RwLock<crate::plugins::PluginManager>>>,
     ) -> Result<()> {
         // Create writers for each output
         let mut writers = Vec::new();
@@ -382,9 +458,11 @@ impl LogOrchestrator {
                     create_s3_output(config).await?
                 }
                 LogOutput::Http(_) => {
-                    // For now, skip HTTP output as create function doesn't exist
-                    // TODO: Implement HTTP output creation
-                    continue;
+                    let config = match &output {
+                        LogOutput::Http(h) => h.clone(),
+                        _ => unreachable!(),
+                    };
+                    create_http_output(config).await?
                 }
                 LogOutput::Syslog(_) => {
                     let config = match &output {
@@ -401,8 +479,15 @@ impl LogOrchestrator {
                     create_console_output(config)?
                 }
                 LogOutput::Plugin(_) => {
-                    // TODO: Implement plugin output creation
-                    continue;
+                    let config = match &output {
+                        LogOutput::Plugin(p) => p.clone(),
+                        _ => unreachable!(),
+                    };
+                    if let Some(pm) = &plugin_manager {
+                        create_plugin_output(config, pm.clone()).await?
+                    } else {
+                        return Err(anyhow!("Plugin manager required for plugin outputs"));
+                    }
                 }
             };
             writers.push(writer);

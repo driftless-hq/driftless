@@ -4,6 +4,8 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use tracing::{error, info};
 
+use crate::plugins::PluginManager;
+
 mod agent;
 mod apply;
 mod config;
@@ -180,6 +182,8 @@ async fn main() -> anyhow::Result<()> {
                     );
                 }
             }
+            // Set the global plugin manager for registry callbacks
+            crate::plugins::set_global_plugin_manager(pm_arc.clone());
             Some(pm_arc)
         }
         Err(e) => {
@@ -312,11 +316,36 @@ async fn main() -> anyhow::Result<()> {
 
                     if enabled_sources > 0 && enabled_outputs > 0 {
                         println!("Log collection started...");
+
+                        // Create and start the log orchestrator
+                        let mut orchestrator =
+                            logs::LogOrchestrator::new_with_plugins(config, plugin_manager.clone());
+
+                        // Start the log processing pipeline
+                        if let Err(e) = orchestrator.start().await {
+                            eprintln!("Failed to start log processing: {}", e);
+                            std::process::exit(1);
+                        }
+
+                        // Wait for shutdown signal (Ctrl+C)
+                        match tokio::signal::ctrl_c().await {
+                            Ok(()) => {
+                                println!("Received shutdown signal, stopping log collection...");
+                            }
+                            Err(e) => {
+                                eprintln!("Failed to listen for shutdown signal: {}", e);
+                            }
+                        }
+
+                        // Stop the orchestrator
+                        if let Err(e) = orchestrator.stop().await {
+                            eprintln!("Error stopping log orchestrator: {}", e);
+                        }
+
+                        println!("Log collection stopped");
                     } else {
                         println!("No enabled sources or outputs - nothing to do");
                     }
-
-                    // TODO: Implement actual log collection and forwarding
                 }
                 Err(e) => {
                     eprintln!("Failed to load logs configuration: {}", e);
@@ -518,9 +547,52 @@ async fn main() -> anyhow::Result<()> {
                 PluginCommands::Update => {
                     println!("Updating all installed plugins...");
 
-                    // For now, just show that this command is not implemented
-                    // In a real implementation, this would check for updates and install them
-                    println!("Plugin update functionality not yet implemented");
+                    // Initialize plugin manager
+                    let mut plugin_manager = PluginManager::new(plugin_dir.clone())?;
+
+                    // Scan for plugins
+                    plugin_manager
+                        .scan_plugins()
+                        .map_err(|e| anyhow::anyhow!("Failed to scan plugins: {}", e))?;
+
+                    // Get list of loaded plugins
+                    let _loaded_plugins = plugin_manager.get_loaded_plugins();
+
+                    // Get list of loaded plugins
+                    let loaded_plugins = plugin_manager.get_loaded_plugins();
+                    let total_plugins = loaded_plugins.len();
+
+                    if total_plugins == 0 {
+                        println!("No plugins currently loaded");
+                        return Ok(());
+                    }
+
+                    println!(
+                        "Found {} loaded plugins to check for updates",
+                        total_plugins
+                    );
+
+                    // For each plugin, attempt to reload/update
+                    let mut updated_count = 0;
+                    for plugin_name in loaded_plugins {
+                        println!("Checking plugin: {}", plugin_name);
+
+                        // Try to reload the plugin (this will pick up any file changes)
+                        match plugin_manager.load_plugin(&plugin_name) {
+                            Ok(_) => {
+                                println!("Successfully updated plugin: {}", plugin_name);
+                                updated_count += 1;
+                            }
+                            Err(e) => {
+                                println!("Failed to update plugin {}: {}", plugin_name, e);
+                            }
+                        }
+                    }
+
+                    println!(
+                        "Plugin update complete. Updated {} out of {} plugins",
+                        updated_count, total_plugins
+                    );
                 }
             }
         }
@@ -642,25 +714,30 @@ fn load_facts_config(config_dir: &PathBuf) -> anyhow::Result<facts::FactsConfig>
         ));
     }
 
-    // For now, load the first facts config file found
-    // TODO: Support merging multiple facts config files
-    let config_file = &facts_files[0];
-    println!("Loading facts config from: {}", config_file.display());
+    // Load and merge all facts configuration files
+    let mut merged_config = facts::FactsConfig::default();
 
-    let content = fs::read_to_string(config_file)?;
-    let config: facts::FactsConfig = match config_file.extension().and_then(|s| s.to_str()) {
-        Some("json") => serde_json::from_str(&content)?,
-        Some("toml") => toml::from_str(&content)?,
-        Some("yaml") | Some("yml") => serde_yaml::from_str(&content)?,
-        _ => {
-            return Err(anyhow::anyhow!(
-                "Unsupported config file format: {}",
-                config_file.display()
-            ))
-        }
-    };
+    for config_file in &facts_files {
+        println!("Loading facts config from: {}", config_file.display());
 
-    Ok(config)
+        let content = fs::read_to_string(config_file)?;
+        let config: facts::FactsConfig = match config_file.extension().and_then(|s| s.to_str()) {
+            Some("json") => serde_json::from_str(&content)?,
+            Some("toml") => toml::from_str(&content)?,
+            Some("yaml") | Some("yml") => serde_yaml::from_str(&content)?,
+            _ => {
+                return Err(anyhow::anyhow!(
+                    "Unsupported config file format: {}",
+                    config_file.display()
+                ))
+            }
+        };
+
+        // Merge configurations
+        merged_config.merge(config);
+    }
+
+    Ok(merged_config)
 }
 
 /// Load agent configuration from the config directory
@@ -730,25 +807,35 @@ fn load_logs_config(config_dir: &PathBuf) -> anyhow::Result<logs::LogsConfig> {
         ));
     }
 
-    // For now, load the first logs config file found
-    // TODO: Support merging multiple logs config files
-    let config_file = &logs_files[0];
-    println!("Loading logs config from: {}", config_file.display());
-
-    let content = fs::read_to_string(config_file)?;
-    let config: logs::LogsConfig = match config_file.extension().and_then(|s| s.to_str()) {
-        Some("json") => serde_json::from_str(&content)?,
-        Some("toml") => toml::from_str(&content)?,
-        Some("yaml") | Some("yml") => serde_yaml::from_str(&content)?,
-        _ => {
-            return Err(anyhow::anyhow!(
-                "Unsupported config file format: {}",
-                config_file.display()
-            ))
-        }
+    // Load and merge all logs configuration files
+    let mut merged_config = logs::LogsConfig {
+        global: logs::GlobalSettings::default(),
+        sources: Vec::new(),
+        outputs: Vec::new(),
+        processing: logs::ProcessingConfig::default(),
     };
 
-    Ok(config)
+    for config_file in &logs_files {
+        println!("Loading logs config from: {}", config_file.display());
+
+        let content = fs::read_to_string(config_file)?;
+        let config: logs::LogsConfig = match config_file.extension().and_then(|s| s.to_str()) {
+            Some("json") => serde_json::from_str(&content)?,
+            Some("toml") => toml::from_str(&content)?,
+            Some("yaml") | Some("yml") => serde_yaml::from_str(&content)?,
+            _ => {
+                return Err(anyhow::anyhow!(
+                    "Unsupported config file format: {}",
+                    config_file.display()
+                ))
+            }
+        };
+
+        // Merge configurations
+        merged_config.merge(config);
+    }
+
+    Ok(merged_config)
 }
 
 /// Find logs configuration files in the config directory
@@ -837,29 +924,38 @@ fn load_apply_config(config_dir: &PathBuf) -> anyhow::Result<apply::ApplyConfig>
         ));
     }
 
-    // For now, load the first apply config file found
-    // TODO: Support merging multiple apply config files
-    let config_file = &apply_files[0];
-    println!("Loading apply config from: {}", config_file.display());
-
-    let content = fs::read_to_string(config_file)?;
-    let config: apply::ApplyConfig = match config_file.extension().and_then(|s| s.to_str()) {
-        Some("json") => serde_json::from_str(&content)?,
-        Some("toml") => toml::from_str(&content)?,
-        Some("yaml") | Some("yml") => serde_yaml::from_str(&content)?,
-        _ => {
-            return Err(anyhow::anyhow!(
-                "Unsupported config file format: {}",
-                config_file.display()
-            ))
-        }
+    // Load and merge all apply configuration files
+    let mut merged_config = apply::ApplyConfig {
+        vars: std::collections::HashMap::new(),
+        tasks: Vec::new(),
     };
 
-    println!("DEBUG: Loaded config with {} vars", config.vars.len());
-    for (k, v) in &config.vars {
-        println!("DEBUG: Config var {} = {:?}", k, v);
+    for config_file in &apply_files {
+        println!("Loading apply config from: {}", config_file.display());
+
+        let content = fs::read_to_string(config_file)?;
+        let config: apply::ApplyConfig = match config_file.extension().and_then(|s| s.to_str()) {
+            Some("json") => serde_json::from_str(&content)?,
+            Some("toml") => toml::from_str(&content)?,
+            Some("yaml") | Some("yml") => serde_yaml::from_str(&content)?,
+            _ => {
+                return Err(anyhow::anyhow!(
+                    "Unsupported config file format: {}",
+                    config_file.display()
+                ))
+            }
+        };
+
+        // Merge configurations
+        merged_config.merge(config);
     }
-    Ok(config)
+
+    println!(
+        "DEBUG: Loaded merged config with {} vars and {} tasks",
+        merged_config.vars.len(),
+        merged_config.tasks.len()
+    );
+    Ok(merged_config)
 }
 
 /// Find apply configuration files in the config directory

@@ -151,11 +151,25 @@ impl FileLogSource {
     }
 
     /// Parse multiline configuration from file options
-    fn parse_multiline_config(_config: &LogSource) -> Result<Option<MultilineConfig>> {
-        // For now, we'll use a simple approach - in a real implementation,
-        // this would parse from the config structure
-        // This is a placeholder for multiline config parsing
-        Ok(None)
+    fn parse_multiline_config(config: &LogSource) -> Result<Option<MultilineConfig>> {
+        // Parse multiline config from the parser configuration
+        if config.parser.multiline.enabled {
+            let multiline = &config.parser.multiline;
+            let pattern = multiline
+                .start_pattern
+                .clone()
+                .unwrap_or_else(|| r"^\s+".to_string()); // Default pattern for continuation lines
+
+            Ok(Some(MultilineConfig {
+                pattern,
+                negate: false,                         // Start pattern matching
+                match_type: MultilineMatchType::After, // Lines after the start pattern
+                max_lines: Some(multiline.max_lines),
+                timeout: None, // No timeout for now
+            }))
+        } else {
+            Ok(None)
+        }
     }
 
     /// Start tailing the configured log files
@@ -389,6 +403,7 @@ mod tests {
     fn test_file_log_source_creation() {
         let config = LogSource {
             name: "test_source".to_string(),
+            source_type: "file".to_string(),
             enabled: true,
             paths: vec!["/tmp/test.log".to_string()],
             file_options: FileOptions::default(),
@@ -396,6 +411,8 @@ mod tests {
             filters: Vec::new(),
             outputs: Vec::new(),
             labels: HashMap::new(),
+            plugin_name: None,
+            plugin_source_name: None,
         };
 
         let source = FileLogSource::new(config);
@@ -459,6 +476,7 @@ mod tests {
     fn test_missing_file_handling() {
         let config = LogSource {
             name: "test_source".to_string(),
+            source_type: "file".to_string(),
             enabled: true,
             paths: vec!["/nonexistent/file.log".to_string()],
             file_options: FileOptions {
@@ -469,6 +487,8 @@ mod tests {
             filters: Vec::new(),
             outputs: Vec::new(),
             labels: HashMap::new(),
+            plugin_name: None,
+            plugin_source_name: None,
         };
 
         let source = FileLogSource::new(config);

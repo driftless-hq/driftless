@@ -219,6 +219,7 @@ pub struct Agent {
     apply_executor: Option<Arc<Mutex<TaskExecutor>>>,
     facts_orchestrator: Option<Arc<Mutex<FactsOrchestrator>>>,
     logs_orchestrator: Option<Arc<Mutex<LogOrchestrator>>>,
+    logs_config: Option<LogsConfig>,
     plugin_manager: Option<Arc<RwLock<crate::plugins::PluginManager>>>,
     config_watcher: Option<RecommendedWatcher>,
     metrics_registry: prometheus::Registry,
@@ -274,6 +275,65 @@ struct ResourceCache {
     cache_duration: Duration,
 }
 
+/// Compare two log configurations to see if they are equivalent
+fn configs_are_equal(a: &crate::logs::LogsConfig, b: &crate::logs::LogsConfig) -> bool {
+    // Compare global settings
+    if a.global.enabled != b.global.enabled ||
+       a.global.buffer_size != b.global.buffer_size ||
+       a.global.flush_interval != b.global.flush_interval ||
+       a.global.labels != b.global.labels {
+        return false;
+    }
+
+    // Compare sources (order matters for now, could be made order-independent)
+    if a.sources.len() != b.sources.len() {
+        return false;
+    }
+    for (source_a, source_b) in a.sources.iter().zip(b.sources.iter()) {
+        if source_a.name != source_b.name ||
+           source_a.enabled != source_b.enabled ||
+           source_a.source_type != source_b.source_type ||
+           source_a.paths != source_b.paths {
+            return false;
+        }
+    }
+
+    // Compare outputs
+    if a.outputs.len() != b.outputs.len() {
+        return false;
+    }
+    for (output_a, output_b) in a.outputs.iter().zip(b.outputs.iter()) {
+        // This is a simplified comparison - in practice, you'd need to compare
+        // the actual output configurations which vary by type
+        if !outputs_are_equal(output_a, output_b) {
+            return false;
+        }
+    }
+
+    // Compare processing config
+    if a.processing.enabled != b.processing.enabled ||
+       a.processing.global_filters.len() != b.processing.global_filters.len() ||
+       a.processing.transformations.len() != b.processing.transformations.len() {
+        return false;
+    }
+
+    true
+}
+
+/// Compare two log outputs for equality
+fn outputs_are_equal(a: &crate::logs::LogOutput, b: &crate::logs::LogOutput) -> bool {
+    use crate::logs::LogOutput::*;
+    match (a, b) {
+        (File(a), File(b)) => a.enabled == b.enabled && a.path == b.path,
+        (S3(a), S3(b)) => a.enabled == b.enabled && a.bucket == b.bucket && a.prefix == b.prefix,
+        (Http(a), Http(b)) => a.enabled == b.enabled && a.url == b.url,
+        (Syslog(a), Syslog(b)) => a.enabled == b.enabled && a.facility == b.facility,
+        (Console(a), Console(b)) => a.enabled == b.enabled,
+        (Plugin(a), Plugin(b)) => a.enabled == b.enabled && a.config == b.config,
+        _ => false, // Different output types
+    }
+}
+
 impl Agent {
     /// Create a new agent with the given configuration
     pub fn new(config: AgentConfig) -> Self {
@@ -285,6 +345,7 @@ impl Agent {
             apply_executor: None,
             facts_orchestrator: None,
             logs_orchestrator: None,
+            logs_config: None,
             plugin_manager: None,
             config_watcher: None,
             metrics_registry: prometheus::Registry::new(),
@@ -1389,27 +1450,34 @@ impl Agent {
                         return Err(e);
                     }
 
-                    // Compare with current config to see if restart is needed
-                    // For now, we'll restart on any config change detection
-                    // TODO: Implement more sophisticated config comparison
-                    info!("Logs configuration changed, restarting logs processing...");
+                    let needs_restart = match &self.logs_config {
+                        Some(current_config) => !configs_are_equal(current_config, &config),
+                        None => true, // No current config, so restart needed
+                    };
 
-                    // Stop current logs processing
-                    if let Some(orchestrator) = &self.logs_orchestrator {
-                        let mut orchestrator = orchestrator.lock().await;
-                        if let Err(e) = orchestrator.stop().await {
-                            error!("Error stopping logs orchestrator: {}", e);
+                    if needs_restart {
+                        info!("Logs configuration changed, restarting logs processing...");
+
+                        // Stop current logs processing
+                        if let Some(orchestrator) = &self.logs_orchestrator {
+                            let mut orchestrator = orchestrator.lock().await;
+                            if let Err(e) = orchestrator.stop().await {
+                                error!("Error stopping logs orchestrator: {}", e);
+                            }
                         }
-                    }
-                    self.logs_running = false;
+                        self.logs_running = false;
 
-                    // Reinitialize orchestrator with new config
-                    let orchestrator =
-                        LogOrchestrator::new_with_plugins(config, self.plugin_manager.clone());
-                    self.logs_source_count = orchestrator.source_count();
-                    self.logs_output_count = orchestrator.output_count();
-                    self.logs_orchestrator = Some(Arc::new(Mutex::new(orchestrator)));
-                    debug!("Logs orchestrator reinitialized with new configuration");
+                        // Reinitialize orchestrator with new config
+                        let orchestrator =
+                            LogOrchestrator::new_with_plugins(config.clone(), self.plugin_manager.clone());
+                        self.logs_source_count = orchestrator.source_count();
+                        self.logs_output_count = orchestrator.output_count();
+                        self.logs_orchestrator = Some(Arc::new(Mutex::new(orchestrator)));
+                        self.logs_config = Some(config);
+                        debug!("Logs orchestrator reinitialized with new configuration");
+                    } else {
+                        debug!("Logs configuration unchanged, no restart needed");
+                    }
                 }
                 Ok(None) => {
                     // Configuration was removed, stop logs processing
