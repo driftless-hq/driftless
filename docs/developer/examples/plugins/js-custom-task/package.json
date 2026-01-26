@@ -4,8 +4,12 @@
     "description": "Example custom task plugin for Driftless (JavaScript)",
     "main": "index.js",
     "scripts": {
-        "build": "webpack --mode=production",
-        "build:dev": "webpack --mode=development"
+        "build": "webpack --mode=production && javy compile dist/driftless-js-custom-task-plugin.js -o dist/driftless-js-custom-task-plugin.wasm",
+        "build:dev": "webpack --mode=development",
+        "compile-wasm": "javy compile dist/driftless-js-custom-task-plugin.js -o dist/driftless-js-custom-task-plugin.wasm"
+    },
+    "dependencies": {
+        "expr-eval": "^2.0.2"
     },
     "devDependencies": {
         "webpack": "^5.75.0",

@@ -86,7 +86,6 @@ The [nix crate](https://github.com/nix-rust/nix) provides Rust bindings to *nix 
 - [ ] **KVM operations** - Kernel-based virtual machines
 
 ## TODO
-- [x] Review the entire codebase to find all placeholders, `TODO`, `in practice`, and `in a real implementation` comments and add TODO list items to address them
 - Create task prompts in the TODO list that adds support for macOS and Windows operating systems in all applicable areas of the codebase
 - Review usages of `dead_code`, `unsafe`, and `unused_imports` to silence warnings and determine if code should be used or cleaned up according to Rust best practices. Use this opportunity to cleanup unused code and dependencies to reduce release binary size and improve maintainability.
 - Review the codebase for consistent error-handling patterns and improve as needed
@@ -96,15 +95,3 @@ The [nix crate](https://github.com/nix-rust/nix) provides Rust bindings to *nix 
 - Ensure comprehensive test coverage and cleanup any clippy warnings. Tests should be written for the intent of the code not the implementation details.
 - Review the auto-generated and manually-managed documentation in the `docs/` directory and validate information is accurate against the current codebase. Look for cleanup, clarification, expansion, and reorganization opportunities. Ensure all auto-generated documentation contains a banner indicating it is auto-generated and should not be manually edited.
 - Perform a final review of the entire codebase, documentation, and project structure to ensure consistency, quality, and readiness for production use.
-
-### Codebase Implementation Gaps (from TODO, placeholder, and implementation comments)
-
-Ensure these task items have full production-ready implementations or provide additional task items if too complex for a single prompt:
-
-#### Plugin Examples
-- [ ] **TypeScript plugin compilation**: Implement proper WebAssembly compilation for TypeScript plugins using tools like `javy`
-- [ ] **JavaScript plugin compilation**: Implement proper WebAssembly compilation for JavaScript plugins using tools like `javy`
-- [ ] **Python plugin APIs**: Replace platform-specific placeholder implementations with proper APIs (psutil, socket, etc)
-
-#### Plugin Development
-- [ ] **Safe expression evaluation**: Implement safe expression evaluator for JavaScript plugins instead of placeholder comment

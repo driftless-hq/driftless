@@ -3,13 +3,24 @@ Example Facts Collector Plugin for Driftless (Python)
 
 This plugin demonstrates how to create custom facts collectors using Python
 and Pyodide for WebAssembly compilation.
-
-Note: This is a conceptual example. Full Pyodide integration would require
-additional build tooling and WASM compilation steps.
 """
 
 import json
+import platform
+import socket
 from typing import Dict, Any
+
+try:
+    import psutil
+    HAS_PSUTIL = True
+except ImportError:
+    HAS_PSUTIL = False
+
+try:
+    import requests
+    HAS_REQUESTS = True
+except ImportError:
+    HAS_REQUESTS = False
 
 
 def get_facts_collectors() -> str:
@@ -71,58 +82,137 @@ def execute_facts_collector(name: str, config_json: str) -> str:
 
 
 def execute_system_info_collector(config: Dict[str, Any]) -> str:
-    """Collect basic system information."""
+    """Collect basic system information using real APIs."""
     facts = {}
 
     if config.get("include_cpu", True):
-        # In a real implementation, this would use platform-specific APIs
-        facts["cpu"] = {
-            "architecture": "simulated",  # platform.machine()
-            "cores": 4,  # os.cpu_count()
-            "python_version": "3.11.0"  # platform.python_version()
-        }
+        if HAS_PSUTIL:
+            try:
+                cpu_info = {
+                    "architecture": platform.machine(),
+                    "cores": psutil.cpu_count(logical=True),
+                    "physical_cores": psutil.cpu_count(logical=False),
+                    "cpu_percent": psutil.cpu_percent(interval=1),
+                    "python_version": platform.python_version()
+                }
+                facts["cpu"] = cpu_info
+            except Exception as e:
+                facts["cpu"] = {"error": f"Failed to collect CPU info: {str(e)}"}
+        else:
+            facts["cpu"] = {
+                "architecture": platform.machine(),
+                "cores": "psutil not available",
+                "python_version": platform.python_version()
+            }
 
     if config.get("include_memory", True):
-        # In a real implementation, this would use psutil or similar
-        facts["memory"] = {
-            "total_gb": 16,  # simulated
-            "available_gb": 8,  # simulated
-            "used_percent": 50.0  # simulated
-        }
+        if HAS_PSUTIL:
+            try:
+                memory = psutil.virtual_memory()
+                facts["memory"] = {
+                    "total_gb": round(memory.total / (1024**3), 2),
+                    "available_gb": round(memory.available / (1024**3), 2),
+                    "used_gb": round(memory.used / (1024**3), 2),
+                    "used_percent": memory.percent
+                }
+            except Exception as e:
+                facts["memory"] = {"error": f"Failed to collect memory info: {str(e)}"}
+        else:
+            facts["memory"] = {"error": "psutil not available for memory collection"}
 
-    facts["timestamp"] = "2024-01-25T10:30:00Z"  # simulated
+    # Add timestamp
+    from datetime import datetime
+    facts["timestamp"] = datetime.utcnow().isoformat() + "Z"
 
     return json.dumps(facts)
 
 
 def execute_network_interfaces_collector(config: Dict[str, Any]) -> str:
-    """Collect network interface information."""
+    """Collect network interface information using socket APIs."""
     include_loopback = config.get("include_loopback", False)
 
-    # In a real implementation, this would use socket or psutil
-    interfaces = {
-        "eth0": {
-            "addresses": ["192.168.1.100"],
-            "mac": "00:11:22:33:44:55",
-            "status": "up"
-        },
-        "wlan0": {
-            "addresses": ["192.168.1.101"],
-            "mac": "66:77:88:99:AA:BB",
-            "status": "up"
-        }
-    }
+    try:
+        interfaces = {}
 
-    if not include_loopback:
-        interfaces.pop("lo", None)
-    else:
-        interfaces["lo"] = {
-            "addresses": ["127.0.0.1"],
-            "mac": None,
-            "status": "up"
-        }
+        # Get network interface information
+        if hasattr(socket, 'getaddrinfo') and hasattr(socket, 'gethostname'):
+            try:
+                hostname = socket.gethostname()
+                interfaces["hostname"] = hostname
 
-    return json.dumps(interfaces)
+                # Get IP addresses for hostname
+                try:
+                    addr_info = socket.getaddrinfo(hostname, None)
+                    ip_addresses = list(set(
+                        addr[4][0] for addr in addr_info
+                        if addr[4][0] not in ('127.0.0.1', '::1') or include_loopback
+                    ))
+                    interfaces["hostname_ips"] = ip_addresses
+                except Exception:
+                    interfaces["hostname_ips"] = []
+
+            except Exception as e:
+                interfaces["hostname"] = f"error: {str(e)}"
+
+        # Try to get more detailed interface info with psutil if available
+        if HAS_PSUTIL:
+            try:
+                net_if_addrs = psutil.net_if_addrs()
+                net_if_stats = psutil.net_if_stats()
+
+                for interface_name, addrs in net_if_addrs.items():
+                    if not include_loopback and interface_name.startswith(('lo', 'Loopback')):
+                        continue
+
+                    interface_info = {
+                        "addresses": [],
+                        "mac": None,
+                        "status": "unknown"
+                    }
+
+                    for addr in addrs:
+                        if addr.family == socket.AF_INET:
+                            interface_info["addresses"].append(addr.address)
+                        elif addr.family == socket.AF_INET6:
+                            interface_info["addresses"].append(addr.address)
+                        elif addr.family == psutil.AF_LINK:
+                            interface_info["mac"] = addr.address
+
+                    # Get interface status
+                    if interface_name in net_if_stats:
+                        stats = net_if_stats[interface_name]
+                        interface_info["status"] = "up" if stats.isup else "down"
+                        interface_info["mtu"] = stats.mtu
+
+                    interfaces[interface_name] = interface_info
+
+            except Exception as e:
+                interfaces["psutil_error"] = str(e)
+
+        # Fallback if psutil is not available
+        if not HAS_PSUTIL or len(interfaces) <= 2:  # Only hostname info
+            # Basic fallback using socket
+            try:
+                # Get local IP (this is a simplified approach)
+                s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+                s.connect(("8.8.8.8", 80))
+                local_ip = s.getsockname()[0]
+                s.close()
+
+                interfaces["primary_interface"] = {
+                    "addresses": [local_ip],
+                    "mac": "unknown (psutil not available)",
+                    "status": "up"
+                }
+            except Exception:
+                interfaces["network_info"] = "Limited network info available (psutil not installed)"
+
+        return json.dumps(interfaces)
+
+    except Exception as e:
+        return json.dumps({
+            "error": f"Failed to collect network interface information: {str(e)}"
+        })
 
 
 # Other required plugin functions (return empty arrays)
