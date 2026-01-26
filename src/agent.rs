@@ -8,7 +8,7 @@ use crate::facts::{FactsConfig, FactsOrchestrator};
 use crate::logs::{LogOrchestrator, LogsConfig};
 // use crate::secrets::SecretsManager;
 use anyhow::Result;
-use dirs;
+use dirs as dirs_crate;
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -207,7 +207,7 @@ impl Default for AgentConfig {
             system_config
         } else {
             // Fall back to user config
-            dirs::config_dir()
+            dirs_crate::config_dir()
                 .unwrap_or_else(|| PathBuf::from("."))
                 .join("driftless")
                 .join("config")
@@ -219,7 +219,7 @@ impl Default for AgentConfig {
             system_plugins
         } else {
             // Fall back to user plugins
-            dirs::config_dir()
+            dirs_crate::config_dir()
                 .unwrap_or_else(|| PathBuf::from("."))
                 .join("driftless")
                 .join("plugins")

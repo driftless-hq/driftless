@@ -1664,14 +1664,14 @@ impl PluginManager {
                                     .get("description")
                                     .and_then(|v| v.as_str())
                                     .map(|s| s.to_string());
-                                return (version, description);
+                                (version, description)
                             }
                             Err(e) => {
                                 error!(
                                     "Failed to parse plugin metadata JSON: {}. Raw JSON: {}",
                                     e, metadata_json
                                 );
-                                return (None, None);
+                                (None, None)
                             }
                         }
                     }
@@ -1680,7 +1680,7 @@ impl PluginManager {
                             "Failed to read plugin metadata string from WASM memory: {}",
                             e
                         );
-                        return (None, None);
+                        (None, None)
                     }
                 },
                 Err(e) => {
@@ -1688,7 +1688,7 @@ impl PluginManager {
                         "Failed to call `get_plugin_metadata` function exported by plugin: {}",
                         e
                     );
-                    return (None, None);
+                    (None, None)
                 }
             },
             Err(e) => {
@@ -1696,7 +1696,7 @@ impl PluginManager {
                     "Plugin does not export a usable `get_plugin_metadata` function: {}",
                     e
                 );
-                return (None, None);
+                (None, None)
             }
         }
 

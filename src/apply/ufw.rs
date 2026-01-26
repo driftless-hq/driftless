@@ -509,8 +509,11 @@ fn rule_exists(rule_parts: &[&str]) -> Result<bool> {
                 let mut reconstructed_rule = String::new();
                 let mut i = 0;
                 while i < rule_parts.len() {
-                    if rule_parts[i] == "allow" || rule_parts[i] == "deny" ||
-                       rule_parts[i] == "reject" || rule_parts[i] == "limit" {
+                    if rule_parts[i] == "allow"
+                        || rule_parts[i] == "deny"
+                        || rule_parts[i] == "reject"
+                        || rule_parts[i] == "limit"
+                    {
                         // Skip the action as it's not in the "To" part
                         i += 1;
                         continue;

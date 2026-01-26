@@ -223,7 +223,10 @@ use std::process::{Command, Stdio};
 use crate::apply::executor::TaskExecutor;
 
 /// Execute a command task
-pub async fn execute_command_task(task: &CommandTask, executor: &TaskExecutor) -> Result<serde_yaml::Value> {
+pub async fn execute_command_task(
+    task: &CommandTask,
+    executor: &TaskExecutor,
+) -> Result<serde_yaml::Value> {
     // Check if command should be run idempotently
     if task.idempotent && is_command_already_run(task, executor)? {
         println!("Command already executed (idempotent): {}", task.command);

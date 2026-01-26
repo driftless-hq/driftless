@@ -45,15 +45,15 @@ pub fn register_path_filters(
                             }
                         }
                         // If home directory can't be determined, return original
-                        return JinjaValue::from(path_str);
+                        JinjaValue::from(path_str)
                     } else {
                         // Handle ~user syntax - for now, just return as-is since we don't have user lookup
                         // In a full implementation, this would look up the user's home directory
-                        return JinjaValue::from(path_str);
+                        JinjaValue::from(path_str)
                     }
                 } else {
                     // No tilde, return as-is
-                    return JinjaValue::from(path_str);
+                    JinjaValue::from(path_str)
                 }
             } else {
                 // Non-string input, return as-is

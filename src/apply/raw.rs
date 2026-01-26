@@ -169,6 +169,43 @@
 //! creates = true
 //! creates_files = ["/etc/myapp/config.conf"]
 //! ```
+//!
+//! ## Execute command that removes files (idempotent)
+//!
+//! This example executes a command that removes specific files and checks for their existence.
+//!
+//! **YAML Format:**
+//! ```yaml
+//! - type: raw
+//!   description: "Remove temporary files"
+//!   executable: rm
+//!   args: ["-f", "/tmp/cache.dat"]
+//!   removes: true
+//!   removes_files: ["/tmp/cache.dat"]
+//! ```
+//!
+//! **JSON Format:**
+//! ```json
+//! {
+//!   "type": "raw",
+//!   "description": "Remove temporary files",
+//!   "executable": "rm",
+//!   "args": ["-f", "/tmp/cache.dat"],
+//!   "removes": true,
+//!   "removes_files": ["/tmp/cache.dat"]
+//! }
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[tasks]]
+//! type = "raw"
+//! description = "Remove temporary files"
+//! executable = "rm"
+//! args = ["-f", "/tmp/cache.dat"]
+//! removes = true
+//! removes_files = ["/tmp/cache.dat"]
+//! ```
 
 /// Execute commands without shell processing task
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -200,16 +237,16 @@ pub struct RawTask {
     /// Whether to ignore errors
     #[serde(default)]
     pub ignore_errors: bool,
-    /// Whether the command creates resources
+    /// Whether the command creates resources. When enabled with `creates_files`, the command will be skipped if any of the specified files/directories already exist (idempotency check).
     #[serde(default)]
     pub creates: bool,
-    /// Whether the command removes resources
+    /// Whether the command removes resources. When enabled with `removes_files`, the command will be skipped if any of the specified files/directories don't exist (idempotency check).
     #[serde(default)]
     pub removes: bool,
-    /// Files/directories created by the command (for creates check)
+    /// Files/directories created by the command. Used with `creates` flag for idempotency - if any listed file/directory already exists, the command is skipped.
     #[serde(default)]
     pub creates_files: Vec<String>,
-    /// Files/directories removed by the command (for removes check)
+    /// Files/directories removed by the command. Used with `removes` flag for idempotency - if any listed file/directory doesn't exist, the command is skipped.
     #[serde(default)]
     pub removes_files: Vec<String>,
     /// Force command execution

@@ -161,13 +161,13 @@ pub struct DirectoryTask {
 
 use anyhow::{Context, Result};
 use std::fs;
+use std::os::unix::fs::chown;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
-use std::os::unix::fs::chown;
 
 /// Resolve username to UID
 fn resolve_uid(username: &str) -> Result<u32> {
-    use nix::unistd::{User};
+    use nix::unistd::User;
 
     // First try to parse as numeric UID
     if let Ok(uid) = username.parse::<u32>() {
@@ -178,13 +178,17 @@ fn resolve_uid(username: &str) -> Result<u32> {
     match User::from_name(username) {
         Ok(Some(user)) => Ok(user.uid.as_raw()),
         Ok(None) => Err(anyhow::anyhow!("User '{}' not found", username)),
-        Err(e) => Err(anyhow::anyhow!("Failed to lookup user '{}': {}", username, e)),
+        Err(e) => Err(anyhow::anyhow!(
+            "Failed to lookup user '{}': {}",
+            username,
+            e
+        )),
     }
 }
 
 /// Resolve group name to GID
 fn resolve_gid(groupname: &str) -> Result<u32> {
-    use nix::unistd::{Group};
+    use nix::unistd::Group;
 
     // First try to parse as numeric GID
     if let Ok(gid) = groupname.parse::<u32>() {
@@ -195,7 +199,11 @@ fn resolve_gid(groupname: &str) -> Result<u32> {
     match Group::from_name(groupname) {
         Ok(Some(group)) => Ok(group.gid.as_raw()),
         Ok(None) => Err(anyhow::anyhow!("Group '{}' not found", groupname)),
-        Err(e) => Err(anyhow::anyhow!("Failed to lookup group '{}': {}", groupname, e)),
+        Err(e) => Err(anyhow::anyhow!(
+            "Failed to lookup group '{}': {}",
+            groupname,
+            e
+        )),
     }
 }
 
@@ -395,8 +403,8 @@ fn set_single_ownership(
     group: Option<&str>,
     dry_run: bool,
 ) -> Result<()> {
-    let uid = owner.map(|o| resolve_uid(o)).transpose()?;
-    let gid = group.map(|g| resolve_gid(g)).transpose()?;
+    let uid = owner.map(resolve_uid).transpose()?;
+    let gid = group.map(resolve_gid).transpose()?;
 
     let owner_str = owner.unwrap_or("unchanged");
     let group_str = group.unwrap_or("unchanged");
@@ -409,7 +417,7 @@ fn set_single_ownership(
             group_str
         );
     } else {
-        chown(path, uid.map(|u| u), gid.map(|g| g))
+        chown(path, uid, gid)
             .with_context(|| format!("Failed to set ownership on {}", path.display()))?;
 
         println!(
@@ -430,8 +438,8 @@ fn set_ownership_recursive(
     group: Option<&str>,
     dry_run: bool,
 ) -> Result<()> {
-    let uid = owner.map(|o| resolve_uid(o)).transpose()?;
-    let gid = group.map(|g| resolve_gid(g)).transpose()?;
+    let uid = owner.map(resolve_uid).transpose()?;
+    let gid = group.map(resolve_gid).transpose()?;
 
     let owner_str = owner.unwrap_or("unchanged");
     let group_str = group.unwrap_or("unchanged");
@@ -445,7 +453,7 @@ fn set_ownership_recursive(
         );
     } else {
         // Set ownership on the directory itself first
-        chown(path, uid.map(|u| u), gid.map(|g| g))
+        chown(path, uid, gid)
             .with_context(|| format!("Failed to set ownership on {}", path.display()))?;
 
         // Recursively set ownership on contents
@@ -458,7 +466,7 @@ fn set_ownership_recursive(
                 continue; // Already handled above
             }
 
-            chown(entry_path, uid.map(|u| u), gid.map(|g| g))
+            chown(entry_path, uid, gid)
                 .with_context(|| format!("Failed to set ownership on {}", entry_path.display()))?;
         }
 

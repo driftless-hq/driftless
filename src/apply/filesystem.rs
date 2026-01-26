@@ -310,8 +310,8 @@ fn get_filesystem_type(device: &str) -> Result<Option<String>> {
 /// Check if a device is currently mounted
 fn is_device_mounted(device: &str) -> Result<bool> {
     // Read /proc/mounts to check if the device is mounted
-    let mounts_content = std::fs::read_to_string("/proc/mounts")
-        .with_context(|| "Failed to read /proc/mounts")?;
+    let mounts_content =
+        std::fs::read_to_string("/proc/mounts").with_context(|| "Failed to read /proc/mounts")?;
 
     // Check if the device appears in the mounts
     // /proc/mounts format: device mountpoint fstype options dump pass
@@ -368,7 +368,10 @@ fn remove_filesystem(task: &FilesystemTask) -> Result<()> {
 
     match run_command(&wipefs_cmd) {
         Ok(()) => {
-            println!("Successfully removed filesystem signatures from {}", task.dev);
+            println!(
+                "Successfully removed filesystem signatures from {}",
+                task.dev
+            );
             return Ok(());
         }
         Err(_) => {
