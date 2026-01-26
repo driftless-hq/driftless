@@ -16,12 +16,6 @@ try:
 except ImportError:
     HAS_PSUTIL = False
 
-try:
-    import requests
-    HAS_REQUESTS = True
-except ImportError:
-    HAS_REQUESTS = False
-
 
 def get_facts_collectors() -> str:
     """Return JSON array of facts collector definitions."""

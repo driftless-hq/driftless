@@ -5,7 +5,8 @@
 
 use crate::facts::{Collector, FactsConfig};
 use anyhow::Result;
-use axum::response::Html;
+use axum::response::{IntoResponse, Response};
+use axum::http::{StatusCode, header};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -169,10 +170,23 @@ impl PrometheusExporter {
                 let collector = Arc::clone(&collector);
                 async move {
                     match collector.get_collected_metrics().await {
-                        Ok(metrics) => Html(Self::generate_metrics(&metrics)),
+                        Ok(metrics) => {
+                            let body = Self::generate_metrics(&metrics);
+                            Response::builder()
+                                .status(StatusCode::OK)
+                                .header(header::CONTENT_TYPE, "text/plain; version=0.0.4")
+                                .body(body)
+                                .unwrap()
+                                .into_response()
+                        }
                         Err(e) => {
                             eprintln!("Error getting metrics: {}", e);
-                            Html("# Error getting metrics\n".to_string())
+                            Response::builder()
+                                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                                .header(header::CONTENT_TYPE, "text/plain; version=0.0.4")
+                                .body("# Error getting metrics\n".to_string())
+                                .unwrap()
+                                .into_response()
                         }
                     }
                 }
