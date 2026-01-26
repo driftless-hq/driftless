@@ -5,7 +5,7 @@
 
 use crate::apply::wait_for::ConnectionState;
 use crate::apply::{variables::VariableContext, ApplyConfig, Task};
-use anyhow::Result;
+use anyhow::{Context, Result};
 use tokio::net::TcpStream;
 
 /// Executor for apply tasks
@@ -14,6 +14,7 @@ pub struct TaskExecutor {
     variables: VariableContext,
     config_dir: std::path::PathBuf,
     plugin_manager: Option<std::sync::Arc<std::sync::RwLock<crate::plugins::PluginManager>>>,
+    config: ApplyConfig,
 }
 
 impl TaskExecutor {
@@ -24,6 +25,11 @@ impl TaskExecutor {
             variables: VariableContext::new(),
             config_dir: std::path::PathBuf::from("."),
             plugin_manager: None,
+            config: ApplyConfig {
+                vars: std::collections::HashMap::new(),
+                tasks: Vec::new(),
+                state_dir: crate::apply::default_state_dir(),
+            },
         }
     }
 
@@ -34,6 +40,7 @@ impl TaskExecutor {
         mut context: VariableContext,
         config_dir: std::path::PathBuf,
         plugin_manager: Option<std::sync::Arc<std::sync::RwLock<crate::plugins::PluginManager>>>,
+        config: ApplyConfig,
     ) -> Self {
         // Process template expressions in variables when they're loaded
         for (key, value) in vars {
@@ -58,6 +65,7 @@ impl TaskExecutor {
             variables: context,
             config_dir,
             plugin_manager,
+            config,
         }
     }
 
@@ -88,18 +96,25 @@ impl TaskExecutor {
         &self.plugin_manager
     }
 
+    /// Get the apply config
+    pub fn config(&self) -> &ApplyConfig {
+        &self.config
+    }
+
     /// Create a minimal task executor for included tasks
     pub fn minimal(
         variables: VariableContext,
         dry_run: bool,
         config_dir: std::path::PathBuf,
         plugin_manager: Option<std::sync::Arc<std::sync::RwLock<crate::plugins::PluginManager>>>,
+        config: ApplyConfig,
     ) -> Self {
         Self {
             dry_run,
             variables,
             config_dir,
             plugin_manager,
+            config,
         }
     }
 
@@ -356,6 +371,7 @@ pub async fn execute_wait_for_task(task: &crate::apply::WaitForTask, dry_run: bo
 /// Execute pause task
 pub async fn execute_pause_task(task: &crate::apply::PauseTask, dry_run: bool) -> Result<()> {
     use std::time::Duration;
+    use tokio::io::{AsyncBufReadExt, BufReader};
     use tokio::time::sleep;
 
     let total_seconds = task.seconds + (task.minutes * 60);
@@ -370,10 +386,34 @@ pub async fn execute_pause_task(task: &crate::apply::PauseTask, dry_run: bool) -
         }
 
         println!("{}", task.prompt);
-
-        // In a real implementation, this might wait for user input
-        // For now, just sleep
         sleep(Duration::from_secs(total_seconds)).await;
+    } else {
+        // No timeout specified, wait for user input
+        if dry_run {
+            println!(
+                "DRY RUN: Would wait for user input with message: {}",
+                task.prompt
+            );
+            return Ok(());
+        }
+
+        println!("{}", task.prompt);
+
+        // Read a line from stdin asynchronously
+        let stdin = tokio::io::stdin();
+        let mut reader = BufReader::new(stdin);
+        let mut input = String::new();
+
+        reader
+            .read_line(&mut input)
+            .await
+            .with_context(|| "Failed to read user input")?;
+
+        // Trim whitespace and check if user wants to continue
+        let input = input.trim();
+        if !input.is_empty() {
+            println!("Received input: {}", input);
+        }
     }
 
     Ok(())
@@ -597,6 +637,7 @@ mod tests {
                     exit_code: 0,
                     user: None,
                     group: None,
+                    stream_output: false,
                 }))
                 .with_register("cmd_output"),
                 Task::new(TaskAction::Debug(DebugTask {
@@ -606,6 +647,7 @@ mod tests {
                     verbosity: DebugVerbosity::Normal,
                 })),
             ],
+            state_dir: crate::apply::default_state_dir(),
         };
 
         executor.execute(&config).await.unwrap();
@@ -643,6 +685,7 @@ mod tests {
                     exit_code: 0,
                     user: None,
                     group: None,
+                    stream_output: false,
                 }))
                 .with_register("cmd_success"),
                 Task::new(TaskAction::Command(CommandTask {
@@ -654,6 +697,7 @@ mod tests {
                     exit_code: 1,
                     user: None,
                     group: None,
+                    stream_output: false,
                 }))
                 .with_register("cmd_fail"),
                 Task::new(TaskAction::Debug(DebugTask {
@@ -679,6 +723,7 @@ mod tests {
                 .with_when("{{ cmd_success.rc }} != 0")
                 .with_register("skipped_task"),
             ],
+            state_dir: crate::apply::default_state_dir(),
         };
 
         executor.execute(&config).await.unwrap();
@@ -723,6 +768,7 @@ mod tests {
                     source: None,
                 })),
             ],
+            state_dir: crate::apply::default_state_dir(),
         };
 
         let executor = TaskExecutor::new(true);
@@ -745,6 +791,7 @@ mod tests {
                 gid: None,
                 system: false,
             }))],
+            state_dir: crate::apply::default_state_dir(),
         };
 
         let executor = TaskExecutor::new(true);
@@ -773,6 +820,7 @@ mod tests {
                 job: "".to_string(), // Invalid: empty job
                 comment: None,
             }))],
+            state_dir: crate::apply::default_state_dir(),
         };
 
         let executor = TaskExecutor::new(true);
@@ -810,6 +858,7 @@ mod tests {
                     recursive: false,
                 })),
             ],
+            state_dir: crate::apply::default_state_dir(),
         };
 
         let executor = TaskExecutor::new(true);
@@ -834,6 +883,7 @@ mod tests {
                 force: false,
                 opts: vec![],
             }))],
+            state_dir: crate::apply::default_state_dir(),
         };
 
         let executor = TaskExecutor::new(true);
@@ -857,6 +907,7 @@ mod tests {
                 persist: false,
                 reload: false,
             }))],
+            state_dir: crate::apply::default_state_dir(),
         };
 
         let executor = TaskExecutor::new(true);
@@ -877,6 +928,7 @@ mod tests {
                 name: "".to_string(), // Invalid: empty hostname
                 persist: false,
             }))],
+            state_dir: crate::apply::default_state_dir(),
         };
 
         let executor = TaskExecutor::new(true);
@@ -896,6 +948,7 @@ mod tests {
                 description: None,
                 name: "".to_string(), // Invalid: empty timezone
             }))],
+            state_dir: crate::apply::default_state_dir(),
         };
 
         let executor = TaskExecutor::new(true);
@@ -921,6 +974,7 @@ mod tests {
                 group: None,
                 source: None,
             }))],
+            state_dir: crate::apply::default_state_dir(),
         };
 
         let mut executor = TaskExecutor::new(true);

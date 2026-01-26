@@ -15,7 +15,16 @@ pub fn register_string_filters(
         "Convert a string to uppercase",
         "String Operations",
         vec![],
-        Arc::new(|value, _args| JinjaValue::from(value.as_str().unwrap_or("").to_uppercase())),
+        Arc::new(|value, _args| {
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "upper filter received undefined or none value",
+                ))
+            } else {
+                JinjaValue::from(value.as_str().unwrap_or("").to_uppercase())
+            }
+        }),
     );
 
     TemplateRegistry::register_filter(
@@ -24,7 +33,16 @@ pub fn register_string_filters(
         "Convert a string to lowercase",
         "String Operations",
         vec![],
-        Arc::new(|value, _args| JinjaValue::from(value.as_str().unwrap_or("").to_lowercase())),
+        Arc::new(|value, _args| {
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "lower filter received undefined or none value",
+                ))
+            } else {
+                JinjaValue::from(value.as_str().unwrap_or("").to_lowercase())
+            }
+        }),
     );
 
     TemplateRegistry::register_filter(
@@ -34,14 +52,21 @@ pub fn register_string_filters(
         "String Operations",
         vec![],
         Arc::new(|value, _args| {
-            let s = value.as_str().unwrap_or("");
-            if s.is_empty() {
-                JinjaValue::from(String::new())
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "capitalize filter received undefined or none value",
+                ))
             } else {
-                let mut chars = s.chars();
-                let first = chars.next().unwrap().to_uppercase().collect::<String>();
-                let rest = chars.as_str().to_lowercase();
-                JinjaValue::from(format!("{}{}", first, rest))
+                let s = value.as_str().unwrap_or("");
+                if s.is_empty() {
+                    JinjaValue::from(String::new())
+                } else {
+                    let mut chars = s.chars();
+                    let first = chars.next().unwrap().to_uppercase().collect::<String>();
+                    let rest = chars.as_str().to_lowercase();
+                    JinjaValue::from(format!("{}{}", first, rest))
+                }
             }
         }),
     );
@@ -155,30 +180,37 @@ pub fn register_string_filters(
             ),
         ],
         Arc::new(|value: JinjaValue, args: &[JinjaValue]| {
-            let s = value.as_str().unwrap_or("");
-            let width = args
-                .first()
-                .and_then(|v: &JinjaValue| v.as_i64())
-                .unwrap_or(0) as usize;
-            let fillchar = args
-                .get(1)
-                .and_then(|v: &JinjaValue| v.as_str())
-                .and_then(|s: &str| s.chars().next())
-                .unwrap_or(' ');
-
-            if s.len() >= width {
-                JinjaValue::from(s.to_string())
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "center filter received undefined or none value",
+                ))
             } else {
-                let padding = width - s.len();
-                let left_pad = padding / 2;
-                let right_pad = padding - left_pad;
-                let result = format!(
-                    "{}{}{}",
-                    fillchar.to_string().repeat(left_pad),
-                    s,
-                    fillchar.to_string().repeat(right_pad)
-                );
-                JinjaValue::from(result)
+                let s = value.as_str().unwrap_or("");
+                let width = args
+                    .first()
+                    .and_then(|v: &JinjaValue| v.as_i64())
+                    .unwrap_or(0) as usize;
+                let fillchar = args
+                    .get(1)
+                    .and_then(|v: &JinjaValue| v.as_str())
+                    .and_then(|s: &str| s.chars().next())
+                    .unwrap_or(' ');
+
+                if s.len() >= width {
+                    JinjaValue::from(s.to_string())
+                } else {
+                    let padding = width - s.len();
+                    let left_pad = padding / 2;
+                    let right_pad = padding - left_pad;
+                    let result = format!(
+                        "{}{}{}",
+                        fillchar.to_string().repeat(left_pad),
+                        s,
+                        fillchar.to_string().repeat(right_pad)
+                    );
+                    JinjaValue::from(result)
+                }
             }
         }),
     );
@@ -199,23 +231,30 @@ pub fn register_string_filters(
             ),
         ],
         Arc::new(|value: JinjaValue, args: &[JinjaValue]| {
-            let s = value.as_str().unwrap_or("");
-            let width = args
-                .first()
-                .and_then(|v: &JinjaValue| v.as_i64())
-                .unwrap_or(0) as usize;
-            let fillchar = args
-                .get(1)
-                .and_then(|v: &JinjaValue| v.as_str())
-                .and_then(|s: &str| s.chars().next())
-                .unwrap_or(' ');
-
-            if s.len() >= width {
-                JinjaValue::from(s.to_string())
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "ljust filter received undefined or none value",
+                ))
             } else {
-                let padding = width - s.len();
-                let result = format!("{}{}", s, fillchar.to_string().repeat(padding));
-                JinjaValue::from(result)
+                let s = value.as_str().unwrap_or("");
+                let width = args
+                    .first()
+                    .and_then(|v: &JinjaValue| v.as_i64())
+                    .unwrap_or(0) as usize;
+                let fillchar = args
+                    .get(1)
+                    .and_then(|v: &JinjaValue| v.as_str())
+                    .and_then(|s: &str| s.chars().next())
+                    .unwrap_or(' ');
+
+                if s.len() >= width {
+                    JinjaValue::from(s.to_string())
+                } else {
+                    let padding = width - s.len();
+                    let result = format!("{}{}", s, fillchar.to_string().repeat(padding));
+                    JinjaValue::from(result)
+                }
             }
         }),
     );
@@ -236,23 +275,30 @@ pub fn register_string_filters(
             ),
         ],
         Arc::new(|value: JinjaValue, args: &[JinjaValue]| {
-            let s = value.as_str().unwrap_or("");
-            let width = args
-                .first()
-                .and_then(|v: &JinjaValue| v.as_i64())
-                .unwrap_or(0) as usize;
-            let fillchar = args
-                .get(1)
-                .and_then(|v: &JinjaValue| v.as_str())
-                .and_then(|s: &str| s.chars().next())
-                .unwrap_or(' ');
-
-            if s.len() >= width {
-                JinjaValue::from(s.to_string())
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "rjust filter received undefined or none value",
+                ))
             } else {
-                let padding = width - s.len();
-                let result = format!("{}{}", fillchar.to_string().repeat(padding), s);
-                JinjaValue::from(result)
+                let s = value.as_str().unwrap_or("");
+                let width = args
+                    .first()
+                    .and_then(|v: &JinjaValue| v.as_i64())
+                    .unwrap_or(0) as usize;
+                let fillchar = args
+                    .get(1)
+                    .and_then(|v: &JinjaValue| v.as_str())
+                    .and_then(|s: &str| s.chars().next())
+                    .unwrap_or(' ');
+
+                if s.len() >= width {
+                    JinjaValue::from(s.to_string())
+                } else {
+                    let padding = width - s.len();
+                    let result = format!("{}{}", fillchar.to_string().repeat(padding), s);
+                    JinjaValue::from(result)
+                }
             }
         }),
     );
@@ -273,50 +319,57 @@ pub fn register_string_filters(
             ),
         ],
         Arc::new(|value: JinjaValue, args: &[JinjaValue]| {
-            let s = value.as_str().unwrap_or("");
-            let width = args
-                .first()
-                .and_then(|v: &JinjaValue| v.as_i64())
-                .unwrap_or(0) as usize;
-            let indentfirst = args
-                .get(1)
-                .map(|v: &JinjaValue| v.is_true() || v.as_str() == Some("true"))
-                .unwrap_or(false);
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "indent filter received undefined or none value",
+                ))
+            } else {
+                let s = value.as_str().unwrap_or("");
+                let width = args
+                    .first()
+                    .and_then(|v: &JinjaValue| v.as_i64())
+                    .unwrap_or(0) as usize;
+                let indentfirst = args
+                    .get(1)
+                    .map(|v: &JinjaValue| v.is_true() || v.as_str() == Some("true"))
+                    .unwrap_or(false);
 
-            if width == 0 {
-                return JinjaValue::from(s.to_string());
-            }
-
-            let indent_str = " ".repeat(width);
-            let mut result = String::new();
-            let has_trailing_newline = s.ends_with('\n');
-
-            // Split by lines but preserve empty lines
-            let lines: Vec<&str> = s.split('\n').collect();
-
-            for (i, line) in lines.iter().enumerate() {
-                if i == 0 && !indentfirst {
-                    result.push_str(line);
-                } else if line.is_empty() {
-                    // Don't indent empty lines
-                    // Do nothing, just preserve the line break
-                } else {
-                    result.push_str(&indent_str);
-                    result.push_str(line);
+                if width == 0 {
+                    return JinjaValue::from(s.to_string());
                 }
 
-                // Add newline if not the last line, or if it's an empty line in the middle
-                if i < lines.len() - 1 {
+                let indent_str = " ".repeat(width);
+                let mut result = String::new();
+                let has_trailing_newline = s.ends_with('\n');
+
+                // Split by lines but preserve empty lines
+                let lines: Vec<&str> = s.split('\n').collect();
+
+                for (i, line) in lines.iter().enumerate() {
+                    if i == 0 && !indentfirst {
+                        result.push_str(line);
+                    } else if line.is_empty() {
+                        // Don't indent empty lines
+                        // Do nothing, just preserve the line break
+                    } else {
+                        result.push_str(&indent_str);
+                        result.push_str(line);
+                    }
+
+                    // Add newline if not the last line, or if it's an empty line in the middle
+                    if i < lines.len() - 1 {
+                        result.push('\n');
+                    }
+                }
+
+                // If original string had trailing newline, add it back
+                if has_trailing_newline && !result.ends_with('\n') {
                     result.push('\n');
                 }
-            }
 
-            // If original string had trailing newline, add it back
-            if has_trailing_newline && !result.ends_with('\n') {
-                result.push('\n');
+                JinjaValue::from(result)
             }
-
-            JinjaValue::from(result)
         }),
     );
 
@@ -327,7 +380,16 @@ pub fn register_string_filters(
         "Remove leading whitespace from a string",
         "String Operations",
         vec![],
-        Arc::new(|value, _args| JinjaValue::from(value.as_str().unwrap_or("").trim_start())),
+        Arc::new(|value, _args| {
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "lstrip filter received undefined or none value",
+                ))
+            } else {
+                JinjaValue::from(value.as_str().unwrap_or("").trim_start())
+            }
+        }),
     );
 
     TemplateRegistry::register_filter(
@@ -336,7 +398,16 @@ pub fn register_string_filters(
         "Remove trailing whitespace from a string",
         "String Operations",
         vec![],
-        Arc::new(|value, _args| JinjaValue::from(value.as_str().unwrap_or("").trim_end())),
+        Arc::new(|value, _args| {
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "rstrip filter received undefined or none value",
+                ))
+            } else {
+                JinjaValue::from(value.as_str().unwrap_or("").trim_end())
+            }
+        }),
     );
 
     TemplateRegistry::register_filter(
@@ -345,7 +416,16 @@ pub fn register_string_filters(
         "Remove leading and trailing whitespace from a string",
         "String Operations",
         vec![],
-        Arc::new(|value, _args| JinjaValue::from(value.as_str().unwrap_or("").trim())),
+        Arc::new(|value, _args| {
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "strip filter received undefined or none value",
+                ))
+            } else {
+                JinjaValue::from(value.as_str().unwrap_or("").trim())
+            }
+        }),
     );
 
     // String transformation filters
@@ -356,23 +436,30 @@ pub fn register_string_filters(
         "String Operations",
         vec![],
         Arc::new(|value, _args| {
-            let s = value.as_str().unwrap_or("");
-            let mut result = String::new();
-            let mut capitalize_next = true;
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "title filter received undefined or none value",
+                ))
+            } else {
+                let s = value.as_str().unwrap_or("");
+                let mut result = String::new();
+                let mut capitalize_next = true;
 
-            for ch in s.chars() {
-                if ch.is_whitespace() {
-                    result.push(ch);
-                    capitalize_next = true;
-                } else if capitalize_next {
-                    result.extend(ch.to_uppercase());
-                    capitalize_next = false;
-                } else {
-                    result.extend(ch.to_lowercase());
+                for ch in s.chars() {
+                    if ch.is_whitespace() {
+                        result.push(ch);
+                        capitalize_next = true;
+                    } else if capitalize_next {
+                        result.extend(ch.to_uppercase());
+                        capitalize_next = false;
+                    } else {
+                        result.extend(ch.to_lowercase());
+                    }
                 }
-            }
 
-            JinjaValue::from(result)
+                JinjaValue::from(result)
+            }
         }),
     );
 
@@ -383,9 +470,16 @@ pub fn register_string_filters(
         "String Operations",
         vec![],
         Arc::new(|value, _args| {
-            let s = value.as_str().unwrap_or("");
-            let lines: Vec<JinjaValue> = s.lines().map(JinjaValue::from).collect();
-            JinjaValue::from(lines)
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "splitlines filter received undefined or none value",
+                ))
+            } else {
+                let s = value.as_str().unwrap_or("");
+                let lines: Vec<JinjaValue> = s.lines().map(JinjaValue::from).collect();
+                JinjaValue::from(lines)
+            }
         }),
     );
 
@@ -396,9 +490,16 @@ pub fn register_string_filters(
         "String Operations",
         vec![],
         Arc::new(|value, _args| {
-            let s = value.as_str().unwrap_or("");
-            let count = s.split_whitespace().filter(|word| !word.is_empty()).count() as i64;
-            JinjaValue::from(count)
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "wordcount filter received undefined or none value",
+                ))
+            } else {
+                let s = value.as_str().unwrap_or("");
+                let count = s.split_whitespace().filter(|word| !word.is_empty()).count() as i64;
+                JinjaValue::from(count)
+            }
         }),
     );
 
@@ -412,20 +513,27 @@ pub fn register_string_filters(
             "string: Comment style (optional, default: #)".to_string(),
         )],
         Arc::new(|value: JinjaValue, args: &[JinjaValue]| {
-            let s = value.as_str().unwrap_or("");
-            let style = args
-                .first()
-                .and_then(|v: &JinjaValue| v.as_str())
-                .unwrap_or("#");
-            let lines: Vec<&str> = s.lines().collect();
-            if lines.is_empty() {
-                JinjaValue::from(format!("{} ", style))
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "comment filter received undefined or none value",
+                ))
             } else {
-                let commented: Vec<String> = lines
-                    .iter()
-                    .map(|line| format!("{} {}", style, line))
-                    .collect();
-                JinjaValue::from(commented.join("\n"))
+                let s = value.as_str().unwrap_or("");
+                let style = args
+                    .first()
+                    .and_then(|v: &JinjaValue| v.as_str())
+                    .unwrap_or("#");
+                let lines: Vec<&str> = s.lines().collect();
+                if lines.is_empty() {
+                    JinjaValue::from(format!("{} ", style))
+                } else {
+                    let commented: Vec<String> = lines
+                        .iter()
+                        .map(|line| format!("{} {}", style, line))
+                        .collect();
+                    JinjaValue::from(commented.join("\n"))
+                }
             }
         }),
     );
@@ -440,17 +548,24 @@ pub fn register_string_filters(
             "variadic: Arguments to format into the string".to_string(),
         )],
         Arc::new(|value: JinjaValue, args: &[JinjaValue]| {
-            let template = value.as_str().unwrap_or("");
-            // Simple implementation: replace {} with args in order
-            let mut result = template.to_string();
-            for arg in args {
-                if let Some(arg_str) = arg.as_str() {
-                    if let Some(pos) = result.find("{}") {
-                        result.replace_range(pos..pos + 2, arg_str);
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "format filter received undefined or none value",
+                ))
+            } else {
+                let template = value.as_str().unwrap_or("");
+                // Simple implementation: replace {} with args in order
+                let mut result = template.to_string();
+                for arg in args {
+                    if let Some(arg_str) = arg.as_str() {
+                        if let Some(pos) = result.find("{}") {
+                            result.replace_range(pos..pos + 2, arg_str);
+                        }
                     }
                 }
+                JinjaValue::from(result)
             }
-            JinjaValue::from(result)
         }),
     );
 
@@ -464,35 +579,42 @@ pub fn register_string_filters(
             "integer: Maximum width of each line (optional, default: 79)".to_string(),
         )],
         Arc::new(|value: JinjaValue, args: &[JinjaValue]| {
-            let s = value.as_str().unwrap_or("");
-            let width = args
-                .first()
-                .and_then(|v: &JinjaValue| v.as_i64())
-                .unwrap_or(79) as usize;
-            let mut result = String::new();
-            let mut current_line = String::new();
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "wordwrap filter received undefined or none value",
+                ))
+            } else {
+                let s = value.as_str().unwrap_or("");
+                let width = args
+                    .first()
+                    .and_then(|v: &JinjaValue| v.as_i64())
+                    .unwrap_or(79) as usize;
+                let mut result = String::new();
+                let mut current_line = String::new();
 
-            for word in s.split_whitespace() {
-                if current_line.is_empty() {
-                    current_line = word.to_string();
-                } else if current_line.len() + word.len() < width {
-                    current_line.push(' ');
-                    current_line.push_str(word);
-                } else {
+                for word in s.split_whitespace() {
+                    if current_line.is_empty() {
+                        current_line = word.to_string();
+                    } else if current_line.len() + word.len() < width {
+                        current_line.push(' ');
+                        current_line.push_str(word);
+                    } else {
+                        if !result.is_empty() {
+                            result.push('\n');
+                        }
+                        result.push_str(&current_line);
+                        current_line = word.to_string();
+                    }
+                }
+                if !current_line.is_empty() {
                     if !result.is_empty() {
                         result.push('\n');
                     }
                     result.push_str(&current_line);
-                    current_line = word.to_string();
                 }
+                JinjaValue::from(result)
             }
-            if !current_line.is_empty() {
-                if !result.is_empty() {
-                    result.push('\n');
-                }
-                result.push_str(&current_line);
-            }
-            JinjaValue::from(result)
         }),
     );
 
@@ -504,7 +626,12 @@ pub fn register_string_filters(
         "List Operations",
         vec![],
         Arc::new(|value, _args| {
-            if let Some(_s) = value.as_str() {
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "first filter received undefined or none value",
+                ))
+            } else if let Some(_s) = value.as_str() {
                 // For strings, return empty
                 JinjaValue::from("")
             } else if let Ok(mut iter) = value.try_iter() {
@@ -526,7 +653,12 @@ pub fn register_string_filters(
         "List Operations",
         vec![],
         Arc::new(|value, _args| {
-            if let Some(_s) = value.as_str() {
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "last filter received undefined or none value",
+                ))
+            } else if let Some(_s) = value.as_str() {
                 // For strings, return empty
                 JinjaValue::from("")
             } else if let Ok(iter) = value.try_iter() {
@@ -551,18 +683,25 @@ pub fn register_string_filters(
             "string: String to join with (optional, default: empty string)".to_string(),
         )],
         Arc::new(|value: JinjaValue, args: &[JinjaValue]| {
-            let separator = args
-                .first()
-                .and_then(|v: &JinjaValue| v.as_str())
-                .unwrap_or("");
-
-            if let Ok(iter) = value.try_iter() {
-                let strings: Vec<String> = iter
-                    .filter_map(|v: JinjaValue| v.as_str().map(|s: &str| s.to_string()))
-                    .collect();
-                JinjaValue::from(strings.join(separator))
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "join filter received undefined or none value",
+                ))
             } else {
-                JinjaValue::from(value.as_str().unwrap_or(""))
+                let separator = args
+                    .first()
+                    .and_then(|v: &JinjaValue| v.as_str())
+                    .unwrap_or("");
+
+                if let Ok(iter) = value.try_iter() {
+                    let strings: Vec<String> = iter
+                        .filter_map(|v: JinjaValue| v.as_str().map(|s: &str| s.to_string()))
+                        .collect();
+                    JinjaValue::from(strings.join(separator))
+                } else {
+                    JinjaValue::from(value.as_str().unwrap_or(""))
+                }
             }
         }),
     );
@@ -574,7 +713,12 @@ pub fn register_string_filters(
         "List Operations",
         vec![],
         Arc::new(|value, _args| {
-            if let Some(s) = value.as_str() {
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "reverse filter received undefined or none value",
+                ))
+            } else if let Some(s) = value.as_str() {
                 // For strings, reverse the characters
                 let reversed: String = s.chars().rev().collect();
                 JinjaValue::from(reversed)
@@ -604,56 +748,63 @@ pub fn register_string_filters(
             ),
         ],
         Arc::new(|value: JinjaValue, args: &[JinjaValue]| {
-            let reverse = args
-                .first()
-                .map(|v: &JinjaValue| v.is_true() || v.as_str() == Some("true"))
-                .unwrap_or(false);
-            let case_sensitive = args
-                .get(1)
-                .map(|v: &JinjaValue| v.is_true() || v.as_str() == Some("true"))
-                .unwrap_or(true);
-
-            if let Some(s) = value.as_str() {
-                // For strings, sort the characters
-                let mut chars: Vec<char> = s.chars().collect();
-                chars.sort();
-                if reverse {
-                    chars.reverse();
-                }
-                let sorted: String = chars.into_iter().collect();
-                JinjaValue::from(sorted)
-            } else if let Ok(iter) = value.try_iter() {
-                let mut sorted: Vec<JinjaValue> = iter.collect();
-
-                sorted.sort_by(|a, b| {
-                    match (a.as_str(), b.as_str()) {
-                        (Some(a_str), Some(b_str)) => {
-                            if case_sensitive {
-                                a_str.cmp(b_str)
-                            } else {
-                                a_str.to_lowercase().cmp(&b_str.to_lowercase())
-                            }
-                        }
-                        _ => {
-                            // For non-string values, convert to string for comparison
-                            let a_str = a.to_string();
-                            let b_str = b.to_string();
-                            if case_sensitive {
-                                a_str.cmp(&b_str)
-                            } else {
-                                a_str.to_lowercase().cmp(&b_str.to_lowercase())
-                            }
-                        }
-                    }
-                });
-
-                if reverse {
-                    sorted.reverse();
-                }
-
-                JinjaValue::from(sorted)
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "sort filter received undefined or none value",
+                ))
             } else {
-                value.clone()
+                let reverse = args
+                    .first()
+                    .map(|v: &JinjaValue| v.is_true() || v.as_str() == Some("true"))
+                    .unwrap_or(false);
+                let case_sensitive = args
+                    .get(1)
+                    .map(|v: &JinjaValue| v.is_true() || v.as_str() == Some("true"))
+                    .unwrap_or(true);
+
+                if let Some(s) = value.as_str() {
+                    // For strings, sort the characters
+                    let mut chars: Vec<char> = s.chars().collect();
+                    chars.sort();
+                    if reverse {
+                        chars.reverse();
+                    }
+                    let sorted: String = chars.into_iter().collect();
+                    JinjaValue::from(sorted)
+                } else if let Ok(iter) = value.try_iter() {
+                    let mut sorted: Vec<JinjaValue> = iter.collect();
+
+                    sorted.sort_by(|a, b| {
+                        match (a.as_str(), b.as_str()) {
+                            (Some(a_str), Some(b_str)) => {
+                                if case_sensitive {
+                                    a_str.cmp(b_str)
+                                } else {
+                                    a_str.to_lowercase().cmp(&b_str.to_lowercase())
+                                }
+                            }
+                            _ => {
+                                // For non-string values, convert to string for comparison
+                                let a_str = a.to_string();
+                                let b_str = b.to_string();
+                                if case_sensitive {
+                                    a_str.cmp(&b_str)
+                                } else {
+                                    a_str.to_lowercase().cmp(&b_str.to_lowercase())
+                                }
+                            }
+                        }
+                    });
+
+                    if reverse {
+                        sorted.reverse();
+                    }
+
+                    JinjaValue::from(sorted)
+                } else {
+                    value.clone()
+                }
             }
         }),
     );
@@ -665,7 +816,12 @@ pub fn register_string_filters(
         "List Operations",
         vec![],
         Arc::new(|value, _args| {
-            if let Some(_s) = value.as_str() {
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "unique filter received undefined or none value",
+                ))
+            } else if let Some(_s) = value.as_str() {
                 // For strings, return as-is
                 value.clone()
             } else if let Ok(iter) = value.try_iter() {
@@ -703,41 +859,48 @@ pub fn register_string_filters(
             ),
         ],
         Arc::new(|value: JinjaValue, args: &[JinjaValue]| {
-            let size = args
-                .first()
-                .and_then(|v: &JinjaValue| v.as_i64())
-                .unwrap_or(1) as usize;
-            let fill_with = args.get(1).cloned();
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "batch filter received undefined or none value",
+                ))
+            } else {
+                let size = args
+                    .first()
+                    .and_then(|v: &JinjaValue| v.as_i64())
+                    .unwrap_or(1) as usize;
+                let fill_with = args.get(1).cloned();
 
-            if let Some(_s) = value.as_str() {
-                // For strings, return empty list
-                JinjaValue::from(Vec::<JinjaValue>::new())
-            } else if let Ok(iter) = value.try_iter() {
-                let mut batches: Vec<JinjaValue> = Vec::new();
-                let mut current_batch: Vec<JinjaValue> = Vec::new();
+                if let Some(_s) = value.as_str() {
+                    // For strings, return empty list
+                    JinjaValue::from(Vec::<JinjaValue>::new())
+                } else if let Ok(iter) = value.try_iter() {
+                    let mut batches: Vec<JinjaValue> = Vec::new();
+                    let mut current_batch: Vec<JinjaValue> = Vec::new();
 
-                for item in iter {
-                    current_batch.push(item);
-                    if current_batch.len() == size {
-                        batches.push(JinjaValue::from(current_batch.clone()));
-                        current_batch.clear();
-                    }
-                }
-
-                // Handle remaining items
-                if !current_batch.is_empty() {
-                    if let Some(fill) = &fill_with {
-                        while current_batch.len() < size {
-                            current_batch.push(fill.clone());
+                    for item in iter {
+                        current_batch.push(item);
+                        if current_batch.len() == size {
+                            batches.push(JinjaValue::from(current_batch.clone()));
+                            current_batch.clear();
                         }
                     }
-                    batches.push(JinjaValue::from(current_batch));
-                }
 
-                JinjaValue::from(batches)
-            } else {
-                // For non-sequence values, return empty list
-                JinjaValue::from(Vec::<JinjaValue>::new())
+                    // Handle remaining items
+                    if !current_batch.is_empty() {
+                        if let Some(fill) = &fill_with {
+                            while current_batch.len() < size {
+                                current_batch.push(fill.clone());
+                            }
+                        }
+                        batches.push(JinjaValue::from(current_batch));
+                    }
+
+                    JinjaValue::from(batches)
+                } else {
+                    // For non-sequence values, return empty list
+                    JinjaValue::from(Vec::<JinjaValue>::new())
+                }
             }
         }),
     );

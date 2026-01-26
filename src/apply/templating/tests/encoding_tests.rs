@@ -7,6 +7,7 @@ mod tests {
 
     fn create_test_env() -> Environment<'static> {
         let mut env = Environment::new();
+        env.set_undefined_behavior(minijinja::UndefinedBehavior::Strict);
         setup_minijinja_env(&mut env);
         env
     }
@@ -257,13 +258,13 @@ mod tests {
 
         // Test with empty string (should fail)
         let template = env.template_from_str("{{ '' | mandatory }}").unwrap();
-        let result = template.render(minijinja::context!()).unwrap();
-        assert_eq!(result, "false");
+        let result = template.render(minijinja::context!());
+        assert!(result.is_err());
 
         // Test with empty list (should fail)
         let template = env.template_from_str("{{ [] | mandatory }}").unwrap();
-        let result = template.render(minijinja::context!()).unwrap();
-        assert_eq!(result, "false");
+        let result = template.render(minijinja::context!());
+        assert!(result.is_err());
     }
 
     #[test]

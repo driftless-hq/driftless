@@ -464,10 +464,82 @@ fn is_ufw_enabled() -> Result<bool> {
 fn rule_exists(rule_parts: &[&str]) -> Result<bool> {
     let output = run_ufw_cmd("ufw status")?;
 
-    // Parse the output to check for existing rules
-    // This is a simplified check - in practice, UFW status output is complex
-    let rule_str = rule_parts.join(" ");
-    Ok(output.contains(&rule_str))
+    // Parse the UFW status output properly
+    // UFW status output format:
+    // Status: active/inactive
+    //
+    // To                         Action      From
+    // --                         ------      ----
+    // 22/tcp                     ALLOW       Anywhere
+    // 80/tcp                     ALLOW       Anywhere
+    // 443                        ALLOW       Anywhere
+
+    let lines: Vec<&str> = output.lines().collect();
+    if lines.is_empty() {
+        return Ok(false);
+    }
+
+    // Skip the header lines until we reach the rule table
+    let mut in_rules_section = false;
+    for line in lines {
+        let line = line.trim();
+
+        // Check if we've reached the rules section
+        if line.starts_with("To") && line.contains("Action") && line.contains("From") {
+            in_rules_section = true;
+            continue;
+        }
+
+        // Skip separator lines
+        if line.starts_with("--") || line.starts_with("==") {
+            continue;
+        }
+
+        // If we're in the rules section, parse the rules
+        if in_rules_section && !line.is_empty() {
+            // Parse rule format: "To Action From"
+            // Example: "22/tcp ALLOW Anywhere"
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() >= 2 {
+                let to_part = parts[0];
+                let _action = parts[1];
+
+                // Reconstruct the rule from rule_parts to compare
+                // rule_parts format: ["allow", "22", "tcp", "from", "anywhere"] etc.
+                let mut reconstructed_rule = String::new();
+                let mut i = 0;
+                while i < rule_parts.len() {
+                    if rule_parts[i] == "allow"
+                        || rule_parts[i] == "deny"
+                        || rule_parts[i] == "reject"
+                        || rule_parts[i] == "limit"
+                    {
+                        // Skip the action as it's not in the "To" part
+                        i += 1;
+                        continue;
+                    }
+
+                    if rule_parts[i] == "from" {
+                        // We've reached the source part, stop here
+                        break;
+                    }
+
+                    if !reconstructed_rule.is_empty() {
+                        reconstructed_rule.push(' ');
+                    }
+                    reconstructed_rule.push_str(rule_parts[i]);
+                    i += 1;
+                }
+
+                // Compare the rule (case insensitive)
+                if to_part.to_lowercase() == reconstructed_rule.to_lowercase() {
+                    return Ok(true);
+                }
+            }
+        }
+    }
+
+    Ok(false)
 }
 
 /// Run a UFW command and return its output

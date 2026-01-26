@@ -91,7 +91,6 @@
 //!   "5m": 1.15
 //!   "15m": 1.08
 //! ```
-//! ```
 
 use crate::facts::CpuCollector;
 use anyhow::Result;

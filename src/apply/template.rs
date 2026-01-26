@@ -179,9 +179,30 @@ pub struct TemplateTask {
 
 use crate::apply::templating;
 use anyhow::{Context, Result};
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
+use std::time::SystemTime;
+
+/// State information for tracking template rendering operations
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct TemplateStateInfo {
+    /// SHA256 checksum of the source template file
+    source_checksum: String,
+    /// Size of the source template file
+    source_size: u64,
+    /// Last modification time of the source template file
+    source_modified: SystemTime,
+    /// SHA256 checksum of the rendered output
+    rendered_checksum: String,
+    /// Size of the rendered output
+    rendered_size: u64,
+    /// Variables used for rendering (serialized as JSON)
+    variables_hash: String,
+    /// Last modification time when template was rendered
+    rendered_at: SystemTime,
+}
 
 /// Execute a template task
 pub async fn execute_template_task(task: &TemplateTask, dry_run: bool) -> Result<()> {
@@ -218,19 +239,52 @@ async fn ensure_template_rendered(task: &TemplateTask, dry_run: bool) -> Result<
     // Render template with variables
     let rendered_content = render_template(&template_content, &task.vars, template_dir)?;
 
-    // Check if destination needs updating
+    // Check if destination needs updating using state tracking
     let needs_update = if dest_path.exists() {
         if task.force {
-            true
+            true // Force rendering even if destination exists
         } else {
-            // Check if rendered content differs from existing file
-            match fs::read_to_string(dest_path) {
-                Ok(existing_content) => existing_content != rendered_content,
-                Err(_) => true, // Can't read existing file, assume update needed
+            // Load previous template state
+            match load_template_state(&task.dest) {
+                Ok(Some(prev_state)) => {
+                    // Check if source template has changed
+                    let src_metadata = src_path
+                        .metadata()
+                        .with_context(|| format!("Failed to get metadata for {}", task.src))?;
+
+                    let src_modified = src_metadata.modified().with_context(|| {
+                        format!("Failed to get modification time for {}", task.src)
+                    })?;
+
+                    // Check if variables have changed
+                    let current_vars_hash = calculate_variables_hash(&task.vars)?;
+
+                    // If source modification time is newer, or variables changed, or we can't determine,
+                    // check the checksums
+                    if src_modified > prev_state.rendered_at
+                        || current_vars_hash != prev_state.variables_hash
+                    {
+                        true
+                    } else {
+                        // Calculate current source checksum
+                        match calculate_file_checksum(src_path) {
+                            Ok(current_checksum) => current_checksum != prev_state.source_checksum,
+                            Err(_) => true, // If we can't calculate checksum, assume changed
+                        }
+                    }
+                }
+                Ok(None) => {
+                    // No previous state, check if destination exists (assume it needs update)
+                    true
+                }
+                Err(_) => {
+                    // Error loading state, assume update needed
+                    true
+                }
             }
         }
     } else {
-        true
+        true // Destination doesn't exist
     };
 
     if !needs_update {
@@ -264,6 +318,34 @@ async fn ensure_template_rendered(task: &TemplateTask, dry_run: bool) -> Result<
             .with_context(|| format!("Failed to write rendered template to {}", task.dest))?;
 
         println!("Rendered template {} to {}", task.src, task.dest);
+
+        // Save template state for change detection
+        let src_metadata = src_path
+            .metadata()
+            .with_context(|| format!("Failed to get metadata for {}", task.src))?;
+        let dest_metadata = dest_path
+            .metadata()
+            .with_context(|| format!("Failed to get metadata for {}", task.dest))?;
+
+        let src_checksum = calculate_file_checksum(src_path)?;
+        let dest_checksum = calculate_file_checksum(dest_path)?;
+        let vars_hash = calculate_variables_hash(&task.vars)?;
+
+        let state = TemplateStateInfo {
+            source_checksum: src_checksum,
+            source_size: src_metadata.len(),
+            source_modified: src_metadata
+                .modified()
+                .with_context(|| format!("Failed to get modification time for {}", task.src))?,
+            rendered_checksum: dest_checksum,
+            rendered_size: dest_metadata.len(),
+            variables_hash: vars_hash,
+            rendered_at: SystemTime::now(),
+        };
+
+        if let Err(e) = save_template_state(&task.dest, &state) {
+            println!("Warning: Failed to save template state: {}", e);
+        }
     }
 
     Ok(())
@@ -286,9 +368,95 @@ async fn ensure_template_not_rendered(task: &TemplateTask, dry_run: bool) -> Res
         fs::remove_file(dest_path)
             .with_context(|| format!("Failed to remove template output {}", task.dest))?;
         println!("Removed template output: {}", task.dest);
+
+        // Clean up the state file
+        let state_path = get_template_state_path(&task.dest);
+        if Path::new(&state_path).exists() {
+            if let Err(e) = fs::remove_file(&state_path) {
+                println!(
+                    "Warning: Failed to remove template state file {}: {}",
+                    state_path, e
+                );
+            }
+        }
     }
 
     Ok(())
+}
+
+/// Get the state file path for a template operation
+fn get_template_state_path(dest: &str) -> String {
+    format!("{}.driftless-template-state", dest)
+}
+
+/// Load template state from file
+fn load_template_state(dest: &str) -> Result<Option<TemplateStateInfo>> {
+    let state_path = get_template_state_path(dest);
+    if !Path::new(&state_path).exists() {
+        return Ok(None);
+    }
+
+    let content = fs::read_to_string(&state_path)
+        .with_context(|| format!("Failed to read template state file: {}", state_path))?;
+
+    let state: TemplateStateInfo = serde_json::from_str(&content)
+        .with_context(|| format!("Failed to parse template state file: {}", state_path))?;
+
+    Ok(Some(state))
+}
+
+/// Save template state to file
+fn save_template_state(dest: &str, state: &TemplateStateInfo) -> Result<()> {
+    let state_path = get_template_state_path(dest);
+    let content = serde_json::to_string_pretty(state)
+        .with_context(|| format!("Failed to serialize template state for: {}", dest))?;
+
+    fs::write(&state_path, content)
+        .with_context(|| format!("Failed to write template state file: {}", state_path))?;
+
+    Ok(())
+}
+
+/// Calculate SHA256 checksum of a file
+fn calculate_file_checksum(path: &Path) -> Result<String> {
+    use sha2::{Digest, Sha256};
+    use std::io::Read;
+
+    let mut hasher = Sha256::new();
+    let mut file = fs::File::open(path)
+        .with_context(|| format!("Failed to open file for checksum: {}", path.display()))?;
+
+    let mut buffer = [0; 8192];
+    loop {
+        let bytes_read = file
+            .read(&mut buffer)
+            .with_context(|| format!("Failed to read file for checksum: {}", path.display()))?;
+        if bytes_read == 0 {
+            break;
+        }
+        hasher.update(&buffer[..bytes_read]);
+    }
+
+    let result = hasher.finalize();
+    Ok(format!("{:x}", result))
+}
+
+/// Calculate hash of variables for state tracking
+fn calculate_variables_hash(vars: &HashMap<String, serde_json::Value>) -> Result<String> {
+    use sha2::{Digest, Sha256};
+
+    let mut hasher = Sha256::new();
+    let sorted_vars: std::collections::BTreeMap<_, _> = vars.iter().collect();
+
+    for (key, value) in sorted_vars {
+        hasher.update(key.as_bytes());
+        hasher.update(b"=");
+        hasher.update(serde_json::to_string(value)?.as_bytes());
+        hasher.update(b";");
+    }
+
+    let result = hasher.finalize();
+    Ok(format!("{:x}", result))
 }
 
 /// Render template with variable substitution

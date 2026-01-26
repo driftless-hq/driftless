@@ -7,7 +7,19 @@ This example demonstrates how to create custom tasks for the Driftless agent usi
 This plugin provides two custom tasks:
 
 1. **js_echo**: Logs messages at different levels (info, warn, error)
-2. **js_calculate**: Evaluates mathematical expressions safely
+2. **js_calculate**: Evaluates mathematical expressions safely using the `expr-eval` library
+
+## Dependencies
+
+Install the required dependencies:
+
+```bash
+npm install
+```
+
+### Required Packages
+- **expr-eval**: Safe mathematical expression evaluator that prevents code injection
+- **webpack**: For bundling the JavaScript
 
 ## Building
 
@@ -15,15 +27,27 @@ This plugin provides two custom tasks:
 # Install dependencies
 npm install
 
-# Build the plugin
+# Build the plugin (includes WebAssembly compilation)
 npm run build
 ```
 
-This creates a bundled JavaScript file in the `dist/` directory that can be used with WebAssembly.
+This bundles the JavaScript with webpack and then compiles it to WebAssembly using `javy`.
 
 ## Usage
 
-After building, the JavaScript file needs to be packaged for use with Driftless. In a real implementation, this would be compiled to WebAssembly using tools like `javy` or similar.
+After building, the `dist/driftless-js-custom-task-plugin.wasm` file can be used directly with Driftless as a plugin.
+
+### Manual Build Steps
+
+If you prefer to build step-by-step:
+
+```bash
+# Bundle JavaScript
+npm run build:dev
+
+# Compile to WebAssembly
+npm run compile-wasm
+```
 
 ## Configuration Examples
 
@@ -61,7 +85,7 @@ This plugin implements the required Driftless plugin interface:
 
 ## Security Considerations
 
-- **Expression Evaluation**: The `js_calculate` task uses `Function()` constructor for evaluation, which is safer than `eval()` but still requires careful input validation
+- **Expression Evaluation**: The `js_calculate` task uses the `expr-eval` library for safe mathematical expression evaluation, preventing code injection attacks
 - **Input Sanitization**: All inputs should be validated before processing
 - **Resource Limits**: JavaScript execution is subject to the same WASM resource limits
 

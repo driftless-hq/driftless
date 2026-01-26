@@ -4,9 +4,10 @@
     "description": "Example template extension plugin for Driftless (TypeScript)",
     "main": "dist/index.js",
     "scripts": {
-        "build": "tsc && webpack --mode=production",
+        "build": "tsc && webpack --mode=production && javy compile dist/driftless-ts-template-extension-plugin.js -o dist/driftless-ts-template-extension-plugin.wasm",
         "build:dev": "tsc && webpack --mode=development",
-        "dev": "tsc --watch"
+        "dev": "tsc --watch",
+        "compile-wasm": "javy compile dist/driftless-ts-template-extension-plugin.js -o dist/driftless-ts-template-extension-plugin.wasm"
     },
     "devDependencies": {
         "typescript": "^5.0.0",

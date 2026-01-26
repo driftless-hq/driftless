@@ -43,6 +43,9 @@ All configuration operations support special fields for conditional execution an
 - `idempotent` (bool):
   Whether command should be idempotent (only run if not already applied)
 
+- `stream_output` (bool):
+  Whether to stream output in real-time (useful for long-running commands)
+
 **Optional Fields**:
 
 - `cwd` (Option<String>):
@@ -256,7 +259,10 @@ exit_code = 0
   Command arguments (argv[1..])
 
 - `creates` (bool):
-  Whether the command creates resources
+  Whether the command creates resources. When enabled with `creates_files`, the command will be skipped if any of the specified files/directories already exist (idempotency check).
+
+- `creates_files` (Vec<String>):
+  Files/directories created by the command. Used with `creates` flag for idempotency - if any listed file/directory already exists, the command is skipped.
 
 - `environment` (HashMap<String, String>):
   Environment variables
@@ -274,7 +280,10 @@ exit_code = 0
   Whether to ignore errors
 
 - `removes` (bool):
-  Whether the command removes resources
+  Whether the command removes resources. When enabled with `removes_files`, the command will be skipped if any of the specified files/directories don't exist (idempotency check).
+
+- `removes_files` (Vec<String>):
+  Files/directories removed by the command. Used with `removes` flag for idempotency - if any listed file/directory doesn't exist, the command is skipped.
 
 **Optional Fields**:
 
@@ -440,6 +449,82 @@ args = ["build"]
 chdir = "/opt/myproject"
 ```
 
+**Execute command with creates/removes checks**:
+
+**YAML Format**:
+
+```yaml
+- type: raw
+  description: "Create configuration file"
+  executable: touch
+  args: ["/etc/myapp/config.conf"]
+  creates: true
+  creates_files: ["/etc/myapp/config.conf"]
+```
+
+**JSON Format**:
+
+```json
+{
+  "type": "raw",
+  "description": "Create configuration file",
+  "executable": "touch",
+  "args": ["/etc/myapp/config.conf"],
+  "creates": true,
+  "creates_files": ["/etc/myapp/config.conf"]
+}
+```
+
+**TOML Format**:
+
+```toml
+[[tasks]]
+type = "raw"
+description = "Create configuration file"
+executable = "touch"
+args = ["/etc/myapp/config.conf"]
+creates = true
+creates_files = ["/etc/myapp/config.conf"]
+```
+
+**Execute command that removes files (idempotent)**:
+
+**YAML Format**:
+
+```yaml
+- type: raw
+  description: "Remove temporary files"
+  executable: rm
+  args: ["-f", "/tmp/cache.dat"]
+  removes: true
+  removes_files: ["/tmp/cache.dat"]
+```
+
+**JSON Format**:
+
+```json
+{
+  "type": "raw",
+  "description": "Remove temporary files",
+  "executable": "rm",
+  "args": ["-f", "/tmp/cache.dat"],
+  "removes": true,
+  "removes_files": ["/tmp/cache.dat"]
+}
+```
+
+**TOML Format**:
+
+```toml
+[[tasks]]
+type = "raw"
+description = "Remove temporary files"
+executable = "rm"
+args = ["-f", "/tmp/cache.dat"]
+removes = true
+removes_files = ["/tmp/cache.dat"]
+```
+
 #### script
 
 **Description**: Execute local scripts task
@@ -448,6 +533,9 @@ chdir = "/opt/myproject"
 
 - `creates` (bool):
   Whether the script creates resources
+
+- `creates_files` (Vec<String>):
+  Files/directories created by the script (for creates check)
 
 - `environment` (HashMap<String, String>):
   Environment variables
@@ -463,6 +551,9 @@ chdir = "/opt/myproject"
 
 - `removes` (bool):
   Whether the script removes resources
+
+- `removes_files` (Vec<String>):
+  Files/directories removed by the script (for removes check)
 
 **Optional Fields**:
 

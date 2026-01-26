@@ -5,6 +5,8 @@
  * that can be executed by the Driftless agent.
  */
 
+const { Parser } = require('expr-eval');
+
 // Plugin interface functions that must be exported
 function get_task_definitions() {
     return JSON.stringify([
@@ -97,9 +99,9 @@ function execute_calculate_task(configJson) {
     }
 
     try {
-        // Note: In a real implementation, use a safe expression evaluator
-        // This is just for demonstration - eval is dangerous!
-        const result = Function('"use strict"; return (' + expression + ')')();
+        // Use safe expression evaluator that only allows mathematical operations
+        const parser = new Parser();
+        const result = parser.evaluate(expression);
 
         console.log(`JS CALCULATE: ${expression} = ${result}`);
 

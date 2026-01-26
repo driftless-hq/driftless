@@ -5,7 +5,7 @@
 
 use std::fs;
 use tempfile::TempDir;
-use wasmtime::Module;
+use wasmtime::{Engine, Module};
 
 use driftless::config::PluginSecurityConfig;
 use driftless::plugins::{parse_plugin_component_name, PluginManager, PluginRegistry};
@@ -36,6 +36,7 @@ fn test_plugin_registry_basic() {
     let plugin_dir = temp_dir.path().to_path_buf();
 
     let mut registry = PluginRegistry::new(plugin_dir.clone());
+    let engine = Engine::default();
 
     // Initially not scanned
     assert!(!registry.is_scanned());
@@ -43,7 +44,7 @@ fn test_plugin_registry_basic() {
     assert_eq!(registry.plugin_dir(), plugin_dir);
 
     // Scan empty directory
-    registry.scan_plugins().unwrap();
+    registry.scan_plugins(&engine).unwrap();
     assert!(registry.is_scanned());
     assert_eq!(registry.get_discovered_plugins().len(), 0);
 }
@@ -64,9 +65,10 @@ fn test_plugin_registry_with_plugins() {
     fs::write(&not_plugin_path, b"not a plugin").unwrap();
 
     let mut registry = PluginRegistry::new(plugin_dir);
+    let engine = Engine::default();
 
     // Scan for plugins
-    registry.scan_plugins().unwrap();
+    registry.scan_plugins(&engine).unwrap();
     assert!(registry.is_scanned());
 
     let plugins = registry.get_discovered_plugins();
@@ -84,7 +86,7 @@ fn test_plugin_registry_with_plugins() {
     assert_eq!(plugin2_info.path, plugin2_path);
 
     // Test getting plugin names
-    let names = registry.get_discovered_plugin_names();
+    let names: Vec<String> = registry.get_discovered_plugins().keys().cloned().collect();
     assert_eq!(names.len(), 2);
     assert!(names.contains(&"test_plugin1".to_string()));
     assert!(names.contains(&"test_plugin2".to_string()));
@@ -100,7 +102,8 @@ fn test_plugin_registry_updates() {
     fs::write(&plugin_path, b"mock wasm").unwrap();
 
     let mut registry = PluginRegistry::new(plugin_dir);
-    registry.scan_plugins().unwrap();
+    let engine = Engine::default();
+    registry.scan_plugins(&engine).unwrap();
 
     // Update plugin info after successful loading
     registry.update_plugin_info(
@@ -404,6 +407,7 @@ fn test_security_config_defaults() {
 }
 
 /// Test that plugin directory creation works
+/// Test that plugin directory is created if it doesn't exist
 #[test]
 fn test_plugin_directory_creation() {
     let temp_dir = TempDir::new().unwrap();
@@ -413,9 +417,10 @@ fn test_plugin_directory_creation() {
     assert!(!plugin_dir.exists());
 
     let mut registry = PluginRegistry::new(plugin_dir.clone());
+    let engine = Engine::default();
 
     // Scanning should create the directory
-    registry.scan_plugins().unwrap();
+    registry.scan_plugins(&engine).unwrap();
 
     assert!(plugin_dir.exists());
     assert!(plugin_dir.is_dir());

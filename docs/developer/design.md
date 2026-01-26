@@ -37,8 +37,8 @@
 	- `apply`: Idempotent system configuration tasks
 	- `facts`: Facts, metrics, and other information gathering tasks
 	- `logs`: Log file tailing and forwarding tasks
-- Default configuration directory: `~/.config/driftless/config`
-- Secrets passed via environment variables or `~/.config/driftless/env`
+- Default configuration directory: `/etc/driftless/config` (system-wide) or `~/.config/driftless/config` (user)
+- Secrets passed via environment variables, `/etc/driftless/secrets.yml`, `/etc/driftless/secrets.env`, `~/.config/driftless/secrets.yml`, or `~/.config/driftless/secrets.env`
 - Sub-command names mirror file schemas (i.e. `apply`, `facts`, `logs`) for running tasks
 	- The `apply` sub-command should include a `--dry-run` flag or similar to only output diffs
 - Additional `agent` sub-command activates agent mode
@@ -86,17 +86,12 @@ The [nix crate](https://github.com/nix-rust/nix) provides Rust bindings to *nix 
 - [ ] **KVM operations** - Kernel-based virtual machines
 
 ## TODO
-- Finish implementing Config file merging: TODOs for supporting multiple config files (main.rs lines 400, 488, 595)
-- Finish implementing Metrics collection: TODOs for actual implementation (facts/collector.rs)
-- Finish implementing Log collection: TODO for actual implementation (main.rs line 219)
-- Finish implementing User/group property checks: TODOs for additional validation (apply/user.rs, apply/group.rs)
-- Create task prompts in the TODO list that adds support for macOS and Windows operating systems
+- Create task prompts in the TODO list that adds support for macOS and Windows operating systems in all applicable areas of the codebase
 - Review usages of `dead_code`, `unsafe`, and `unused_imports` to silence warnings and determine if code should be used or cleaned up according to Rust best practices. Use this opportunity to cleanup unused code and dependencies to reduce release binary size and improve maintainability.
 - Review the codebase for consistent error-handling patterns and improve as needed
-- Review the entire codebase to ensure all placeholders and `TODO` comments are replaced with actual implementations or tracked issues
 - Ensure all dependencies in `Cargo.toml` are up-to-date with the latest stable versions
 - Review the codebase for usage of Rust best-practices and guidelines
 - Review the codebase for safety and security vulnerabilities and apply mitigations as needed
-- Ensure comprehensive test coverage and cleanup any clippy warnings
+- Ensure comprehensive test coverage and cleanup any clippy warnings. Tests should be written for the intent of the code not the implementation details.
 - Review the auto-generated and manually-managed documentation in the `docs/` directory and validate information is accurate against the current codebase. Look for cleanup, clarification, expansion, and reorganization opportunities. Ensure all auto-generated documentation contains a banner indicating it is auto-generated and should not be manually edited.
 - Perform a final review of the entire codebase, documentation, and project structure to ensure consistency, quality, and readiness for production use.

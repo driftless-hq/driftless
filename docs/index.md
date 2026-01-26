@@ -24,6 +24,8 @@ cargo install driftless
 
 ## Quick Start
 
+### User Installation (Per-User Configuration)
+
 1. Create a configuration directory:
 ```bash
 mkdir -p ~/.config/driftless/config
@@ -89,16 +91,36 @@ driftless agent                   # Run in continuous monitoring mode
 
 ## Configuration
 
-Driftless supports multiple configuration formats:
+Driftless supports multiple configuration formats and automatically detects configuration directories:
 
 ### Directory Structure
+
+Driftless checks for configuration in this order:
+1. System-wide: `/etc/driftless/` (highest priority)
+2. User-specific: `~/.config/driftless/` (fallback)
+
+#### System-wide Configuration (`/etc/driftless/`)
 ```
-~/.config/driftless/
+sudo mkdir -p /etc/driftless
+sudo chown -R driftless:driftless /etc/driftless
+```
+
+#### User Configuration (`~/.config/driftless/`)
+```
+mkdir -p ~/.config/driftless
+```
+
+#### Directory Layout
+```
+driftless/
 ├── config/
 │   ├── apply.yml       # Configuration operation definitions
 │   ├── facts.yml       # Facts collector settings
-│   └── logs.yml        # Log source/output settings
-└── data/               # Runtime data directory
+│   ├── logs.yml        # Log source/output settings
+│   └── agent.yml       # Agent mode configuration
+├── plugins/            # Custom plugins directory
+└── secrets.yml         # Secrets file (YAML format)
+   secrets.env          # Secrets file (environment format)
 ```
 
 ### Configuration Formats

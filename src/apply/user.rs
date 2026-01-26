@@ -177,8 +177,138 @@ pub struct UserTask {
 use anyhow::{Context, Result};
 use std::process::Command;
 
+/// Validate user task parameters
+fn validate_user_task(task: &UserTask) -> Result<()> {
+    // Validate username
+    if task.name.is_empty() {
+        return Err(anyhow::anyhow!("Username cannot be empty"));
+    }
+
+    if task.name.len() > 32 {
+        return Err(anyhow::anyhow!("Username too long (max 32 characters)"));
+    }
+
+    // Username should contain only alphanumeric characters, underscore, dash, and dot
+    if !task
+        .name
+        .chars()
+        .all(|c| c.is_alphanumeric() || c == '_' || c == '-' || c == '.')
+    {
+        return Err(anyhow::anyhow!("Username contains invalid characters (only alphanumeric, underscore, dash, and dot allowed)"));
+    }
+
+    // Reserved usernames
+    let reserved_names = [
+        "root",
+        "daemon",
+        "bin",
+        "sys",
+        "sync",
+        "games",
+        "man",
+        "lp",
+        "mail",
+        "news",
+        "uucp",
+        "proxy",
+        "www-data",
+        "backup",
+        "list",
+        "irc",
+        "gnats",
+        "nobody",
+        "systemd-network",
+        "systemd-resolve",
+        "syslog",
+        "messagebus",
+        "systemd-timesync",
+        "systemd-coredump",
+        "_apt",
+        "tss",
+        "uuidd",
+        "tcpdump",
+        "landscape",
+        "pollinate",
+        "sshd",
+        "systemd-oom",
+    ];
+    if reserved_names.contains(&task.name.as_str()) {
+        // Allow reserved names if the user already exists
+        if user_exists(&task.name).unwrap_or(false) {
+            // User exists, allow it
+        } else {
+            return Err(anyhow::anyhow!("Username '{}' is reserved", task.name));
+        }
+    }
+
+    // Validate UID range (if provided)
+    if let Some(uid) = task.uid {
+        if uid == 0 && task.name != "root" {
+            return Err(anyhow::anyhow!("Only root user can have UID 0"));
+        }
+        if uid > 65535 {
+            return Err(anyhow::anyhow!("UID must be between 0 and 65535"));
+        }
+    }
+
+    // Validate GID range (if provided)
+    if let Some(gid) = task.gid {
+        if gid > 65535 {
+            return Err(anyhow::anyhow!("GID must be between 0 and 65535"));
+        }
+    }
+
+    // Validate home directory path (if provided)
+    if let Some(home) = &task.home {
+        if !home.starts_with('/') {
+            return Err(anyhow::anyhow!("Home directory must be an absolute path"));
+        }
+        if home.contains("..") {
+            return Err(anyhow::anyhow!("Home directory path cannot contain '..'"));
+        }
+    }
+
+    // Validate shell path (if provided)
+    if let Some(shell) = &task.shell {
+        if !shell.starts_with('/') {
+            return Err(anyhow::anyhow!("Shell must be an absolute path"));
+        }
+        // Check if shell exists and is executable
+        if !std::path::Path::new(shell).exists() {
+            return Err(anyhow::anyhow!("Shell '{}' does not exist", shell));
+        }
+    }
+
+    // Validate group names
+    for group in &task.groups {
+        if group.is_empty() {
+            return Err(anyhow::anyhow!("Group name cannot be empty"));
+        }
+        if group.len() > 32 {
+            return Err(anyhow::anyhow!(
+                "Group name '{}' too long (max 32 characters)",
+                group
+            ));
+        }
+        if !group
+            .chars()
+            .all(|c| c.is_alphanumeric() || c == '_' || c == '-' || c == '.')
+        {
+            return Err(anyhow::anyhow!(
+                "Group name '{}' contains invalid characters",
+                group
+            ));
+        }
+    }
+
+    Ok(())
+}
+
 /// Execute a user task
 pub async fn execute_user_task(task: &UserTask, dry_run: bool) -> Result<()> {
+    // Validate task parameters
+    validate_user_task(task)?;
+
     match task.state {
         UserState::Present => ensure_user_present(task, dry_run).await,
         UserState::Absent => ensure_user_absent(task, dry_run).await,
@@ -299,24 +429,163 @@ async fn create_user(task: &UserTask, dry_run: bool) -> Result<()> {
     Ok(())
 }
 
+/// Structure to hold current user properties
+#[derive(Debug)]
+struct UserProperties {
+    uid: u32,
+    gid: u32,
+    home: String,
+    shell: String,
+}
+
+/// Get current properties of a user
+fn get_current_user_properties(username: &str) -> Result<UserProperties> {
+    let output = Command::new("getent")
+        .args(["passwd", username])
+        .output()
+        .with_context(|| format!("Failed to get user info for {}", username))?;
+
+    if !output.status.success() {
+        return Err(anyhow::anyhow!("User {} not found", username));
+    }
+
+    let passwd_line =
+        String::from_utf8(output.stdout).with_context(|| "Failed to parse getent output")?;
+
+    let fields: Vec<&str> = passwd_line.trim().split(':').collect();
+    if fields.len() < 7 {
+        return Err(anyhow::anyhow!("Invalid passwd entry format"));
+    }
+
+    let uid = fields[2]
+        .parse::<u32>()
+        .with_context(|| format!("Invalid UID in passwd entry: {}", fields[2]))?;
+    let gid = fields[3]
+        .parse::<u32>()
+        .with_context(|| format!("Invalid GID in passwd entry: {}", fields[3]))?;
+    let home = fields[5].to_string();
+    let shell = fields[6].to_string();
+
+    Ok(UserProperties {
+        uid,
+        gid,
+        home,
+        shell,
+    })
+}
+
+/// Get supplementary groups for a user
+fn get_user_groups(username: &str) -> Result<Vec<String>> {
+    let output = Command::new("groups")
+        .arg(username)
+        .output()
+        .with_context(|| format!("Failed to get groups for user {}", username))?;
+
+    if !output.status.success() {
+        return Err(anyhow::anyhow!(
+            "Failed to get groups for user {}",
+            username
+        ));
+    }
+
+    let groups_line =
+        String::from_utf8(output.stdout).with_context(|| "Failed to parse groups output")?;
+
+    // Format: username : group1 group2 group3
+    let parts: Vec<&str> = groups_line.trim().split(" : ").collect();
+    if parts.len() != 2 {
+        return Err(anyhow::anyhow!("Invalid groups output format"));
+    }
+
+    let groups: Vec<String> = parts[1].split_whitespace().map(|s| s.to_string()).collect();
+
+    Ok(groups)
+}
+
 /// Update an existing user if properties differ
 async fn update_user_if_needed(task: &UserTask, dry_run: bool) -> Result<()> {
-    // This is a simplified implementation
-    // In a real system, you'd compare current user properties with desired state
-    // and make appropriate changes using usermod
-
     println!("User {} already exists", task.name);
 
-    // Check if password needs updating
-    if let Some(password) = &task.password {
-        // Check if password is different (simplified check)
-        if needs_password_update(&task.name, password)? {
-            set_user_password(&task.name, password, dry_run)?;
+    // Get current user properties
+    let current_props = get_current_user_properties(&task.name)?;
+
+    // Check each property and update if needed
+    let mut needs_update = false;
+    let mut update_cmd = vec!["usermod".to_string()];
+
+    // Check UID
+    if let Some(desired_uid) = task.uid {
+        if current_props.uid != desired_uid {
+            update_cmd.push("-u".to_string());
+            update_cmd.push(desired_uid.to_string());
+            needs_update = true;
         }
     }
 
-    // TODO: Check other properties like UID, GID, home, shell, groups
-    // and update as needed using usermod
+    // Check GID
+    if let Some(desired_gid) = task.gid {
+        if current_props.gid != desired_gid {
+            update_cmd.push("-g".to_string());
+            update_cmd.push(desired_gid.to_string());
+            needs_update = true;
+        }
+    }
+
+    // Check home directory
+    if let Some(desired_home) = &task.home {
+        if current_props.home != *desired_home {
+            update_cmd.push("-d".to_string());
+            update_cmd.push(desired_home.clone());
+            needs_update = true;
+        }
+    }
+
+    // Check shell
+    if let Some(desired_shell) = &task.shell {
+        if current_props.shell != *desired_shell {
+            update_cmd.push("-s".to_string());
+            update_cmd.push(desired_shell.clone());
+            needs_update = true;
+        }
+    }
+
+    // Check additional groups
+    if !task.groups.is_empty() {
+        // Get current supplementary groups
+        let current_groups = get_user_groups(&task.name)?;
+        let desired_groups: std::collections::HashSet<_> = task.groups.iter().collect();
+        let current_groups_set: std::collections::HashSet<_> = current_groups.iter().collect();
+
+        if desired_groups != current_groups_set {
+            update_cmd.push("-G".to_string());
+            update_cmd.push(task.groups.join(","));
+            needs_update = true;
+        }
+    }
+
+    // Execute update if needed
+    if needs_update {
+        update_cmd.push(task.name.clone());
+
+        if dry_run {
+            println!(
+                "Would update user {} with command: {}",
+                task.name,
+                update_cmd.join(" ")
+            );
+        } else {
+            run_command(&update_cmd)
+                .with_context(|| format!("Failed to update user {}", task.name))?;
+            println!("Updated user: {}", task.name);
+        }
+    } else {
+        println!("User {} properties are already correct", task.name);
+    }
+
+    // Check password separately (always update if provided, as we can't easily verify)
+    if let Some(password) = &task.password {
+        set_user_password(&task.name, password, dry_run)?;
+    }
 
     Ok(())
 }
@@ -339,13 +608,17 @@ fn set_user_password(username: &str, password: &str, dry_run: bool) -> Result<()
     if dry_run {
         println!("Would set password for user: {}", username);
     } else {
-        // Note: This is a simplified implementation
-        // In a real system, you'd need to handle password hashing properly
-        // and might use tools like chpasswd
+        // Hash the password using bcrypt for security
+        let hashed_password = bcrypt::hash(password, bcrypt::DEFAULT_COST)
+            .with_context(|| "Failed to hash password")?;
 
-        let password_line = format!("{}:{}", username, password);
+        // Use chpasswd with the hashed password
+        // Note: chpasswd expects the format "username:password" where password can be hashed
+        // The system will detect the hash format automatically
+        let password_line = format!("{}:{}", username, hashed_password);
 
         let mut passwd_cmd = Command::new("chpasswd")
+            .arg("-e") // encrypted password
             .stdin(std::process::Stdio::piped())
             .spawn()
             .with_context(|| "Failed to spawn chpasswd command")?;
@@ -369,13 +642,6 @@ fn set_user_password(username: &str, password: &str, dry_run: bool) -> Result<()
     }
 
     Ok(())
-}
-
-/// Check if a user's password needs updating
-fn needs_password_update(_username: &str, _new_password: &str) -> Result<bool> {
-    // Simplified implementation - always assume password needs updating
-    // In a real system, you'd compare hashed passwords or check modification time
-    Ok(true)
 }
 
 /// Run a command and return the result

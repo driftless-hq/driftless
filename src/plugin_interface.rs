@@ -58,6 +58,11 @@ pub enum TemplateExtensionType {
 /// compatibility and avoid direct type coupling.
 #[allow(dead_code)]
 pub mod plugin_exports {
+    /// Returns a JSON object with plugin metadata
+    ///
+    /// Format: {"version": "string", "description": "string"}
+    pub const GET_PLUGIN_METADATA: &str = "get_plugin_metadata";
+
     /// Returns a JSON array of task definitions
     ///
     /// Format: [{"name": "string", "type": "apply|facts|logs", "config_schema": {...}}]

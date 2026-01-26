@@ -7,6 +7,7 @@ mod tests {
 
     fn create_test_env() -> Environment<'static> {
         let mut env = Environment::new();
+        env.set_undefined_behavior(minijinja::UndefinedBehavior::Strict);
         setup_minijinja_env(&mut env);
         env
     }
@@ -117,14 +118,13 @@ mod tests {
             .unwrap();
         assert!((1..=3).contains(&result));
 
-        // Test default random (0-100)
+        // Test undefined/none values (should fail)
         let template = env.template_from_str("{{ none | random }}").unwrap();
-        let result: i64 = template
-            .render(minijinja::context!())
-            .unwrap()
-            .parse()
-            .unwrap();
-        assert!((0..=100).contains(&result));
+        let result = template.render(minijinja::context!(none => ()));
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        println!("Error: {}", err);
+        assert!(err.to_string().contains("undefined") || err.to_string().contains("random filter"));
     }
 
     #[test]
@@ -157,9 +157,13 @@ mod tests {
         let result = template.render(minijinja::context!()).unwrap();
         assert_eq!(result, "false");
 
+        // Test undefined/none values (should fail)
         let template = env.template_from_str("{{ none | bool }}").unwrap();
-        let result = template.render(minijinja::context!()).unwrap();
-        assert_eq!(result, "false");
+        let result = template.render(minijinja::context!(none => ()));
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        println!("Error: {}", err);
+        assert!(err.to_string().contains("undefined") || err.to_string().contains("bool filter"));
     }
 
     #[test]

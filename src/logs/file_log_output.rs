@@ -92,37 +92,28 @@ impl FileLogOutput {
     }
 
     /// Get the current filename based on pattern and timestamp
-    fn get_filename(&self, timestamp: &DateTime<Utc>) -> String {
+    fn get_filename(&self, timestamp: &DateTime<Utc>) -> Result<String> {
         let pattern = &self.config.filename_pattern;
 
-        // Simple pattern replacement - in a real implementation, this would use
-        // a proper templating engine or strftime
-        let mut filename = pattern
-            .replace("%Y", &timestamp.format("%Y").to_string())
-            .replace("%m", &timestamp.format("%m").to_string())
-            .replace("%d", &timestamp.format("%d").to_string())
-            .replace("%H", &timestamp.format("%H").to_string())
-            .replace("%M", &timestamp.format("%M").to_string())
-            .replace("%S", &timestamp.format("%S").to_string());
+        // Use proper strftime formatting instead of simple string replacement
+        let filename = timestamp.format(pattern).to_string();
 
         // If we have rotated files, append the rotation number
-        if self.rotation_state.file_count > 0 {
-            let stem = Path::new(&filename)
-                .file_stem()
-                .unwrap_or_default()
-                .to_string_lossy();
-            let extension = Path::new(&filename)
-                .extension()
-                .unwrap_or_default()
-                .to_string_lossy();
-            if extension.is_empty() {
-                filename = format!("{}.{}", stem, self.rotation_state.file_count);
-            } else {
-                filename = format!("{}.{}.{}", stem, self.rotation_state.file_count, extension);
-            }
-        }
+        let final_filename = if self.rotation_state.file_count > 0 {
+            let path = Path::new(&filename);
+            let stem = path.file_stem().unwrap_or_default().to_string_lossy();
+            let extension = path.extension().unwrap_or_default().to_string_lossy();
 
-        filename
+            if extension.is_empty() {
+                format!("{}.{}", stem, self.rotation_state.file_count)
+            } else {
+                format!("{}.{}.{}", stem, self.rotation_state.file_count, extension)
+            }
+        } else {
+            filename
+        };
+
+        Ok(final_filename)
     }
 
     /// Check if rotation is needed
@@ -226,7 +217,7 @@ impl FileLogOutput {
                 self.rotate_file()?;
             }
 
-            let filename = self.get_filename(timestamp);
+            let filename = self.get_filename(timestamp)?;
             let filepath = Path::new(&self.config.path).with_file_name(filename);
 
             // Create directory if it doesn't exist
@@ -477,7 +468,7 @@ mod tests {
 
         let output = FileLogOutput::new(config).unwrap();
         let timestamp = Utc::now();
-        let filename = output.get_filename(&timestamp);
+        let filename = output.get_filename(&timestamp).unwrap();
 
         // Should contain date components
         assert!(filename.contains(&timestamp.format("%Y").to_string()));

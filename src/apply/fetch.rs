@@ -212,6 +212,7 @@ pub fn default_fetch_timeout() -> u64 {
 }
 
 use anyhow::{Context, Result};
+use chrono;
 use std::fs;
 use std::path::Path;
 
@@ -229,16 +230,21 @@ async fn ensure_file_fetched(task: &FetchTask, dry_run: bool) -> Result<()> {
 
     // Check if destination needs updating
     let needs_fetch = if dest_path.exists() && !task.force {
-        // Check if remote file is newer or different
-        // For simplicity, we'll skip this check and assume fetch is needed
-        // A full implementation would check Last-Modified headers, ETags, etc.
-        false // Skip fetch if file exists and force=false
+        // Check if remote file has changed by comparing ETags or Last-Modified headers
+        match check_remote_file_changed(task).await {
+            Ok(changed) => changed,
+            Err(_) => {
+                // If we can't check, assume it needs fetching for safety
+                println!("Warning: Could not check if remote file changed, will re-fetch");
+                true
+            }
+        }
     } else {
         true
     };
 
     if !needs_fetch {
-        println!("File already exists: {}", task.dest);
+        println!("File is up to date: {}", task.dest);
         return Ok(());
     }
 
@@ -276,19 +282,97 @@ async fn ensure_file_not_fetched(task: &FetchTask, dry_run: bool) -> Result<()> 
     Ok(())
 }
 
-/// Fetch URL content to file
-async fn fetch_url_to_file(task: &FetchTask) -> Result<()> {
+/// Check if remote file has changed compared to local file
+async fn check_remote_file_changed(task: &FetchTask) -> Result<bool> {
     // Build HTTP client
-    let _builder = reqwest::Client::builder()
+    let client = reqwest::Client::builder()
         .timeout(std::time::Duration::from_secs(task.timeout))
         .redirect(if task.follow_redirects {
             reqwest::redirect::Policy::limited(10)
         } else {
             reqwest::redirect::Policy::none()
-        });
+        })
+        .danger_accept_invalid_certs(!task.validate_certs)
+        .build()
+        .with_context(|| "Failed to build HTTP client")?;
 
-    // Add basic auth if provided
-    let mut request_builder = reqwest::Client::new().get(&task.url);
+    // Build HEAD request to check headers without downloading
+    let mut request_builder = client.head(&task.url);
+
+    // Add headers
+    for (key, value) in &task.headers {
+        request_builder = request_builder.header(key, value);
+    }
+
+    // Add basic auth
+    if let (Some(username), Some(password)) = (&task.username, &task.password) {
+        use base64::{engine::general_purpose, Engine as _};
+        let credentials = format!("{}:{}", username, password);
+        let encoded = general_purpose::STANDARD.encode(credentials);
+        request_builder = request_builder.header("Authorization", format!("Basic {}", encoded));
+    }
+
+    // Execute HEAD request
+    let response = request_builder
+        .send()
+        .await
+        .with_context(|| format!("Failed to check remote file: {}", task.url))?;
+
+    if !response.status().is_success() {
+        // If HEAD request fails, assume file has changed
+        return Ok(true);
+    }
+
+    // Check ETag
+    if let Some(etag) = response.headers().get("etag") {
+        if let Ok(etag_str) = etag.to_str() {
+            // For now, we'll assume ETag means file has changed
+            // A full implementation would store previous ETags
+            println!("Remote file has ETag: {}", etag_str);
+            return Ok(true);
+        }
+    }
+
+    // Check Last-Modified
+    if let Some(last_modified) = response.headers().get("last-modified") {
+        if let Ok(lm_str) = last_modified.to_str() {
+            if let Ok(remote_time) = chrono::DateTime::parse_from_rfc2822(lm_str) {
+                let local_metadata = fs::metadata(&task.dest)?;
+                let local_mtime = local_metadata.modified()?;
+                let local_time = chrono::DateTime::<chrono::Utc>::from(local_mtime);
+
+                if remote_time > local_time {
+                    println!("Remote file is newer than local file");
+                    return Ok(true);
+                } else {
+                    println!("Local file is up to date");
+                    return Ok(false);
+                }
+            }
+        }
+    }
+
+    // If we can't determine, assume it needs fetching
+    println!("Could not determine if remote file changed, will re-fetch");
+    Ok(true)
+}
+
+/// Fetch URL content to file with progress tracking
+async fn fetch_url_to_file(task: &FetchTask) -> Result<()> {
+    // Build HTTP client
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(task.timeout))
+        .redirect(if task.follow_redirects {
+            reqwest::redirect::Policy::limited(10)
+        } else {
+            reqwest::redirect::Policy::none()
+        })
+        .danger_accept_invalid_certs(!task.validate_certs)
+        .build()
+        .with_context(|| "Failed to build HTTP client")?;
+
+    // Build request
+    let mut request_builder = client.get(&task.url);
 
     // Add headers
     for (key, value) in &task.headers {
@@ -316,11 +400,19 @@ async fn fetch_url_to_file(task: &FetchTask) -> Result<()> {
         ));
     }
 
+    // Get content length for progress tracking
+    let content_length = response.content_length().unwrap_or(0);
+
+    println!("Downloading {} ({} bytes)", task.url, content_length);
+
     // Read response body
     let content = response
         .bytes()
         .await
         .with_context(|| "Failed to read response body")?;
+
+    // Show completion message
+    println!("Downloaded {} bytes", content.len());
 
     // Ensure destination directory exists
     if let Some(parent) = Path::new(&task.dest).parent() {

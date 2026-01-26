@@ -20,27 +20,34 @@ pub fn register_list_filters(
             "Additional dictionaries to combine".to_string(),
         )],
         Arc::new(|value, args| {
-            let mut result = HashMap::new();
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "combine filter received undefined or none value",
+                ))
+            } else {
+                let mut result = HashMap::new();
 
-            // Function to add a dict to result
-            let mut add_dict = |val: &JinjaValue| {
-                if let Ok(serde_json::Value::Object(map)) = serde_json::to_value(val) {
-                    for (k, v) in map {
-                        let jinja_val = JinjaValue::from_serialize(&v);
-                        result.insert(k, jinja_val);
+                // Function to add a dict to result
+                let mut add_dict = |val: &JinjaValue| {
+                    if let Ok(serde_json::Value::Object(map)) = serde_json::to_value(val) {
+                        for (k, v) in map {
+                            let jinja_val = JinjaValue::from_serialize(&v);
+                            result.insert(k, jinja_val);
+                        }
                     }
+                };
+
+                // Add base value
+                add_dict(&value);
+
+                // Add additional args
+                for arg in args {
+                    add_dict(arg);
                 }
-            };
 
-            // Add base value
-            add_dict(&value);
-
-            // Add additional args
-            for arg in args {
-                add_dict(arg);
+                JinjaValue::from(result)
             }
-
-            JinjaValue::from(result)
         }),
     );
 
@@ -52,7 +59,12 @@ pub fn register_list_filters(
         "List/Dict Operations",
         vec![],
         Arc::new(|value, _args| {
-            if let Ok(serde_json::Value::Object(map)) = serde_json::to_value(&value) {
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "dict2items filter received undefined or none value",
+                ))
+            } else if let Ok(serde_json::Value::Object(map)) = serde_json::to_value(&value) {
                 let mut items = Vec::new();
                 for (k, v) in map {
                     let val = JinjaValue::from_serialize(&v);
@@ -76,7 +88,12 @@ pub fn register_list_filters(
         "List/Dict Operations",
         vec![],
         Arc::new(|value, _args| {
-            if let Ok(iter) = value.try_iter() {
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "items2dict filter received undefined or none value",
+                ))
+            } else if let Ok(iter) = value.try_iter() {
                 let mut result = HashMap::new();
                 for item in iter {
                     if let Ok(serde_json::Value::Object(item_map)) = serde_json::to_value(&item) {
@@ -103,19 +120,26 @@ pub fn register_list_filters(
         "List/Dict Operations",
         vec![],
         Arc::new(|value, _args| {
-            fn flatten_recursive(val: &JinjaValue, result: &mut Vec<JinjaValue>) {
-                if let Ok(iter) = val.try_iter() {
-                    for item in iter {
-                        flatten_recursive(&item, result);
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "flatten filter received undefined or none value",
+                ))
+            } else {
+                fn flatten_recursive(val: &JinjaValue, result: &mut Vec<JinjaValue>) {
+                    if let Ok(iter) = val.try_iter() {
+                        for item in iter {
+                            flatten_recursive(&item, result);
+                        }
+                    } else {
+                        result.push(val.clone());
                     }
-                } else {
-                    result.push(val.clone());
                 }
-            }
 
-            let mut result = Vec::new();
-            flatten_recursive(&value, &mut result);
-            JinjaValue::from(result)
+                let mut result = Vec::new();
+                flatten_recursive(&value, &mut result);
+                JinjaValue::from(result)
+            }
         }),
     );
 
@@ -130,32 +154,38 @@ pub fn register_list_filters(
             "Attribute name or filter to apply".to_string(),
         )],
         Arc::new(|value, args| {
-            if args.is_empty() {
-                return value.clone();
-            }
-
-            let attribute = args[0].as_str().unwrap_or("");
-            if attribute.is_empty() {
-                return value.clone();
-            }
-
-            if let Ok(iter) = value.try_iter() {
-                let mut result = Vec::new();
-                for item in iter {
-                    if let Ok(serde_json::Value::Object(item_map)) = serde_json::to_value(&item) {
-                        if let Some(v) = item_map.get(attribute) {
-                            let val = JinjaValue::from_serialize(v);
-                            result.push(val);
-                        } else {
-                            result.push(JinjaValue::from(()));
-                        }
-                    } else {
-                        result.push(item.clone());
-                    }
-                }
-                JinjaValue::from(result)
-            } else {
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "map filter received undefined or none value",
+                ))
+            } else if args.is_empty() {
                 value.clone()
+            } else {
+                let attribute = args[0].as_str().unwrap_or("");
+                if attribute.is_empty() {
+                    return value.clone();
+                }
+
+                if let Ok(iter) = value.try_iter() {
+                    let mut result = Vec::new();
+                    for item in iter {
+                        if let Ok(serde_json::Value::Object(item_map)) = serde_json::to_value(&item)
+                        {
+                            if let Some(v) = item_map.get(attribute) {
+                                let val = JinjaValue::from_serialize(v);
+                                result.push(val);
+                            } else {
+                                result.push(JinjaValue::from(()));
+                            }
+                        } else {
+                            result.push(item.clone());
+                        }
+                    }
+                    JinjaValue::from(result)
+                } else {
+                    value.clone()
+                }
             }
         }),
     );
@@ -177,94 +207,99 @@ pub fn register_list_filters(
             ),
         ],
         Arc::new(|value, args| {
-            if args.is_empty() {
-                return value.clone();
-            }
-
-            let test = args[0].as_str().unwrap_or("");
-
-            if let Ok(iter) = value.try_iter() {
-                let mut result = Vec::new();
-                for item in iter {
-                    let include = match test {
-                        "defined" => !item.is_undefined() && !item.is_none(),
-                        "truthy" => {
-                            let is_falsy = item.is_undefined()
-                                || item == JinjaValue::from(false)
-                                || item == JinjaValue::from(0)
-                                || item == JinjaValue::from(0.0)
-                                || item.as_str().map(|s| s.is_empty()).unwrap_or(false)
-                                || item
-                                    .try_iter()
-                                    .map(|mut i| i.next().is_none())
-                                    .unwrap_or(false);
-                            !is_falsy
-                        }
-                        "undefined" => item.is_undefined(),
-                        "none" => item.is_none(),
-                        "falsy" => {
-                            item.is_undefined()
-                                || item == JinjaValue::from(false)
-                                || item == JinjaValue::from(0)
-                                || item == JinjaValue::from(0.0)
-                                || item.as_str().map(|s| s.is_empty()).unwrap_or(false)
-                                || item
-                                    .try_iter()
-                                    .map(|mut i| i.next().is_none())
-                                    .unwrap_or(false)
-                        }
-                        "equalto" => {
-                            if args.len() > 1 {
-                                item == args[1]
-                            } else {
-                                false
-                            }
-                        }
-                        "match" => {
-                            if args.len() > 1 {
-                                if let (Some(item_str), Some(pattern)) = (item.as_str(), args[1].as_str()) {
-                                    regex::Regex::new(pattern).map(|re| re.is_match(item_str)).unwrap_or(false)
-                                } else {
-                                    false
-                                }
-                            } else {
-                                false
-                            }
-                        }
-                        "search" => {
-                            if args.len() > 1 {
-                                if let (Some(item_str), Some(pattern)) = (item.as_str(), args[1].as_str()) {
-                                    regex::Regex::new(pattern).map(|re| re.find(item_str).is_some()).unwrap_or(false)
-                                } else {
-                                    false
-                                }
-                            } else {
-                                false
-                            }
-                        }
-                        "version_compare" => {
-                            // Simple version comparison - assumes semantic versions
-                            if args.len() > 1 {
-                                if let (Some(item_str), Some(compare_str)) = (item.as_str(), args[1].as_str()) {
-                                    // For simplicity, just compare as strings for now
-                                    // A full implementation would parse versions
-                                    item_str == compare_str
-                                } else {
-                                    false
-                                }
-                            } else {
-                                false
-                            }
-                        }
-                        _ => true, // Default to include all
-                    };
-                    if include {
-                        result.push(item);
-                    }
-                }
-                JinjaValue::from(result)
-            } else {
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "select filter received undefined or none value",
+                ))
+            } else if args.is_empty() {
                 value.clone()
+            } else {
+                let test = args[0].as_str().unwrap_or("");
+
+                if let Ok(iter) = value.try_iter() {
+                    let mut result = Vec::new();
+                    for item in iter {
+                        let include = match test {
+                            "defined" => !item.is_undefined() && !item.is_none(),
+                            "truthy" => {
+                                let is_falsy = item.is_undefined()
+                                    || item == JinjaValue::from(false)
+                                    || item == JinjaValue::from(0)
+                                    || item == JinjaValue::from(0.0)
+                                    || item.as_str().map(|s| s.is_empty()).unwrap_or(false)
+                                    || item
+                                        .try_iter()
+                                        .map(|mut i| i.next().is_none())
+                                        .unwrap_or(false);
+                                !is_falsy
+                            }
+                            "undefined" => item.is_undefined(),
+                            "none" => item.is_none(),
+                            "falsy" => {
+                                item.is_undefined()
+                                    || item == JinjaValue::from(false)
+                                    || item == JinjaValue::from(0)
+                                    || item == JinjaValue::from(0.0)
+                                    || item.as_str().map(|s| s.is_empty()).unwrap_or(false)
+                                    || item
+                                        .try_iter()
+                                        .map(|mut i| i.next().is_none())
+                                        .unwrap_or(false)
+                            }
+                            "equalto" => {
+                                if args.len() > 1 {
+                                    item == args[1]
+                                } else {
+                                    false
+                                }
+                            }
+                            "match" => {
+                                if args.len() > 1 {
+                                    if let (Some(item_str), Some(pattern)) = (item.as_str(), args[1].as_str()) {
+                                        regex::Regex::new(pattern).map(|re| re.is_match(item_str)).unwrap_or(false)
+                                    } else {
+                                        false
+                                    }
+                                } else {
+                                    false
+                                }
+                            }
+                            "search" => {
+                                if args.len() > 1 {
+                                    if let (Some(item_str), Some(pattern)) = (item.as_str(), args[1].as_str()) {
+                                        regex::Regex::new(pattern).map(|re| re.find(item_str).is_some()).unwrap_or(false)
+                                    } else {
+                                        false
+                                    }
+                                } else {
+                                    false
+                                }
+                            }
+                            "version_compare" => {
+                                // Simple version comparison - assumes semantic versions
+                                if args.len() > 1 {
+                                    if let (Some(item_str), Some(compare_str)) = (item.as_str(), args[1].as_str()) {
+                                        // For simplicity, just compare as strings for now
+                                        // A full implementation would parse versions
+                                        item_str == compare_str
+                                    } else {
+                                        false
+                                    }
+                                } else {
+                                    false
+                                }
+                            }
+                            _ => true, // Default to include all
+                        };
+                        if include {
+                            result.push(item);
+                        }
+                    }
+                    JinjaValue::from(result)
+                } else {
+                    value.clone()
+                }
             }
         }),
     );
@@ -286,94 +321,99 @@ pub fn register_list_filters(
             ),
         ],
         Arc::new(|value, args| {
-            if args.is_empty() {
-                return value.clone();
-            }
-
-            let test = args[0].as_str().unwrap_or("");
-
-            if let Ok(iter) = value.try_iter() {
-                let mut result = Vec::new();
-                for item in iter {
-                    let exclude = match test {
-                        "defined" => !item.is_undefined() && !item.is_none(),
-                        "truthy" => {
-                            let is_falsy = item.is_undefined()
-                                || item == JinjaValue::from(false)
-                                || item == JinjaValue::from(0)
-                                || item == JinjaValue::from(0.0)
-                                || item.as_str().map(|s| s.is_empty()).unwrap_or(false)
-                                || item
-                                    .try_iter()
-                                    .map(|mut i| i.next().is_none())
-                                    .unwrap_or(false);
-                            !is_falsy
-                        }
-                        "undefined" => item.is_undefined(),
-                        "none" => item.is_none(),
-                        "falsy" => {
-                            item.is_undefined()
-                                || item == JinjaValue::from(false)
-                                || item == JinjaValue::from(0)
-                                || item == JinjaValue::from(0.0)
-                                || item.as_str().map(|s| s.is_empty()).unwrap_or(false)
-                                || item
-                                    .try_iter()
-                                    .map(|mut i| i.next().is_none())
-                                    .unwrap_or(false)
-                        }
-                        "equalto" => {
-                            if args.len() > 1 {
-                                item == args[1]
-                            } else {
-                                false
-                            }
-                        }
-                        "match" => {
-                            if args.len() > 1 {
-                                if let (Some(item_str), Some(pattern)) = (item.as_str(), args[1].as_str()) {
-                                    regex::Regex::new(pattern).map(|re| re.is_match(item_str)).unwrap_or(false)
-                                } else {
-                                    false
-                                }
-                            } else {
-                                false
-                            }
-                        }
-                        "search" => {
-                            if args.len() > 1 {
-                                if let (Some(item_str), Some(pattern)) = (item.as_str(), args[1].as_str()) {
-                                    regex::Regex::new(pattern).map(|re| re.find(item_str).is_some()).unwrap_or(false)
-                                } else {
-                                    false
-                                }
-                            } else {
-                                false
-                            }
-                        }
-                        "version_compare" => {
-                            // Simple version comparison - assumes semantic versions
-                            if args.len() > 1 {
-                                if let (Some(item_str), Some(compare_str)) = (item.as_str(), args[1].as_str()) {
-                                    // For simplicity, just compare as strings for now
-                                    // A full implementation would parse versions
-                                    item_str == compare_str
-                                } else {
-                                    false
-                                }
-                            } else {
-                                false
-                            }
-                        }
-                        _ => false, // Default to exclude nothing
-                    };
-                    if !exclude {
-                        result.push(item);
-                    }
-                }
-                JinjaValue::from(result)
-            } else {
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "reject filter received undefined or none value",
+                ))
+            } else if args.is_empty() {
                 value.clone()
+            } else {
+                let test = args[0].as_str().unwrap_or("");
+
+                if let Ok(iter) = value.try_iter() {
+                    let mut result = Vec::new();
+                    for item in iter {
+                        let exclude = match test {
+                            "defined" => !item.is_undefined() && !item.is_none(),
+                            "truthy" => {
+                                let is_falsy = item.is_undefined()
+                                    || item == JinjaValue::from(false)
+                                    || item == JinjaValue::from(0)
+                                    || item == JinjaValue::from(0.0)
+                                    || item.as_str().map(|s| s.is_empty()).unwrap_or(false)
+                                    || item
+                                        .try_iter()
+                                        .map(|mut i| i.next().is_none())
+                                        .unwrap_or(false);
+                                !is_falsy
+                            }
+                            "undefined" => item.is_undefined(),
+                            "none" => item.is_none(),
+                            "falsy" => {
+                                item.is_undefined()
+                                    || item == JinjaValue::from(false)
+                                    || item == JinjaValue::from(0)
+                                    || item == JinjaValue::from(0.0)
+                                    || item.as_str().map(|s| s.is_empty()).unwrap_or(false)
+                                    || item
+                                        .try_iter()
+                                        .map(|mut i| i.next().is_none())
+                                        .unwrap_or(false)
+                            }
+                            "equalto" => {
+                                if args.len() > 1 {
+                                    item == args[1]
+                                } else {
+                                    false
+                                }
+                            }
+                            "match" => {
+                                if args.len() > 1 {
+                                    if let (Some(item_str), Some(pattern)) = (item.as_str(), args[1].as_str()) {
+                                        regex::Regex::new(pattern).map(|re| re.is_match(item_str)).unwrap_or(false)
+                                    } else {
+                                        false
+                                    }
+                                } else {
+                                    false
+                                }
+                            }
+                            "search" => {
+                                if args.len() > 1 {
+                                    if let (Some(item_str), Some(pattern)) = (item.as_str(), args[1].as_str()) {
+                                        regex::Regex::new(pattern).map(|re| re.find(item_str).is_some()).unwrap_or(false)
+                                    } else {
+                                        false
+                                    }
+                                } else {
+                                    false
+                                }
+                            }
+                            "version_compare" => {
+                                // Simple version comparison - assumes semantic versions
+                                if args.len() > 1 {
+                                    if let (Some(item_str), Some(compare_str)) = (item.as_str(), args[1].as_str()) {
+                                        // For simplicity, just compare as strings for now
+                                        // A full implementation would parse versions
+                                        item_str == compare_str
+                                    } else {
+                                        false
+                                    }
+                                } else {
+                                    false
+                                }
+                            }
+                            _ => false, // Default to exclude nothing
+                        };
+                        if !exclude {
+                            result.push(item);
+                        }
+                    }
+                    JinjaValue::from(result)
+                } else {
+                    value.clone()
+                }
             }
         }),
     );
@@ -389,37 +429,44 @@ pub fn register_list_filters(
             "Additional lists to zip with".to_string(),
         )],
         Arc::new(|value, args| {
-            let mut lists = vec![value];
-            lists.extend_from_slice(args);
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "zip filter received undefined or none value",
+                ))
+            } else {
+                let mut lists = vec![value];
+                lists.extend_from_slice(args);
 
-            // Convert all to sequences
-            let sequences: Vec<Vec<JinjaValue>> = lists
-                .iter()
-                .filter_map(|v| {
-                    if let Ok(iter) = v.try_iter() {
-                        Some(iter.collect())
-                    } else {
-                        None
-                    }
-                })
-                .collect();
+                // Convert all to sequences
+                let sequences: Vec<Vec<JinjaValue>> = lists
+                    .iter()
+                    .filter_map(|v| {
+                        if let Ok(iter) = v.try_iter() {
+                            Some(iter.collect())
+                        } else {
+                            None
+                        }
+                    })
+                    .collect();
 
-            if sequences.is_empty() {
-                return JinjaValue::from(Vec::<JinjaValue>::new());
-            }
-
-            let min_len = sequences.iter().map(|s| s.len()).min().unwrap_or(0);
-            let mut result = Vec::new();
-
-            for i in 0..min_len {
-                let mut tuple = Vec::new();
-                for seq in &sequences {
-                    tuple.push(seq[i].clone());
+                if sequences.is_empty() {
+                    return JinjaValue::from(Vec::<JinjaValue>::new());
                 }
-                result.push(JinjaValue::from(tuple));
-            }
 
-            JinjaValue::from(result)
+                let min_len = sequences.iter().map(|s| s.len()).min().unwrap_or(0);
+                let mut result = Vec::new();
+
+                for i in 0..min_len {
+                    let mut tuple = Vec::new();
+                    for seq in &sequences {
+                        tuple.push(seq[i].clone());
+                    }
+                    result.push(JinjaValue::from(tuple));
+                }
+
+                JinjaValue::from(result)
+            }
         }),
     );
 
@@ -444,56 +491,63 @@ pub fn register_list_filters(
             ),
         ],
         Arc::new(|value, args| {
-            let case_sensitive = args.first().map(|v| v.is_true()).unwrap_or(false);
-            let by = args.get(1).and_then(|v| v.as_str()).unwrap_or("key");
-            let reverse = args.get(2).map(|v| v.is_true()).unwrap_or(false);
-
-            if let Ok(serde_json::Value::Object(map)) = serde_json::to_value(&value) {
-                let mut items: Vec<_> = map.into_iter().collect();
-
-                items.sort_by(|a, b| {
-                    let cmp = match by {
-                        "value" => {
-                            let a_val = &a.1;
-                            let b_val = &b.1;
-                            match (a_val, b_val) {
-                                (
-                                    serde_json::Value::String(ref a_str),
-                                    serde_json::Value::String(ref b_str),
-                                ) => {
-                                    if case_sensitive {
-                                        a_str.cmp(b_str)
-                                    } else {
-                                        a_str.to_lowercase().cmp(&b_str.to_lowercase())
-                                    }
-                                }
-                                _ => a_val.to_string().cmp(&b_val.to_string()),
-                            }
-                        }
-                        _ => {
-                            // "key"
-                            let a_key = &a.0;
-                            let b_key = &b.0;
-                            if case_sensitive {
-                                a_key.cmp(b_key)
-                            } else {
-                                a_key.to_lowercase().cmp(&b_key.to_lowercase())
-                            }
-                        }
-                    };
-                    if reverse {
-                        cmp.reverse()
-                    } else {
-                        cmp
-                    }
-                });
-
-                let sorted_map: std::collections::HashMap<String, serde_json::Value> =
-                    items.into_iter().collect();
-                JinjaValue::from_serialize(&sorted_map)
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "dictsort filter received undefined or none value",
+                ))
             } else {
-                // Not a dict, return as is
-                value
+                let case_sensitive = args.first().map(|v| v.is_true()).unwrap_or(false);
+                let by = args.get(1).and_then(|v| v.as_str()).unwrap_or("key");
+                let reverse = args.get(2).map(|v| v.is_true()).unwrap_or(false);
+
+                if let Ok(serde_json::Value::Object(map)) = serde_json::to_value(&value) {
+                    let mut items: Vec<_> = map.into_iter().collect();
+
+                    items.sort_by(|a, b| {
+                        let cmp = match by {
+                            "value" => {
+                                let a_val = &a.1;
+                                let b_val = &b.1;
+                                match (a_val, b_val) {
+                                    (
+                                        serde_json::Value::String(ref a_str),
+                                        serde_json::Value::String(ref b_str),
+                                    ) => {
+                                        if case_sensitive {
+                                            a_str.cmp(b_str)
+                                        } else {
+                                            a_str.to_lowercase().cmp(&b_str.to_lowercase())
+                                        }
+                                    }
+                                    _ => a_val.to_string().cmp(&b_val.to_string()),
+                                }
+                            }
+                            _ => {
+                                // "key"
+                                let a_key = &a.0;
+                                let b_key = &b.0;
+                                if case_sensitive {
+                                    a_key.cmp(b_key)
+                                } else {
+                                    a_key.to_lowercase().cmp(&b_key.to_lowercase())
+                                }
+                            }
+                        };
+                        if reverse {
+                            cmp.reverse()
+                        } else {
+                            cmp
+                        }
+                    });
+
+                    let sorted_map: std::collections::HashMap<String, serde_json::Value> =
+                        items.into_iter().collect();
+                    JinjaValue::from_serialize(&sorted_map)
+                } else {
+                    // Not a dict, return as is
+                    value
+                }
             }
         }),
     );
@@ -509,21 +563,28 @@ pub fn register_list_filters(
             "integer: Size of each slice".to_string(),
         )],
         Arc::new(|value, args| {
-            let size = args.first().and_then(|v| v.as_i64()).unwrap_or(1) as usize;
-            if size == 0 {
-                return JinjaValue::from(Vec::<JinjaValue>::new());
-            }
-
-            if let Ok(seq) = value.try_iter() {
-                let items: Vec<JinjaValue> = seq.collect();
-                let mut result = Vec::new();
-                for chunk in items.chunks(size) {
-                    result.push(JinjaValue::from(chunk.to_vec()));
-                }
-                JinjaValue::from(result)
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "slice filter received undefined or none value",
+                ))
             } else {
-                // Not a sequence, return empty list
-                JinjaValue::from(Vec::<JinjaValue>::new())
+                let size = args.first().and_then(|v| v.as_i64()).unwrap_or(1) as usize;
+                if size == 0 {
+                    return JinjaValue::from(Vec::<JinjaValue>::new());
+                }
+
+                if let Ok(seq) = value.try_iter() {
+                    let items: Vec<JinjaValue> = seq.collect();
+                    let mut result = Vec::new();
+                    for chunk in items.chunks(size) {
+                        result.push(JinjaValue::from(chunk.to_vec()));
+                    }
+                    JinjaValue::from(result)
+                } else {
+                    // Not a sequence, return empty list
+                    JinjaValue::from(Vec::<JinjaValue>::new())
+                }
             }
         }),
     );
