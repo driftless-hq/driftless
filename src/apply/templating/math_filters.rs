@@ -90,10 +90,8 @@ pub fn register_math_filters(
         ],
         Arc::new(|value, args| {
             if value.is_undefined() || value.is_none() {
-                JinjaValue::from(minijinja::Error::new(
-                    minijinja::ErrorKind::InvalidOperation,
-                    "random filter received undefined or none value",
-                ))
+                // Fail template rendering for undefined/none values
+                minijinja::Value::UNDEFINED
             } else {
                 use rand::Rng;
                 let mut rng = rand::rng();
@@ -147,10 +145,8 @@ pub fn register_math_filters(
         vec![],
         Arc::new(|value, _args| {
             if value.is_undefined() || value.is_none() {
-                JinjaValue::from(minijinja::Error::new(
-                    minijinja::ErrorKind::InvalidOperation,
-                    "bool filter received undefined or none value",
-                ))
+                // Fail template rendering for undefined/none values
+                minijinja::Value::UNDEFINED
             } else {
                 JinjaValue::from(value.is_true())
             }

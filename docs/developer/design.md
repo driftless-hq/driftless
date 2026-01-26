@@ -101,12 +101,6 @@ The [nix crate](https://github.com/nix-rust/nix) provides Rust bindings to *nix 
 
 Ensure these task items have full production-ready implementations or provide additional task items if too complex for a single prompt:
 
-#### Template System
-- [ ] **Template error handling**: Make undefined/none values in template filters cause rendering failures instead of returning error indications
-
-#### Configuration Comparison
-- [ ] **Log output comparison**: Implement proper comparison of log output configurations by type instead of simplified equality check
-
 #### Plugin Examples
 - [ ] **TypeScript plugin compilation**: Implement proper WebAssembly compilation for TypeScript plugins using tools like `javy`
 - [ ] **JavaScript plugin compilation**: Implement proper WebAssembly compilation for JavaScript plugins using tools like `javy`

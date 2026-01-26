@@ -927,7 +927,7 @@ pub struct PluginFilter {
 }
 
 /// Log output configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum LogOutput {
     /// Write to local file
@@ -962,7 +962,7 @@ pub struct PluginOutput {
 }
 
 /// File output configuration
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct FileOutput {
     /// Output destination name
     pub name: String,
@@ -983,7 +983,7 @@ pub struct FileOutput {
 }
 
 /// S3 output configuration
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct S3Output {
     /// Output destination name
     pub name: String,
@@ -1014,7 +1014,7 @@ pub struct S3Output {
 }
 
 /// HTTP output configuration
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct HttpOutput {
     /// Output destination name
     pub name: String,
@@ -1044,7 +1044,7 @@ pub struct HttpOutput {
 }
 
 /// HTTP authentication
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum HttpAuth {
     /// Basic authentication
@@ -1056,7 +1056,7 @@ pub enum HttpAuth {
 }
 
 /// Syslog output configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct SyslogOutput {
     /// Output destination name
     pub name: String,
@@ -1081,7 +1081,7 @@ pub struct SyslogOutput {
 }
 
 /// Syslog protocol
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum SyslogProtocol {
     /// UDP protocol
@@ -1092,7 +1092,7 @@ pub enum SyslogProtocol {
 }
 
 /// Console output configuration (for debugging)
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct ConsoleOutput {
     /// Output destination name
     pub name: String,
@@ -1105,7 +1105,7 @@ pub struct ConsoleOutput {
 }
 
 /// Console target
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum ConsoleTarget {
     /// Standard output
@@ -1116,7 +1116,7 @@ pub enum ConsoleTarget {
 }
 
 /// File rotation configuration
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct RotationConfig {
     /// Rotation strategy
     #[serde(default)]
@@ -1133,7 +1133,7 @@ pub struct RotationConfig {
 }
 
 /// Rotation strategies
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum RotationStrategy {
     /// No rotation
@@ -1148,7 +1148,7 @@ pub enum RotationStrategy {
 }
 
 /// Compression configuration
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct CompressionConfig {
     /// Whether compression is enabled
     #[serde(default)]
@@ -1175,7 +1175,7 @@ pub enum CompressionAlgorithm {
 }
 
 /// Batch configuration for HTTP outputs
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct BatchConfig {
     /// Maximum batch size (number of log entries)
     #[serde(default = "default_batch_size")]
@@ -1189,7 +1189,7 @@ pub struct BatchConfig {
 }
 
 /// Retry configuration
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct RetryConfig {
     /// Maximum number of retry attempts
     #[serde(default = "default_max_retries")]

@@ -356,16 +356,7 @@ fn configs_are_equal(a: &crate::logs::LogsConfig, b: &crate::logs::LogsConfig) -
 
 /// Compare two log outputs for equality
 fn outputs_are_equal(a: &crate::logs::LogOutput, b: &crate::logs::LogOutput) -> bool {
-    use crate::logs::LogOutput::*;
-    match (a, b) {
-        (File(a), File(b)) => a.enabled == b.enabled && a.path == b.path,
-        (S3(a), S3(b)) => a.enabled == b.enabled && a.bucket == b.bucket && a.prefix == b.prefix,
-        (Http(a), Http(b)) => a.enabled == b.enabled && a.url == b.url,
-        (Syslog(a), Syslog(b)) => a.enabled == b.enabled && a.facility == b.facility,
-        (Console(a), Console(b)) => a.enabled == b.enabled,
-        (Plugin(a), Plugin(b)) => a.enabled == b.enabled && a.config == b.config,
-        _ => false, // Different output types
-    }
+    a == b
 }
 
 /// Calculate SHA256 hash of a serializable configuration

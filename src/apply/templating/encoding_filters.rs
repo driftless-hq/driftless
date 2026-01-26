@@ -150,25 +150,16 @@ pub fn register_encoding_filters(
         Arc::new(|value, _args| {
             if value.is_undefined() || value.is_none() {
                 // Fail template rendering for undefined/none values
-                JinjaValue::from(minijinja::Error::new(
-                    minijinja::ErrorKind::InvalidOperation,
-                    "mandatory filter received undefined or none value",
-                ))
+                minijinja::Value::UNDEFINED
             } else if let Some(s) = value.as_str() {
                 if s.is_empty() {
-                    JinjaValue::from(minijinja::Error::new(
-                        minijinja::ErrorKind::InvalidOperation,
-                        "mandatory filter received empty string",
-                    ))
+                    minijinja::Value::UNDEFINED
                 } else {
                     value
                 }
             } else if let Ok(seq) = value.try_iter() {
                 if seq.count() == 0 {
-                    JinjaValue::from(minijinja::Error::new(
-                        minijinja::ErrorKind::InvalidOperation,
-                        "mandatory filter received empty sequence",
-                    ))
+                    minijinja::Value::UNDEFINED
                 } else {
                     value
                 }
