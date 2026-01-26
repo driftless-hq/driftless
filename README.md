@@ -16,6 +16,7 @@ A lightweight Rust agent for declarative system configuration, metrics gathering
 
 ## Quick Start
 
+### User Installation (Per-User Configuration)
 ```bash
 # Install
 cargo install driftless
@@ -25,6 +26,19 @@ mkdir -p ~/.config/driftless/config
 
 # Run
 driftless apply
+```
+
+### System-wide Installation (System Configuration)
+```bash
+# Install
+cargo install driftless
+
+# Create system configuration (requires root)
+sudo mkdir -p /etc/driftless
+sudo chown -R $USER:$USER /etc/driftless
+
+# Run with system config
+sudo driftless --config /etc/driftless apply
 ```
 
 For detailed installation instructions, configuration examples, and comprehensive guides, see the [full documentation](https://driftless-hq.github.io/driftless/).

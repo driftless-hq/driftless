@@ -25,10 +25,10 @@ use axum::{extract::State, http::StatusCode, response::Json, routing::get, Route
 )]
 #[command(version)]
 struct Cli {
-    /// Configuration directory (default: ~/.config/driftless/config)
+    /// Configuration directory (default: /etc/driftless/config if exists, otherwise ~/.config/driftless/config)
     #[arg(short, long)]
     config: Option<PathBuf>,
-    /// Plugin directory (default: ~/.config/driftless/plugins)
+    /// Plugin directory (default: /etc/driftless/plugins if exists, otherwise ~/.config/driftless/plugins)
     #[arg(long)]
     plugin_dir: Option<PathBuf>,
 
@@ -126,20 +126,40 @@ async fn main() -> anyhow::Result<()> {
 
     let cli = Cli::parse();
 
-    // Use default config directory if not specified
+    // Determine config directory with proper precedence:
+    // 1. CLI argument if provided
+    // 2. System-wide config (/etc/driftless/config) if it exists
+    // 3. User config (~/.config/driftless/config)
     let config_dir = cli.config.unwrap_or_else(|| {
-        dirs::config_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join("driftless")
-            .join("config")
+        // Check for system-wide config first
+        let system_config = PathBuf::from("/etc/driftless/config");
+        if system_config.exists() {
+            system_config
+        } else {
+            // Fall back to user config
+            dirs::config_dir()
+                .unwrap_or_else(|| PathBuf::from("."))
+                .join("driftless")
+                .join("config")
+        }
     });
 
-    // Use default plugin directory if not specified
+    // Determine plugin directory with proper precedence:
+    // 1. CLI argument if provided
+    // 2. System-wide plugins (/etc/driftless/plugins) if it exists
+    // 3. User plugins (~/.config/driftless/plugins)
     let plugin_dir = cli.plugin_dir.unwrap_or_else(|| {
-        dirs::config_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join("driftless")
-            .join("plugins")
+        // Check for system-wide plugins first
+        let system_plugins = PathBuf::from("/etc/driftless/plugins");
+        if system_plugins.exists() {
+            system_plugins
+        } else {
+            // Fall back to user plugins
+            dirs::config_dir()
+                .unwrap_or_else(|| PathBuf::from("."))
+                .join("driftless")
+                .join("plugins")
+        }
     });
 
     // Load plugin registry configuration for security settings

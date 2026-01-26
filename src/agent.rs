@@ -8,6 +8,7 @@ use crate::facts::{FactsConfig, FactsOrchestrator};
 use crate::logs::{LogOrchestrator, LogsConfig};
 // use crate::secrets::SecretsManager;
 use anyhow::Result;
+use dirs;
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -200,9 +201,33 @@ impl Default for ResourceMonitoringConfig {
 
 impl Default for AgentConfig {
     fn default() -> Self {
+        // Check for system-wide config first
+        let system_config = PathBuf::from("/etc/driftless/config");
+        let config_dir = if system_config.exists() {
+            system_config
+        } else {
+            // Fall back to user config
+            dirs::config_dir()
+                .unwrap_or_else(|| PathBuf::from("."))
+                .join("driftless")
+                .join("config")
+        };
+
+        // Check for system-wide plugins first
+        let system_plugins = PathBuf::from("/etc/driftless/plugins");
+        let plugin_dir = if system_plugins.exists() {
+            system_plugins
+        } else {
+            // Fall back to user plugins
+            dirs::config_dir()
+                .unwrap_or_else(|| PathBuf::from("."))
+                .join("driftless")
+                .join("plugins")
+        };
+
         Self {
-            config_dir: PathBuf::from("~/.config/driftless/config"),
-            plugin_dir: PathBuf::from("~/.config/driftless/plugins"),
+            config_dir,
+            plugin_dir,
             apply_interval: 300, // 5 minutes
             facts_interval: 60,  // 1 minute
             apply_dry_run: false,

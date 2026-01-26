@@ -249,7 +249,7 @@ tasks:
 
 ### Env File Support
 
-Create `~/.config/driftless/env` with:
+Create `~/.config/driftless/env` (user) or `/etc/driftless/env` (system-wide) with:
 
 ```bash
 API_KEY=your-secret-key
@@ -282,7 +282,7 @@ tasks:
 
 ### Notes
 
-- Environment variables are loaded from the system and from `~/.config/driftless/env`
+- Environment variables are loaded from the system, `/etc/driftless/env` (system-wide), and `~/.config/driftless/env` (user)
 - Access via `env.VARIABLE_NAME` syntax
 - Variables defined in YAML `vars:` section are processed at load time
 - Env file variables override system environment variables

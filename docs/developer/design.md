@@ -37,8 +37,8 @@
 	- `apply`: Idempotent system configuration tasks
 	- `facts`: Facts, metrics, and other information gathering tasks
 	- `logs`: Log file tailing and forwarding tasks
-- Default configuration directory: `~/.config/driftless/config`
-- Secrets passed via environment variables or `~/.config/driftless/env`
+- Default configuration directory: `/etc/driftless/config` (system-wide) or `~/.config/driftless/config` (user)
+- Secrets passed via environment variables, `/etc/driftless/secrets.yml`, `/etc/driftless/secrets.env`, `~/.config/driftless/secrets.yml`, or `~/.config/driftless/secrets.env`
 - Sub-command names mirror file schemas (i.e. `apply`, `facts`, `logs`) for running tasks
 	- The `apply` sub-command should include a `--dry-run` flag or similar to only output diffs
 - Additional `agent` sub-command activates agent mode
@@ -86,7 +86,6 @@ The [nix crate](https://github.com/nix-rust/nix) provides Rust bindings to *nix 
 - [ ] **KVM operations** - Kernel-based virtual machines
 
 ## TODO
-- Review the codebase for default directory paths and configuration values to ensure they follow best practices and conventions for Linux systems, prefering user directories and supporting system-wide directories.
 - Review the entire codebase to find all placeholders, `TODO`, `in practice`, and `in a real implementation` comments and add TODO list items to address them
 - Create task prompts in the TODO list that adds support for macOS and Windows operating systems in all applicable areas of the codebase
 - Review usages of `dead_code`, `unsafe`, and `unused_imports` to silence warnings and determine if code should be used or cleaned up according to Rust best practices. Use this opportunity to cleanup unused code and dependencies to reduce release binary size and improve maintainability.
@@ -97,14 +96,3 @@ The [nix crate](https://github.com/nix-rust/nix) provides Rust bindings to *nix 
 - Ensure comprehensive test coverage and cleanup any clippy warnings. Tests should be written for the intent of the code not the implementation details.
 - Review the auto-generated and manually-managed documentation in the `docs/` directory and validate information is accurate against the current codebase. Look for cleanup, clarification, expansion, and reorganization opportunities. Ensure all auto-generated documentation contains a banner indicating it is auto-generated and should not be manually edited.
 - Perform a final review of the entire codebase, documentation, and project structure to ensure consistency, quality, and readiness for production use.
-
-### Codebase Implementation Gaps (from TODO, placeholder, and implementation comments)
-
-Ensure these task items have full production-ready implementations or provide additional task items if too complex for a single prompt:
-
-#### Agent and Configuration
-- [ ] **Configuration change detection**: Implement proper configuration change detection instead of simplified comparison (`src/agent.rs`)
-- [ ] **Secrets management**: Add appropriate crate and implementation for secrets management (`Cargo.toml`)
-
-#### Dependencies and Infrastructure
-- [ ] **Secrets crate**: Add and implement secrets management crate dependency
