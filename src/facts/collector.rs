@@ -11,6 +11,9 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
+/// Prometheus exposition format version
+const PROMETHEUS_EXPOSITION_VERSION: &str = "text/plain; version=0.0.4";
+
 /// Metrics collector for system facts
 #[allow(dead_code)]
 pub struct MetricsCollector {
@@ -174,7 +177,7 @@ impl PrometheusExporter {
                             let body = Self::generate_metrics(&metrics);
                             Response::builder()
                                 .status(StatusCode::OK)
-                                .header(header::CONTENT_TYPE, "text/plain; version=0.0.4")
+                                .header(header::CONTENT_TYPE, PROMETHEUS_EXPOSITION_VERSION)
                                 .body(body)
                                 .unwrap()
                                 .into_response()
@@ -183,7 +186,7 @@ impl PrometheusExporter {
                             eprintln!("Error getting metrics: {}", e);
                             Response::builder()
                                 .status(StatusCode::INTERNAL_SERVER_ERROR)
-                                .header(header::CONTENT_TYPE, "text/plain; version=0.0.4")
+                                .header(header::CONTENT_TYPE, PROMETHEUS_EXPOSITION_VERSION)
                                 .body("# Error getting metrics\n".to_string())
                                 .unwrap()
                                 .into_response()

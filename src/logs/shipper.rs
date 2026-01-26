@@ -157,11 +157,15 @@ impl LogShipper {
         // Wait for all tasks to complete while keeping the receiver alive
         // This prevents send errors in sources when no outputs are subscribed
         for task in source_tasks {
-            let _ = task.await;
+            if let Err(e) = task.await {
+                eprintln!("Source task error: {:?}", e);
+            }
         }
         
         for task in output_tasks {
-            let _ = task.await;
+            if let Err(e) = task.await {
+                eprintln!("Output task error: {:?}", e);
+            }
         }
         
         // Keep _keep_alive_rx alive until tasks complete
