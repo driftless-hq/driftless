@@ -14,6 +14,7 @@ pub struct TaskExecutor {
     variables: VariableContext,
     config_dir: std::path::PathBuf,
     plugin_manager: Option<std::sync::Arc<std::sync::RwLock<crate::plugins::PluginManager>>>,
+    config: ApplyConfig,
 }
 
 impl TaskExecutor {
@@ -24,6 +25,11 @@ impl TaskExecutor {
             variables: VariableContext::new(),
             config_dir: std::path::PathBuf::from("."),
             plugin_manager: None,
+            config: ApplyConfig {
+                vars: std::collections::HashMap::new(),
+                tasks: Vec::new(),
+                state_dir: crate::apply::default_state_dir(),
+            },
         }
     }
 
@@ -34,6 +40,7 @@ impl TaskExecutor {
         mut context: VariableContext,
         config_dir: std::path::PathBuf,
         plugin_manager: Option<std::sync::Arc<std::sync::RwLock<crate::plugins::PluginManager>>>,
+        config: ApplyConfig,
     ) -> Self {
         // Process template expressions in variables when they're loaded
         for (key, value) in vars {
@@ -58,6 +65,7 @@ impl TaskExecutor {
             variables: context,
             config_dir,
             plugin_manager,
+            config,
         }
     }
 
@@ -88,18 +96,25 @@ impl TaskExecutor {
         &self.plugin_manager
     }
 
+    /// Get the apply config
+    pub fn config(&self) -> &ApplyConfig {
+        &self.config
+    }
+
     /// Create a minimal task executor for included tasks
     pub fn minimal(
         variables: VariableContext,
         dry_run: bool,
         config_dir: std::path::PathBuf,
         plugin_manager: Option<std::sync::Arc<std::sync::RwLock<crate::plugins::PluginManager>>>,
+        config: ApplyConfig,
     ) -> Self {
         Self {
             dry_run,
             variables,
             config_dir,
             plugin_manager,
+            config,
         }
     }
 
@@ -632,6 +647,7 @@ mod tests {
                     verbosity: DebugVerbosity::Normal,
                 })),
             ],
+            state_dir: crate::apply::default_state_dir(),
         };
 
         executor.execute(&config).await.unwrap();
@@ -707,6 +723,7 @@ mod tests {
                 .with_when("{{ cmd_success.rc }} != 0")
                 .with_register("skipped_task"),
             ],
+            state_dir: crate::apply::default_state_dir(),
         };
 
         executor.execute(&config).await.unwrap();
@@ -751,6 +768,7 @@ mod tests {
                     source: None,
                 })),
             ],
+            state_dir: crate::apply::default_state_dir(),
         };
 
         let executor = TaskExecutor::new(true);
@@ -773,6 +791,7 @@ mod tests {
                 gid: None,
                 system: false,
             }))],
+            state_dir: crate::apply::default_state_dir(),
         };
 
         let executor = TaskExecutor::new(true);
@@ -801,6 +820,7 @@ mod tests {
                 job: "".to_string(), // Invalid: empty job
                 comment: None,
             }))],
+            state_dir: crate::apply::default_state_dir(),
         };
 
         let executor = TaskExecutor::new(true);
@@ -838,6 +858,7 @@ mod tests {
                     recursive: false,
                 })),
             ],
+            state_dir: crate::apply::default_state_dir(),
         };
 
         let executor = TaskExecutor::new(true);
@@ -862,6 +883,7 @@ mod tests {
                 force: false,
                 opts: vec![],
             }))],
+            state_dir: crate::apply::default_state_dir(),
         };
 
         let executor = TaskExecutor::new(true);
@@ -885,6 +907,7 @@ mod tests {
                 persist: false,
                 reload: false,
             }))],
+            state_dir: crate::apply::default_state_dir(),
         };
 
         let executor = TaskExecutor::new(true);
@@ -905,6 +928,7 @@ mod tests {
                 name: "".to_string(), // Invalid: empty hostname
                 persist: false,
             }))],
+            state_dir: crate::apply::default_state_dir(),
         };
 
         let executor = TaskExecutor::new(true);
@@ -924,6 +948,7 @@ mod tests {
                 description: None,
                 name: "".to_string(), // Invalid: empty timezone
             }))],
+            state_dir: crate::apply::default_state_dir(),
         };
 
         let executor = TaskExecutor::new(true);
@@ -949,6 +974,7 @@ mod tests {
                 group: None,
                 source: None,
             }))],
+            state_dir: crate::apply::default_state_dir(),
         };
 
         let mut executor = TaskExecutor::new(true);

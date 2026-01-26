@@ -234,6 +234,7 @@ async fn main() -> anyhow::Result<()> {
                         temp_vars,
                         config_dir.clone(),
                         plugin_manager.clone(),
+                        config.clone(),
                     );
 
                     // Validate tasks first
@@ -948,6 +949,7 @@ fn load_apply_config(config_dir: &PathBuf) -> anyhow::Result<apply::ApplyConfig>
     let mut merged_config = apply::ApplyConfig {
         vars: std::collections::HashMap::new(),
         tasks: Vec::new(),
+        state_dir: apply::default_state_dir(),
     };
 
     for config_file in &apply_files {

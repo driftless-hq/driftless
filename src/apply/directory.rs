@@ -163,6 +163,41 @@ use anyhow::{Context, Result};
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
+use std::os::unix::fs::chown;
+
+/// Resolve username to UID
+fn resolve_uid(username: &str) -> Result<u32> {
+    use nix::unistd::{User};
+
+    // First try to parse as numeric UID
+    if let Ok(uid) = username.parse::<u32>() {
+        return Ok(uid);
+    }
+
+    // Try to look up user by name
+    match User::from_name(username) {
+        Ok(Some(user)) => Ok(user.uid.as_raw()),
+        Ok(None) => Err(anyhow::anyhow!("User '{}' not found", username)),
+        Err(e) => Err(anyhow::anyhow!("Failed to lookup user '{}': {}", username, e)),
+    }
+}
+
+/// Resolve group name to GID
+fn resolve_gid(groupname: &str) -> Result<u32> {
+    use nix::unistd::{Group};
+
+    // First try to parse as numeric GID
+    if let Ok(gid) = groupname.parse::<u32>() {
+        return Ok(gid);
+    }
+
+    // Try to look up group by name
+    match Group::from_name(groupname) {
+        Ok(Some(group)) => Ok(group.gid.as_raw()),
+        Ok(None) => Err(anyhow::anyhow!("Group '{}' not found", groupname)),
+        Err(e) => Err(anyhow::anyhow!("Failed to lookup group '{}': {}", groupname, e)),
+    }
+}
 
 /// Execute a directory task
 pub async fn execute_directory_task(task: &DirectoryTask, dry_run: bool) -> Result<()> {
@@ -360,6 +395,9 @@ fn set_single_ownership(
     group: Option<&str>,
     dry_run: bool,
 ) -> Result<()> {
+    let uid = owner.map(|o| resolve_uid(o)).transpose()?;
+    let gid = group.map(|g| resolve_gid(g)).transpose()?;
+
     let owner_str = owner.unwrap_or("unchanged");
     let group_str = group.unwrap_or("unchanged");
 
@@ -371,15 +409,9 @@ fn set_single_ownership(
             group_str
         );
     } else {
-        // Note: This is a simplified implementation. In a real system, you'd need to:
-        // 1. Look up UID/GID from username/groupname
-        // 2. Handle cases where user/group doesn't exist
-        // 3. Check permissions for chown operation
+        chown(path, uid.map(|u| u), gid.map(|g| g))
+            .with_context(|| format!("Failed to set ownership on {}", path.display()))?;
 
-        println!(
-            "Note: Ownership setting not fully implemented yet for {}:{}",
-            owner_str, group_str
-        );
         println!(
             "Set ownership of {} to {}:{}",
             path.display(),
@@ -398,6 +430,9 @@ fn set_ownership_recursive(
     group: Option<&str>,
     dry_run: bool,
 ) -> Result<()> {
+    let uid = owner.map(|o| resolve_uid(o)).transpose()?;
+    let gid = group.map(|g| resolve_gid(g)).transpose()?;
+
     let owner_str = owner.unwrap_or("unchanged");
     let group_str = group.unwrap_or("unchanged");
 
@@ -409,11 +444,24 @@ fn set_ownership_recursive(
             group_str
         );
     } else {
-        // Simplified implementation - would need proper UID/GID resolution
-        println!(
-            "Note: Recursive ownership setting not fully implemented yet for {}:{}",
-            owner_str, group_str
-        );
+        // Set ownership on the directory itself first
+        chown(path, uid.map(|u| u), gid.map(|g| g))
+            .with_context(|| format!("Failed to set ownership on {}", path.display()))?;
+
+        // Recursively set ownership on contents
+        for entry in walkdir::WalkDir::new(path) {
+            let entry = entry
+                .with_context(|| format!("Failed to read directory entry in {}", path.display()))?;
+            let entry_path = entry.path();
+
+            if entry_path == path {
+                continue; // Already handled above
+            }
+
+            chown(entry_path, uid.map(|u| u), gid.map(|g| g))
+                .with_context(|| format!("Failed to set ownership on {}", entry_path.display()))?;
+        }
+
         println!(
             "Recursively set ownership of {} to {}:{}",
             path.display(),

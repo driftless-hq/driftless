@@ -1117,6 +1117,7 @@ impl Agent {
                 crate::apply::variables::VariableContext::new(),
                 self.config.config_dir.clone(),
                 self.plugin_manager.clone(),
+                config.clone(),
             );
             self.apply_executor = Some(Arc::new(Mutex::new(executor)));
         }

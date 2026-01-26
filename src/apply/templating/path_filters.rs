@@ -16,7 +16,12 @@ pub fn register_path_filters(
         "Path Operations",
         vec![],
         Arc::new(|value, _args| {
-            if let Some(path_str) = value.as_str() {
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "expanduser filter received undefined or none value",
+                ))
+            } else if let Some(path_str) = value.as_str() {
                 if path_str.starts_with('~') {
                     if path_str == "~" || path_str.starts_with("~/") {
                         // Expand ~ or ~/ to home directory
@@ -50,9 +55,10 @@ pub fn register_path_filters(
                     // No tilde, return as-is
                     return JinjaValue::from(path_str);
                 }
+            } else {
+                // Non-string input, return as-is
+                value
             }
-            // Non-string input, return as-is
-            value
         }),
     );
 
@@ -64,7 +70,12 @@ pub fn register_path_filters(
         "Path Operations",
         vec![],
         Arc::new(|value, _args| {
-            if let Some(path_str) = value.as_str() {
+            if value.is_undefined() || value.is_none() {
+                JinjaValue::from(minijinja::Error::new(
+                    minijinja::ErrorKind::InvalidOperation,
+                    "realpath filter received undefined or none value",
+                ))
+            } else if let Some(path_str) = value.as_str() {
                 match std::fs::canonicalize(Path::new(path_str)) {
                     Ok(canonical_path) => {
                         if let Some(canonical_str) = canonical_path.to_str() {

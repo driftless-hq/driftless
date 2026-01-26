@@ -339,8 +339,7 @@ impl TaskRegistry {
             Arc::new(|task, executor: &mut TaskExecutor| {
                 Box::pin(async move {
                     if let TaskAction::Command(cmd_task) = &task.action {
-                        crate::apply::command::execute_command_task(cmd_task, executor.dry_run())
-                            .await
+                        crate::apply::command::execute_command_task(cmd_task, executor).await
                     } else {
                         Err(anyhow::anyhow!("Invalid task type for command executor"))
                     }
@@ -1865,6 +1864,11 @@ impl TaskRegistry {
                 dry_run,
                 config_dir.to_path_buf(),
                 plugin_manager,
+                ApplyConfig {
+                    vars: std::collections::HashMap::new(),
+                    tasks: Vec::new(),
+                    state_dir: crate::apply::default_state_dir(),
+                },
             );
             (entry.executor)(task, &mut minimal_executor).await
         } else {
@@ -2081,6 +2085,11 @@ pub fn default_true() -> bool {
     true
 }
 
+/// Default state directory
+pub fn default_state_dir() -> String {
+    "/var/lib/driftless/state".to_string()
+}
+
 /// Main apply configuration schema
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApplyConfig {
@@ -2090,6 +2099,10 @@ pub struct ApplyConfig {
 
     /// List of configuration operations to execute
     pub tasks: Vec<Task>,
+
+    /// Directory for storing command execution state
+    #[serde(default = "default_state_dir")]
+    pub state_dir: String,
 }
 
 impl ApplyConfig {
@@ -2102,6 +2115,11 @@ impl ApplyConfig {
 
         // Merge tasks (extend the list)
         self.tasks.extend(other.tasks);
+
+        // Merge state directory (other takes precedence if not default)
+        if other.state_dir != default_state_dir() {
+            self.state_dir = other.state_dir;
+        }
     }
 }
 

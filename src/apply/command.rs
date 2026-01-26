@@ -220,10 +220,12 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
+use crate::apply::executor::TaskExecutor;
+
 /// Execute a command task
-pub async fn execute_command_task(task: &CommandTask, dry_run: bool) -> Result<serde_yaml::Value> {
+pub async fn execute_command_task(task: &CommandTask, executor: &TaskExecutor) -> Result<serde_yaml::Value> {
     // Check if command should be run idempotently
-    if task.idempotent && is_command_already_run(task)? {
+    if task.idempotent && is_command_already_run(task, executor)? {
         println!("Command already executed (idempotent): {}", task.command);
         let mut result = serde_yaml::Mapping::new();
         result.insert(
@@ -237,7 +239,7 @@ pub async fn execute_command_task(task: &CommandTask, dry_run: bool) -> Result<s
         return Ok(serde_yaml::Value::Mapping(result));
     }
 
-    if dry_run {
+    if executor.dry_run() {
         println!("Would run command: {}", task.command);
         if let Some(cwd) = &task.cwd {
             println!("  in directory: {}", cwd);
@@ -264,7 +266,7 @@ pub async fn execute_command_task(task: &CommandTask, dry_run: bool) -> Result<s
 
         // Mark command as run for idempotency
         if task.idempotent {
-            mark_command_as_run(task)?;
+            mark_command_as_run(task, executor)?;
         }
 
         Ok(output)
@@ -491,8 +493,8 @@ fn parse_command(command: &str) -> Result<(String, Vec<String>)> {
 }
 
 /// Check if an idempotent command has already been run
-fn is_command_already_run(task: &CommandTask) -> Result<bool> {
-    let state_file = get_command_state_file(task);
+fn is_command_already_run(task: &CommandTask, executor: &TaskExecutor) -> Result<bool> {
+    let state_file = get_command_state_file(task, executor);
     if !state_file.exists() {
         return Ok(false);
     }
@@ -509,8 +511,8 @@ fn is_command_already_run(task: &CommandTask) -> Result<bool> {
 }
 
 /// Mark a command as having been run
-fn mark_command_as_run(task: &CommandTask) -> Result<()> {
-    let state_file = get_command_state_file(task);
+fn mark_command_as_run(task: &CommandTask, executor: &TaskExecutor) -> Result<()> {
+    let state_file = get_command_state_file(task, executor);
 
     // Create state directory if it doesn't exist
     if let Some(parent) = state_file.parent() {
@@ -532,11 +534,9 @@ fn mark_command_as_run(task: &CommandTask) -> Result<()> {
 }
 
 /// Get the state file path for a command
-fn get_command_state_file(task: &CommandTask) -> PathBuf {
-    // Use a proper state directory instead of /tmp
-    // In a real implementation, this would be configurable
-    let state_dir = std::env::var("DRIFTLESS_STATE_DIR")
-        .unwrap_or_else(|_| "/var/lib/driftless/state".to_string());
+fn get_command_state_file(task: &CommandTask, executor: &TaskExecutor) -> PathBuf {
+    // Use the configured state directory from the executor config
+    let state_dir = &executor.config().state_dir;
 
     let hash = hash_command(task);
     Path::new(&state_dir)
@@ -638,7 +638,8 @@ mod tests {
             stream_output: false,
         };
 
-        let result = execute_command_task(&task, true).await;
+        let executor = TaskExecutor::new(true);
+        let result = execute_command_task(&task, &executor).await;
         assert!(result.is_ok());
     }
 
@@ -656,7 +657,8 @@ mod tests {
             stream_output: false,
         };
 
-        let result = execute_command_task(&task, false).await;
+        let executor = TaskExecutor::new(false);
+        let result = execute_command_task(&task, &executor).await;
         assert!(result.is_ok());
     }
 
@@ -674,7 +676,8 @@ mod tests {
             stream_output: false,
         };
 
-        let result = execute_command_task(&task, false).await;
+        let executor = TaskExecutor::new(false);
+        let result = execute_command_task(&task, &executor).await;
         assert!(result.is_err());
         assert!(result
             .unwrap_err()

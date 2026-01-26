@@ -101,11 +101,6 @@ The [nix crate](https://github.com/nix-rust/nix) provides Rust bindings to *nix 
 
 Ensure these task items have full production-ready implementations or provide additional task items if too complex for a single prompt:
 
-#### Apply Tasks - System Integration
-- [ ] **Directory ownership**: Implement proper UID/GID resolution and permission checking for directory ownership operations
-- [ ] **Recursive ownership**: Implement proper recursive ownership setting with UID/GID resolution
-- [ ] **Command state directory**: Make command state directory configurable instead of hardcoded `/var/lib/driftless/state`
-
 #### Template System
 - [ ] **Template error handling**: Make undefined/none values in template filters cause rendering failures instead of returning error indications
 
