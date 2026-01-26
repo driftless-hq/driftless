@@ -185,8 +185,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
+use std::process::Stdio;
+use tokio::io::AsyncReadExt;
 use tokio::process::Command as TokioCommand;
-use tokio::time::{timeout, Duration};
+use tokio::time::Duration;
 
 /// Execute a script task
 pub async fn execute_script_task(task: &ScriptTask, dry_run: bool) -> Result<()> {
@@ -280,11 +282,56 @@ pub async fn execute_script_task(task: &ScriptTask, dry_run: bool) -> Result<()>
         );
 
         let timeout_duration = Duration::from_secs(timeout_secs as u64);
-        match timeout(timeout_duration, command.output()).await {
-            Ok(result) => {
-                result.with_context(|| format!("Failed to execute script: {}", task.path))?
+
+        // Spawn the child process with piped stdout/stderr
+        command.stdout(Stdio::piped());
+        command.stderr(Stdio::piped());
+
+        let mut child = command
+            .spawn()
+            .with_context(|| format!("Failed to spawn script: {}", task.path))?;
+
+        // Take ownership of stdout and stderr
+        let mut stdout_handle = child
+            .stdout
+            .take()
+            .ok_or_else(|| anyhow::anyhow!("Failed to capture stdout for script: {}", task.path))?;
+        let mut stderr_handle = child
+            .stderr
+            .take()
+            .ok_or_else(|| anyhow::anyhow!("Failed to capture stderr for script: {}", task.path))?;
+
+        // Read stdout and stderr concurrently with process execution
+        let stdout_task = tokio::spawn(async move {
+            let mut stdout = Vec::new();
+            stdout_handle.read_to_end(&mut stdout).await.ok();
+            stdout
+        });
+
+        let stderr_task = tokio::spawn(async move {
+            let mut stderr = Vec::new();
+            stderr_handle.read_to_end(&mut stderr).await.ok();
+            stderr
+        });
+
+        // Use tokio::select! to race between timeout and process completion
+        tokio::select! {
+            status = child.wait() => {
+                let status = status.with_context(|| format!("Failed to wait for script: {}", task.path))?;
+
+                // Collect stdout and stderr from concurrent reads
+                let stdout = stdout_task.await.unwrap_or_default();
+                let stderr = stderr_task.await.unwrap_or_default();
+
+                std::process::Output {
+                    status,
+                    stdout,
+                    stderr,
+                }
             }
-            Err(_) => {
+            _ = tokio::time::sleep(timeout_duration) => {
+                // Timeout occurred, kill the child process
+                let _ = child.kill().await;
                 return Err(anyhow::anyhow!(
                     "Script execution timed out after {} seconds: {}",
                     timeout_secs,

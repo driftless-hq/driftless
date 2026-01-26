@@ -44,7 +44,10 @@ impl LogShipper {
         );
 
         // Create channels for log processing pipeline
-        let (log_tx, _) = tokio::sync::broadcast::channel::<LogEntry>(1000);
+        let (log_tx, _keep_alive_rx) = tokio::sync::broadcast::channel::<LogEntry>(1000);
+
+        // Keep the initial receiver alive for the lifetime of the shipper
+        // to prevent send errors when no outputs are subscribed yet
 
         // Start file tailing tasks for each source
         let mut source_tasks = Vec::new();
@@ -150,6 +153,23 @@ impl LogShipper {
                 output_tasks.push(task);
             }
         }
+
+        // Wait for all tasks to complete while keeping the receiver alive
+        // This prevents send errors in sources when no outputs are subscribed
+        for task in source_tasks {
+            if let Err(e) = task.await {
+                eprintln!("Source task error: {:?}", e);
+            }
+        }
+
+        for task in output_tasks {
+            if let Err(e) = task.await {
+                eprintln!("Output task error: {:?}", e);
+            }
+        }
+
+        // Keep _keep_alive_rx alive until tasks complete
+        drop(_keep_alive_rx);
 
         Ok(())
     }

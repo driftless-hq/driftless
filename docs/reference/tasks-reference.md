@@ -436,9 +436,43 @@ ignore_errors = true
   "args": ["build"],
   "chdir": "/opt/myproject"
 }
-## Execute command with creates/removes checks
-This example executes a command that creates specific files and checks for their existence.
-**YAML Format:**
+```
+
+**TOML Format**:
+
+```toml
+[[tasks]]
+type = "raw"
+description = "Run command in project directory"
+executable = "make"
+args = ["build"]
+chdir = "/opt/myproject"
+```
+
+**Execute command with creates/removes checks**:
+
+**YAML Format**:
+
+```yaml
+- type: raw
+  description: "Create configuration file"
+  executable: touch
+  args: ["/etc/myapp/config.conf"]
+  creates: true
+  creates_files: ["/etc/myapp/config.conf"]
+```
+
+**JSON Format**:
+
+```json
+{
+  "type": "raw",
+  "description": "Create configuration file",
+  "executable": "touch",
+  "args": ["/etc/myapp/config.conf"],
+  "creates": true,
+  "creates_files": ["/etc/myapp/config.conf"]
+}
 ```
 
 **TOML Format**:

@@ -160,8 +160,8 @@ pub struct DirectoryTask {
 }
 
 use anyhow::{Context, Result};
+use nix::unistd::{chown, Gid, Uid};
 use std::fs;
-use std::os::unix::fs::chown;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
 
@@ -403,8 +403,8 @@ fn set_single_ownership(
     group: Option<&str>,
     dry_run: bool,
 ) -> Result<()> {
-    let uid = owner.map(resolve_uid).transpose()?;
-    let gid = group.map(resolve_gid).transpose()?;
+    let uid = owner.map(resolve_uid).transpose()?.map(Uid::from_raw);
+    let gid = group.map(resolve_gid).transpose()?.map(Gid::from_raw);
 
     let owner_str = owner.unwrap_or("unchanged");
     let group_str = group.unwrap_or("unchanged");
@@ -438,8 +438,8 @@ fn set_ownership_recursive(
     group: Option<&str>,
     dry_run: bool,
 ) -> Result<()> {
-    let uid = owner.map(resolve_uid).transpose()?;
-    let gid = group.map(resolve_gid).transpose()?;
+    let uid = owner.map(resolve_uid).transpose()?.map(Uid::from_raw);
+    let gid = group.map(resolve_gid).transpose()?.map(Gid::from_raw);
 
     let owner_str = owner.unwrap_or("unchanged");
     let group_str = group.unwrap_or("unchanged");

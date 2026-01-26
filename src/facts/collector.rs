@@ -5,10 +5,14 @@
 
 use crate::facts::{Collector, FactsConfig};
 use anyhow::Result;
-use axum::response::Html;
+use axum::http::{header, StatusCode};
+use axum::response::{IntoResponse, Response};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+
+/// Prometheus exposition format version
+const PROMETHEUS_EXPOSITION_VERSION: &str = "text/plain; version=0.0.4";
 
 /// Metrics collector for system facts
 #[allow(dead_code)]
@@ -169,10 +173,23 @@ impl PrometheusExporter {
                 let collector = Arc::clone(&collector);
                 async move {
                     match collector.get_collected_metrics().await {
-                        Ok(metrics) => Html(Self::generate_metrics(&metrics)),
+                        Ok(metrics) => {
+                            let body = Self::generate_metrics(&metrics);
+                            Response::builder()
+                                .status(StatusCode::OK)
+                                .header(header::CONTENT_TYPE, PROMETHEUS_EXPOSITION_VERSION)
+                                .body(body)
+                                .unwrap()
+                                .into_response()
+                        }
                         Err(e) => {
                             eprintln!("Error getting metrics: {}", e);
-                            Html("# Error getting metrics\n".to_string())
+                            Response::builder()
+                                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                                .header(header::CONTENT_TYPE, PROMETHEUS_EXPOSITION_VERSION)
+                                .body("# Error getting metrics\n".to_string())
+                                .unwrap()
+                                .into_response()
                         }
                     }
                 }

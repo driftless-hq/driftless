@@ -386,35 +386,48 @@ async fn run_command_streaming(task: &CommandTask, cmd: Command) -> Result<serde
     let mut stdout_lines = Vec::new();
     let mut stderr_lines = Vec::new();
 
+    // Track EOF for both streams
+    let mut stdout_done = false;
+    let mut stderr_done = false;
+
     // Stream output in real-time
     loop {
         tokio::select! {
-            line = stdout_reader.next_line() => {
+            line = stdout_reader.next_line(), if !stdout_done => {
                 match line {
                     Ok(Some(line)) => {
                         println!("STDOUT: {}", line);
                         stdout_lines.push(line);
                     }
-                    Ok(None) => break, // EOF
+                    Ok(None) => {
+                        stdout_done = true;
+                    }
                     Err(e) => {
                         eprintln!("Error reading stdout: {}", e);
-                        break;
+                        stdout_done = true;
                     }
                 }
             }
-            line = stderr_reader.next_line() => {
+            line = stderr_reader.next_line(), if !stderr_done => {
                 match line {
                     Ok(Some(line)) => {
                         eprintln!("STDERR: {}", line);
                         stderr_lines.push(line);
                     }
-                    Ok(None) => break, // EOF
+                    Ok(None) => {
+                        stderr_done = true;
+                    }
                     Err(e) => {
                         eprintln!("Error reading stderr: {}", e);
-                        break;
+                        stderr_done = true;
                     }
                 }
             }
+        }
+
+        // Exit loop when both streams are done
+        if stdout_done && stderr_done {
+            break;
         }
     }
 

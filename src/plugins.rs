@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
-use tracing::{debug, error, info, warn};
+use tracing::{error, info, warn};
 use wasmtime::{Config, Engine, Instance, Linker, Module, Store, UpdateDeadline};
 
 /// Plugin registry management
@@ -81,7 +81,7 @@ impl PluginRegistry {
     }
 
     /// Scan the plugin directory for plugin files
-    pub fn scan_plugins(&mut self, engine: &Engine) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn scan_plugins(&mut self, _engine: &Engine) -> Result<(), Box<dyn std::error::Error>> {
         if !self.plugin_dir.exists() {
             // Create the plugin directory if it doesn't exist
             std::fs::create_dir_all(&self.plugin_dir)?;
@@ -99,15 +99,11 @@ impl PluginRegistry {
                 if let Some(file_stem) = path.file_stem().and_then(|s| s.to_str()) {
                     let plugin_name = file_stem.to_string();
 
-                    // Extract metadata during scanning
-                    let (version, description) =
-                        self.extract_plugin_metadata_from_file(engine, &path, &plugin_name);
-
                     let plugin_info = PluginInfo {
                         name: plugin_name.clone(),
                         path: path.clone(),
-                        version,     // Now extracted from plugin metadata
-                        description, // Now extracted from plugin metadata
+                        version: None, // Metadata extraction deferred until plugin load
+                        description: None, // Metadata extraction deferred until plugin load
                         loaded: false,
                         load_error: None,
                     };
@@ -168,48 +164,6 @@ impl PluginRegistry {
             info.loaded = false;
             info.load_error = Some(error);
         }
-    }
-
-    /// Extract metadata from a plugin file during scanning (lightweight)
-    fn extract_plugin_metadata_from_file(
-        &self,
-        engine: &Engine,
-        plugin_path: &Path,
-        plugin_name: &str,
-    ) -> (Option<String>, Option<String>) {
-        match Module::from_file(engine, plugin_path) {
-            Ok(module) => {
-                // Create a minimal store for metadata extraction
-                let mut store = Store::new(engine, ());
-
-                // Set a small fuel limit for safety during scanning
-                if store.set_fuel(100_000).is_ok() {
-                    let linker = Linker::new(engine);
-
-                    match linker.instantiate(&mut store, &module) {
-                        Ok(_instance) => {
-                            // We need access to extract_plugin_metadata method
-                            // For now, return None - this could be enhanced to parse custom sections
-                            return (None, None);
-                        }
-                        Err(e) => {
-                            debug!(
-                                "Failed to instantiate plugin '{}' for metadata extraction: {}",
-                                plugin_name, e
-                            );
-                        }
-                    }
-                }
-            }
-            Err(e) => {
-                debug!(
-                    "Failed to load plugin '{}' for metadata extraction: {}",
-                    plugin_name, e
-                );
-            }
-        }
-
-        (None, None)
     }
 }
 

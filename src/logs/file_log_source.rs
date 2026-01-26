@@ -187,10 +187,15 @@ impl FileLogSource {
                     let end_pattern = multiline.end_pattern.clone().ok_or_else(|| {
                         anyhow::anyhow!("end_pattern is required for between matching")
                     })?;
+                    // Use continue_pattern if provided, otherwise match all lines (.*) between start and end
+                    let continue_pattern = multiline
+                        .continue_pattern
+                        .clone()
+                        .or_else(|| Some(r".*".to_string()));
                     (
                         start_pattern,
                         MultilineMatchType::Between,
-                        None,
+                        continue_pattern,
                         Some(end_pattern),
                     )
                 }
