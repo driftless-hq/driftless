@@ -6,7 +6,6 @@
 use crate::apply::{executor::TaskExecutor, ApplyConfig};
 use crate::facts::{FactsConfig, FactsOrchestrator};
 use crate::logs::{LogOrchestrator, LogsConfig};
-// use crate::secrets::SecretsManager;
 use anyhow::Result;
 use dirs as dirs_crate;
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};

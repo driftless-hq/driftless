@@ -12,4 +12,3 @@ pub mod facts;
 pub mod logs;
 pub mod plugin_interface;
 pub mod plugins;
-pub mod secrets;
