@@ -441,8 +441,8 @@ impl LogOrchestrator {
                 message: entry.message.unwrap_or_else(|| entry.raw.clone()),
                 timestamp: entry.timestamp,
                 fields: entry.fields,
-                source: "orchestrator".to_string(), // TODO: Track source information through pipeline
-                labels: HashMap::new(),             // TODO: Track labels through pipeline
+                source: entry.source.clone(), // Track actual source through pipeline
+                labels: entry.labels.clone(), // Track labels through pipeline
             };
 
             if output_sender.send(shipper_entry).await.is_err() {

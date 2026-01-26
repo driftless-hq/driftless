@@ -332,13 +332,20 @@ async fn ensure_file_not_copied(task: &CopyTask, dry_run: bool) -> Result<()> {
         return Ok(());
     }
 
-    // Check if destination was actually copied from source
-    // This is a simplified check - in practice, we'd need more sophisticated
-    // tracking to know if a file was created by this copy task
-    if let Ok(src_metadata) = fs::metadata(&task.src) {
-        if let Ok(dest_metadata) = fs::metadata(&task.dest) {
-            // If sizes match and modification times are close, assume it's a copy
-            if src_metadata.len() == dest_metadata.len() {
+    // Load copy state to determine if this file was created by a copy task
+    match load_copy_state(&task.dest) {
+        Ok(Some(state)) => {
+            // Check if the destination file matches what was copied from the source
+            let current_dest_checksum = match calculate_file_checksum(dest_path) {
+                Ok(checksum) => checksum,
+                Err(_) => {
+                    println!("Warning: Could not calculate checksum for destination file, assuming it's not a copy");
+                    return Ok(());
+                }
+            };
+
+            // If the destination checksum matches what was saved during copy, it's our copy
+            if current_dest_checksum == state.dest_checksum {
                 if dry_run {
                     println!("Would remove copied file: {}", task.dest);
                 } else {
@@ -358,14 +365,27 @@ async fn ensure_file_not_copied(task: &CopyTask, dry_run: bool) -> Result<()> {
                     }
                 }
                 return Ok(());
+            } else {
+                println!(
+                    "Destination file {} exists but checksum doesn't match copy state (file may have been modified)",
+                    task.dest
+                );
             }
+        }
+        Ok(None) => {
+            println!(
+                "Destination file {} exists but no copy state found (not created by copy task)",
+                task.dest
+            );
+        }
+        Err(e) => {
+            println!(
+                "Warning: Could not load copy state for {}: {}, assuming file is not a copy",
+                task.dest, e
+            );
         }
     }
 
-    println!(
-        "Destination file {} exists but does not appear to be a copy of {}",
-        task.dest, task.src
-    );
     Ok(())
 }
 
@@ -571,5 +591,57 @@ mod tests {
         // Should succeed if files are identical
         let result = execute_copy_task(&task, false).await;
         assert!(result.is_ok()); // Should not overwrite since content is different
+    }
+
+    #[tokio::test]
+    async fn test_copy_absent_state_with_state_tracking() {
+        let src_file = NamedTempFile::new().unwrap();
+        let src_path = src_file.path().to_str().unwrap().to_string();
+        let test_content = "test content for absent state";
+        fs::write(&src_path, test_content).unwrap();
+
+        let dest_file = NamedTempFile::new().unwrap();
+        let dest_path = dest_file.path().to_str().unwrap().to_string();
+        drop(dest_file); // Remove the temp file so we can copy to it
+
+        // First copy the file
+        let copy_task = CopyTask {
+            description: None,
+            src: src_path.clone(),
+            dest: dest_path.clone(),
+            state: CopyState::Present,
+            follow: false,
+            mode: false,
+            owner: false,
+            timestamp: false,
+            backup: false,
+            force: false,
+        };
+
+        let result = execute_copy_task(&copy_task, false).await;
+        assert!(result.is_ok());
+        assert!(Path::new(&dest_path).exists());
+
+        // Now test removing it with absent state
+        let remove_task = CopyTask {
+            description: None,
+            src: src_path.clone(),
+            dest: dest_path.clone(),
+            state: CopyState::Absent,
+            follow: false,
+            mode: false,
+            owner: false,
+            timestamp: false,
+            backup: false,
+            force: false,
+        };
+
+        let result = execute_copy_task(&remove_task, false).await;
+        assert!(result.is_ok());
+        assert!(!Path::new(&dest_path).exists());
+
+        // Verify state file is cleaned up
+        let state_path = get_copy_state_path(&dest_path);
+        assert!(!Path::new(&state_path).exists());
     }
 }

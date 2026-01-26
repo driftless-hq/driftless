@@ -297,18 +297,40 @@ impl LogsRegistry {
             "Tail log files with rotation handling and encoding support",
             "file_log_source",
             Arc::new(|source| {
-                // For registry processing, read the file content and return as a reader
-                // This is a simplified synchronous version
+                // For registry processing, read the file content, parse it, and return structured data
+                use std::io::Cursor;
 
                 if source.paths.is_empty() {
-                    return Ok(Box::new(std::io::empty()) as Box<dyn std::io::Read + Send>);
+                    return Ok(Box::new(Cursor::new("[]")) as Box<dyn std::io::Read + Send>);
                 }
 
                 // Read the first file
                 let path = &source.paths[0];
-                match std::fs::File::open(path) {
-                    Ok(file) => Ok(Box::new(file) as Box<dyn std::io::Read + Send>),
-                    Err(_) => Ok(Box::new(std::io::empty()) as Box<dyn std::io::Read + Send>),
+                match std::fs::read_to_string(path) {
+                    Ok(content) => {
+                        // Parse the file content into log entries
+                        let mut entries = Vec::new();
+                        for line in content.lines() {
+                            if !line.trim().is_empty() {
+                                let entry = crate::logs::LogEntry {
+                                    raw: line.to_string(),
+                                    timestamp: Some(chrono::Utc::now()),
+                                    fields: HashMap::new(),
+                                    level: None,
+                                    message: Some(line.to_string()),
+                                    source: source.name.clone(),
+                                    labels: source.labels.clone(),
+                                };
+                                entries.push(entry);
+                            }
+                        }
+
+                        // Serialize to JSON for the reader
+                        let json =
+                            serde_json::to_string(&entries).unwrap_or_else(|_| "[]".to_string());
+                        Ok(Box::new(Cursor::new(json)) as Box<dyn std::io::Read + Send>)
+                    }
+                    Err(_) => Ok(Box::new(Cursor::new("[]")) as Box<dyn std::io::Read + Send>),
                 }
             }),
         );
@@ -330,10 +352,29 @@ impl LogsRegistry {
                         .append(true)
                         .open(&file_config.path)?;
 
-                    // Read all data from reader and write to file
+                    // Read JSON data from reader and deserialize log entries
                     let mut buffer = String::new();
                     reader.read_to_string(&mut buffer)?;
-                    writeln!(file, "{}", buffer.trim())?;
+
+                    if let Ok(entries) = serde_json::from_str::<Vec<crate::logs::LogEntry>>(&buffer)
+                    {
+                        // Format and write each entry
+                        for entry in entries {
+                            let formatted = format!(
+                                "[{}] {}: {}",
+                                entry
+                                    .timestamp
+                                    .map(|t| t.to_rfc3339())
+                                    .unwrap_or_else(|| "unknown".to_string()),
+                                entry.source,
+                                entry.message.unwrap_or_else(|| entry.raw.clone())
+                            );
+                            writeln!(file, "{}", formatted)?;
+                        }
+                    } else {
+                        // If not JSON, write as plain text
+                        writeln!(file, "{}", buffer.trim())?;
+                    }
                 }
                 Ok(())
             }),
@@ -348,14 +389,37 @@ impl LogsRegistry {
             "mod",
             Arc::new(|output, mut reader| {
                 if let LogOutput::S3(s3_config) = output {
-                    // For registry processing, just log that S3 upload would happen
-                    // In a full implementation, this would upload to S3 synchronously
+                    // Read and format log entries
                     let mut buffer = String::new();
                     reader.read_to_string(&mut buffer)?;
+
+                    let formatted_logs = if let Ok(entries) =
+                        serde_json::from_str::<Vec<crate::logs::LogEntry>>(&buffer)
+                    {
+                        entries
+                            .into_iter()
+                            .map(|entry| {
+                                format!(
+                                    "[{}] {}: {}",
+                                    entry
+                                        .timestamp
+                                        .map(|t| t.to_rfc3339())
+                                        .unwrap_or_else(|| "unknown".to_string()),
+                                    entry.source,
+                                    entry.message.unwrap_or_else(|| entry.raw.clone())
+                                )
+                            })
+                            .collect::<Vec<_>>()
+                            .join("\n")
+                    } else {
+                        buffer
+                    };
+
                     println!(
-                        "Registry: Would upload {} bytes to S3 bucket {}",
-                        buffer.len(),
-                        s3_config.bucket
+                        "Registry: Would upload {} bytes to S3 bucket {} with key prefix '{}'",
+                        formatted_logs.len(),
+                        s3_config.bucket,
+                        s3_config.prefix
                     );
                 }
                 Ok(())
@@ -371,14 +435,37 @@ impl LogsRegistry {
             "mod",
             Arc::new(|output, mut reader| {
                 if let LogOutput::Http(http_config) = output {
-                    // For registry processing, just log that HTTP request would be made
-                    // In a full implementation, this would make HTTP request synchronously
+                    // Read and format log entries
                     let mut buffer = String::new();
                     reader.read_to_string(&mut buffer)?;
+
+                    let formatted_logs = if let Ok(entries) =
+                        serde_json::from_str::<Vec<crate::logs::LogEntry>>(&buffer)
+                    {
+                        entries
+                            .into_iter()
+                            .map(|entry| {
+                                format!(
+                                    "[{}] {}: {}",
+                                    entry
+                                        .timestamp
+                                        .map(|t| t.to_rfc3339())
+                                        .unwrap_or_else(|| "unknown".to_string()),
+                                    entry.source,
+                                    entry.message.unwrap_or_else(|| entry.raw.clone())
+                                )
+                            })
+                            .collect::<Vec<_>>()
+                            .join("\n")
+                    } else {
+                        buffer
+                    };
+
                     println!(
-                        "Registry: Would send {} bytes to HTTP endpoint {}",
-                        buffer.len(),
-                        http_config.url
+                        "Registry: Would send {} bytes to HTTP endpoint {} with method {}",
+                        formatted_logs.len(),
+                        http_config.url,
+                        http_config.method
                     );
                 }
                 Ok(())
@@ -394,14 +481,37 @@ impl LogsRegistry {
             "mod",
             Arc::new(|output, mut reader| {
                 if let LogOutput::Syslog(syslog_config) = output {
-                    // For registry processing, just log that syslog message would be sent
-                    // In a full implementation, this would send to syslog synchronously
+                    // Read and format log entries
                     let mut buffer = String::new();
                     reader.read_to_string(&mut buffer)?;
+
+                    let formatted_logs = if let Ok(entries) =
+                        serde_json::from_str::<Vec<crate::logs::LogEntry>>(&buffer)
+                    {
+                        entries
+                            .into_iter()
+                            .map(|entry| {
+                                format!(
+                                    "[{}] {}: {}",
+                                    entry
+                                        .timestamp
+                                        .map(|t| t.to_rfc3339())
+                                        .unwrap_or_else(|| "unknown".to_string()),
+                                    entry.source,
+                                    entry.message.unwrap_or_else(|| entry.raw.clone())
+                                )
+                            })
+                            .collect::<Vec<_>>()
+                            .join("\n")
+                    } else {
+                        buffer
+                    };
+
                     println!(
-                        "Registry: Would send {} bytes to syslog facility {:?}",
-                        buffer.len(),
-                        syslog_config.facility
+                        "Registry: Would send {} bytes to syslog facility {:?} with severity {:?}",
+                        formatted_logs.len(),
+                        syslog_config.facility,
+                        syslog_config.severity
                     );
                 }
                 Ok(())
@@ -419,7 +529,7 @@ impl LogsRegistry {
                 if let LogOutput::Console(console_config) = output {
                     use std::io::{self, Write};
 
-                    // Read all data from reader and write to console
+                    // Read and format log entries
                     let mut buffer = String::new();
                     reader.read_to_string(&mut buffer)?;
 
@@ -428,7 +538,25 @@ impl LogsRegistry {
                         ConsoleTarget::Stderr => Box::new(io::stderr()),
                     };
 
-                    writeln!(output_stream, "{}", buffer.trim())?;
+                    if let Ok(entries) = serde_json::from_str::<Vec<crate::logs::LogEntry>>(&buffer)
+                    {
+                        // Format and write each entry
+                        for entry in entries {
+                            let formatted = format!(
+                                "[{}] {}: {}",
+                                entry
+                                    .timestamp
+                                    .map(|t| t.to_rfc3339())
+                                    .unwrap_or_else(|| "unknown".to_string()),
+                                entry.source,
+                                entry.message.unwrap_or_else(|| entry.raw.clone())
+                            );
+                            writeln!(output_stream, "{}", formatted)?;
+                        }
+                    } else {
+                        // If not JSON, write as plain text
+                        writeln!(output_stream, "{}", buffer.trim())?;
+                    }
                 }
                 Ok(())
             }),

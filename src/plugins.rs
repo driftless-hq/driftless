@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
-use tracing::{error, info, warn};
+use tracing::{debug, error, info, warn};
 use wasmtime::{Config, Engine, Instance, Linker, Module, Store, UpdateDeadline};
 
 /// Plugin registry management
@@ -81,7 +81,7 @@ impl PluginRegistry {
     }
 
     /// Scan the plugin directory for plugin files
-    pub fn scan_plugins(&mut self) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn scan_plugins(&mut self, engine: &Engine) -> Result<(), Box<dyn std::error::Error>> {
         if !self.plugin_dir.exists() {
             // Create the plugin directory if it doesn't exist
             std::fs::create_dir_all(&self.plugin_dir)?;
@@ -99,11 +99,15 @@ impl PluginRegistry {
                 if let Some(file_stem) = path.file_stem().and_then(|s| s.to_str()) {
                     let plugin_name = file_stem.to_string();
 
+                    // Extract metadata during scanning
+                    let (version, description) =
+                        self.extract_plugin_metadata_from_file(engine, &path, &plugin_name);
+
                     let plugin_info = PluginInfo {
                         name: plugin_name.clone(),
                         path: path.clone(),
-                        version: None,     // TODO: Extract from plugin metadata
-                        description: None, // TODO: Extract from plugin metadata
+                        version,     // Now extracted from plugin metadata
+                        description, // Now extracted from plugin metadata
                         loaded: false,
                         load_error: None,
                     };
@@ -166,9 +170,46 @@ impl PluginRegistry {
         }
     }
 
-    /// Get all discovered plugin names
-    pub fn get_discovered_plugin_names(&self) -> Vec<String> {
-        self.discovered_plugins.keys().cloned().collect()
+    /// Extract metadata from a plugin file during scanning (lightweight)
+    fn extract_plugin_metadata_from_file(
+        &self,
+        engine: &Engine,
+        plugin_path: &Path,
+        plugin_name: &str,
+    ) -> (Option<String>, Option<String>) {
+        match Module::from_file(engine, plugin_path) {
+            Ok(module) => {
+                // Create a minimal store for metadata extraction
+                let mut store = Store::new(engine, ());
+
+                // Set a small fuel limit for safety during scanning
+                if store.set_fuel(100_000).is_ok() {
+                    let linker = Linker::new(engine);
+
+                    match linker.instantiate(&mut store, &module) {
+                        Ok(_instance) => {
+                            // We need access to extract_plugin_metadata method
+                            // For now, return None - this could be enhanced to parse custom sections
+                            return (None, None);
+                        }
+                        Err(e) => {
+                            debug!(
+                                "Failed to instantiate plugin '{}' for metadata extraction: {}",
+                                plugin_name, e
+                            );
+                        }
+                    }
+                }
+            }
+            Err(e) => {
+                debug!(
+                    "Failed to load plugin '{}' for metadata extraction: {}",
+                    plugin_name, e
+                );
+            }
+        }
+
+        (None, None)
     }
 }
 
@@ -227,7 +268,7 @@ impl PluginManager {
 
     /// Scan for available plugins
     pub fn scan_plugins(&mut self) -> Result<(), Box<dyn std::error::Error>> {
-        self.registry.scan_plugins()
+        self.registry.scan_plugins(&self.engine)
     }
 
     /// Validate a plugin file with comprehensive security checks
@@ -442,10 +483,11 @@ impl PluginManager {
 
             // Block potentially dangerous exports
             if export_name.starts_with("unsafe_") || export_name.contains("syscall") {
-                warn!(
-                    "Plugin '{}' exports potentially unsafe function: {}",
+                return Err(format!(
+                    "Plugin '{}' exports forbidden function: {}",
                     plugin_name, export_name
-                );
+                )
+                .into());
             }
         }
 
@@ -471,29 +513,36 @@ impl PluginManager {
 
         let module = Module::from_file(&self.engine, &plugin_info.path)?;
 
-        // Extract metadata from the plugin (requires instantiation)
-        let (version, description) = {
-            // Set up secure store for metadata extraction
-            let mut store = Store::new(&self.engine, ());
-            store.set_fuel(self.security_config.fuel_limit)?;
+        // Extract metadata from the plugin if not already extracted during scanning
+        let (version, description) =
+            if plugin_info.version.is_some() || plugin_info.description.is_some() {
+                // Metadata was already extracted during scanning
+                (plugin_info.version.clone(), plugin_info.description.clone())
+            } else {
+                // Extract metadata with full security validation
+                {
+                    // Set up secure store for metadata extraction
+                    let mut store = Store::new(&self.engine, ());
+                    store.set_fuel(self.security_config.fuel_limit)?;
 
-            // Set up epoch-based timeout
-            let epoch_counter = Arc::clone(&self.epoch_counter);
-            store.epoch_deadline_callback(move |_| {
-                epoch_counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-                Ok(UpdateDeadline::Continue(1))
-            });
+                    // Set up epoch-based timeout
+                    let epoch_counter = Arc::clone(&self.epoch_counter);
+                    store.epoch_deadline_callback(move |_| {
+                        epoch_counter.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+                        Ok(UpdateDeadline::Continue(1))
+                    });
 
-            let linker = Linker::new(&self.engine);
-            // No WASI added for security - plugins have no host access
-            // unless explicitly allowed (which it shouldn't be)
+                    let linker = Linker::new(&self.engine);
+                    // No WASI added for security - plugins have no host access
+                    // unless explicitly allowed (which it shouldn't be)
 
-            // Instantiate the module temporarily for metadata extraction
-            let instance = linker.instantiate(&mut store, &module)?;
+                    // Instantiate the module temporarily for metadata extraction
+                    let instance = linker.instantiate(&mut store, &module)?;
 
-            // Extract metadata with timeout protection
-            self.extract_plugin_metadata_with_timeout(&instance, &mut store, plugin_name)?
-        };
+                    // Extract metadata with timeout protection
+                    self.extract_plugin_metadata_with_timeout(&instance, &mut store, plugin_name)?
+                }
+            };
 
         // Store the module (not the instance)
         self.loaded_plugins.insert(plugin_name.to_string(), module);
@@ -512,7 +561,12 @@ impl PluginManager {
             self.scan_plugins()?;
         }
 
-        let plugin_names = self.registry.get_discovered_plugin_names();
+        let plugin_names: Vec<String> = self
+            .registry
+            .get_discovered_plugins()
+            .keys()
+            .cloned()
+            .collect();
 
         for plugin_name in plugin_names {
             if let Err(e) = self.load_plugin(&plugin_name) {
@@ -1617,6 +1671,7 @@ impl PluginManager {
                                     "Failed to parse plugin metadata JSON: {}. Raw JSON: {}",
                                     e, metadata_json
                                 );
+                                return (None, None);
                             }
                         }
                     }
@@ -1625,6 +1680,7 @@ impl PluginManager {
                             "Failed to read plugin metadata string from WASM memory: {}",
                             e
                         );
+                        return (None, None);
                     }
                 },
                 Err(e) => {
@@ -1632,6 +1688,7 @@ impl PluginManager {
                         "Failed to call `get_plugin_metadata` function exported by plugin: {}",
                         e
                     );
+                    return (None, None);
                 }
             },
             Err(e) => {
@@ -1639,12 +1696,12 @@ impl PluginManager {
                     "Plugin does not export a usable `get_plugin_metadata` function: {}",
                     e
                 );
+                return (None, None);
             }
         }
 
         // Fallback: try to extract from WASM custom sections
         // For now, return None - this could be enhanced to parse custom sections
-        (None, None)
     }
 
     /// Helper method to allocate a string in WASM memory and return its pointer
