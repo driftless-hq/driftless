@@ -5,8 +5,8 @@
 
 use crate::facts::{Collector, FactsConfig};
 use anyhow::Result;
+use axum::http::{header, StatusCode};
 use axum::response::{IntoResponse, Response};
-use axum::http::{StatusCode, header};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;

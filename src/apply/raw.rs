@@ -133,6 +133,18 @@
 //!   "args": ["build"],
 //!   "chdir": "/opt/myproject"
 //! }
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[tasks]]
+//! type = "raw"
+//! description = "Run command in project directory"
+//! executable = "make"
+//! args = ["build"]
+//! chdir = "/opt/myproject"
+//! ```
+//!
 //! ## Execute command with creates/removes checks
 //!
 //! This example executes a command that creates specific files and checks for their existence.

@@ -102,7 +102,7 @@ impl PluginRegistry {
                     let plugin_info = PluginInfo {
                         name: plugin_name.clone(),
                         path: path.clone(),
-                        version: None,     // Metadata extraction deferred until plugin load
+                        version: None, // Metadata extraction deferred until plugin load
                         description: None, // Metadata extraction deferred until plugin load
                         loaded: false,
                         load_error: None,

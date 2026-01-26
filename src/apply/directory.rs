@@ -160,10 +160,10 @@ pub struct DirectoryTask {
 }
 
 use anyhow::{Context, Result};
+use nix::unistd::{chown, Gid, Uid};
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
-use nix::unistd::{chown, Uid, Gid};
 
 /// Resolve username to UID
 fn resolve_uid(username: &str) -> Result<u32> {

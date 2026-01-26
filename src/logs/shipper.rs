@@ -45,7 +45,7 @@ impl LogShipper {
 
         // Create channels for log processing pipeline
         let (log_tx, _keep_alive_rx) = tokio::sync::broadcast::channel::<LogEntry>(1000);
-        
+
         // Keep the initial receiver alive for the lifetime of the shipper
         // to prevent send errors when no outputs are subscribed yet
 
@@ -161,13 +161,13 @@ impl LogShipper {
                 eprintln!("Source task error: {:?}", e);
             }
         }
-        
+
         for task in output_tasks {
             if let Err(e) = task.await {
                 eprintln!("Output task error: {:?}", e);
             }
         }
-        
+
         // Keep _keep_alive_rx alive until tasks complete
         drop(_keep_alive_rx);
 
