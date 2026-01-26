@@ -336,12 +336,33 @@ async fn ensure_replacement_absent(task: &ReplaceTask, dry_run: bool) -> Result<
             println!("Undid replacement in {}", task.path);
         }
     } else {
-        // With regex, undoing is more complex - we'd need to store the original content
-        // For now, we'll skip this functionality
-        println!(
-            "Undo replacement with regex not implemented for {}",
-            task.path
-        );
+        // For regex replacements, we need to undo by restoring from backup
+        // or implementing a reverse replacement logic
+        if task.backup {
+            // Try to restore from backup
+            let backup_path = format!("{}.backup", task.path);
+            if Path::new(&backup_path).exists() {
+                if dry_run {
+                    println!("Would restore {} from backup {}", task.path, backup_path);
+                } else {
+                    fs::copy(&backup_path, &task.path).with_context(|| {
+                        format!("Failed to restore {} from {}", task.path, backup_path)
+                    })?;
+                    println!("Restored {} from backup", task.path);
+                }
+            } else {
+                println!(
+                    "No backup found for {} - cannot undo regex replacement",
+                    task.path
+                );
+            }
+        } else {
+            // Without backup, we cannot reliably undo regex replacements
+            println!(
+                "Cannot undo regex replacement for {} - no backup available. Consider using backup=true",
+                task.path
+            );
+        }
     }
 
     Ok(())

@@ -208,15 +208,27 @@ pub struct CommandTask {
     /// Whether to run command as a specific group
     #[serde(skip_serializing_if = "Option::is_none")]
     pub group: Option<String>,
+    /// Whether to stream output in real-time (useful for long-running commands)
+    #[serde(default)]
+    pub stream_output: bool,
 }
 
 use anyhow::{Context, Result};
+use chrono;
+use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
+use crate::apply::executor::TaskExecutor;
+
 /// Execute a command task
-pub async fn execute_command_task(task: &CommandTask, dry_run: bool) -> Result<serde_yaml::Value> {
+pub async fn execute_command_task(
+    task: &CommandTask,
+    executor: &TaskExecutor,
+) -> Result<serde_yaml::Value> {
     // Check if command should be run idempotently
-    if task.idempotent && is_command_already_run(task)? {
+    if task.idempotent && is_command_already_run(task, executor)? {
         println!("Command already executed (idempotent): {}", task.command);
         let mut result = serde_yaml::Mapping::new();
         result.insert(
@@ -230,7 +242,7 @@ pub async fn execute_command_task(task: &CommandTask, dry_run: bool) -> Result<s
         return Ok(serde_yaml::Value::Mapping(result));
     }
 
-    if dry_run {
+    if executor.dry_run() {
         println!("Would run command: {}", task.command);
         if let Some(cwd) = &task.cwd {
             println!("  in directory: {}", cwd);
@@ -257,7 +269,7 @@ pub async fn execute_command_task(task: &CommandTask, dry_run: bool) -> Result<s
 
         // Mark command as run for idempotency
         if task.idempotent {
-            mark_command_as_run(task)?;
+            mark_command_as_run(task, executor)?;
         }
 
         Ok(output)
@@ -292,8 +304,18 @@ async fn run_command(task: &CommandTask) -> Result<serde_yaml::Value> {
         );
     }
 
-    // Set up I/O - capture for registration while still allowing output to be seen if needed
-    // In a real implementation we might want to stream this
+    if task.stream_output {
+        // Stream output in real-time
+        run_command_streaming(task, cmd).await
+    } else {
+        // Buffer output (original behavior)
+        run_command_buffered(task, cmd).await
+    }
+}
+
+/// Run command with buffered output (original behavior)
+async fn run_command_buffered(task: &CommandTask, mut cmd: Command) -> Result<serde_yaml::Value> {
+    // Set up I/O - capture output
     cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
 
     // Execute the command
@@ -337,15 +359,134 @@ async fn run_command(task: &CommandTask) -> Result<serde_yaml::Value> {
     Ok(serde_yaml::Value::Mapping(result))
 }
 
+/// Run command with streaming output
+async fn run_command_streaming(task: &CommandTask, cmd: Command) -> Result<serde_yaml::Value> {
+    use tokio::io::{AsyncBufReadExt, BufReader};
+
+    // Convert to tokio command for async I/O
+    let mut cmd = tokio::process::Command::from(cmd);
+
+    // Set up I/O for streaming
+    cmd.stdout(Stdio::piped()).stderr(Stdio::piped());
+
+    // Spawn the command
+    let mut child = cmd
+        .spawn()
+        .with_context(|| format!("Failed to spawn command: {}", task.command))?;
+
+    // Get handles to stdout and stderr
+    let stdout = child.stdout.take().unwrap();
+    let stderr = child.stderr.take().unwrap();
+
+    // Create buffered readers
+    let mut stdout_reader = BufReader::new(stdout).lines();
+    let mut stderr_reader = BufReader::new(stderr).lines();
+
+    // Collect output for result
+    let mut stdout_lines = Vec::new();
+    let mut stderr_lines = Vec::new();
+
+    // Stream output in real-time
+    loop {
+        tokio::select! {
+            line = stdout_reader.next_line() => {
+                match line {
+                    Ok(Some(line)) => {
+                        println!("STDOUT: {}", line);
+                        stdout_lines.push(line);
+                    }
+                    Ok(None) => break, // EOF
+                    Err(e) => {
+                        eprintln!("Error reading stdout: {}", e);
+                        break;
+                    }
+                }
+            }
+            line = stderr_reader.next_line() => {
+                match line {
+                    Ok(Some(line)) => {
+                        eprintln!("STDERR: {}", line);
+                        stderr_lines.push(line);
+                    }
+                    Ok(None) => break, // EOF
+                    Err(e) => {
+                        eprintln!("Error reading stderr: {}", e);
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
+    // Wait for the command to complete
+    let status = child
+        .wait()
+        .await
+        .with_context(|| format!("Failed to wait for command: {}", task.command))?;
+
+    let exit_code = status.code().unwrap_or(-1);
+    if exit_code != task.exit_code {
+        return Err(anyhow::anyhow!(
+            "Command exited with code {} (expected {}): {}",
+            exit_code,
+            task.exit_code,
+            task.command
+        ));
+    }
+
+    // Prepare result
+    let stdout = stdout_lines.join("\n");
+    let stderr = stderr_lines.join("\n");
+
+    let mut result = serde_yaml::Mapping::new();
+    result.insert(
+        serde_yaml::Value::String("stdout".to_string()),
+        serde_yaml::Value::String(stdout),
+    );
+    result.insert(
+        serde_yaml::Value::String("stderr".to_string()),
+        serde_yaml::Value::String(stderr),
+    );
+    result.insert(
+        serde_yaml::Value::String("rc".to_string()),
+        serde_yaml::Value::Number(exit_code.into()),
+    );
+    result.insert(
+        serde_yaml::Value::String("changed".to_string()),
+        serde_yaml::Value::Bool(true),
+    );
+    result.insert(
+        serde_yaml::Value::String("streamed".to_string()),
+        serde_yaml::Value::Bool(true),
+    );
+
+    Ok(serde_yaml::Value::Mapping(result))
+}
+
 /// Parse a command string into program and arguments
 fn parse_command(command: &str) -> Result<(String, Vec<String>)> {
-    // Simple shell-like parsing - split on spaces for now
-    // In a real implementation, you'd want proper shell parsing
-    let parts: Vec<String> = shlex::split(command)
-        .ok_or_else(|| anyhow::anyhow!("Failed to parse command: {}", command))?;
+    // Use shlex for proper shell-like parsing that handles quotes, escapes, etc.
+    let parts: Vec<String> = shlex::split(command).ok_or_else(|| {
+        anyhow::anyhow!(
+            "Failed to parse command (unmatched quotes or invalid syntax): {}",
+            command
+        )
+    })?;
 
     if parts.is_empty() {
         return Err(anyhow::anyhow!("Empty command"));
+    }
+
+    // Validate that the command doesn't contain shell metacharacters that could be dangerous
+    // This is a basic check - in a production system you'd want more sophisticated validation
+    let dangerous_chars = [';', '&', '|', '<', '>', '`', '$', '(', ')'];
+    for &ch in dangerous_chars.iter() {
+        if command.contains(ch) {
+            return Err(anyhow::anyhow!(
+                "Command contains potentially dangerous shell metacharacter '{}'. Use explicit arguments instead: {}",
+                ch, command
+            ));
+        }
     }
 
     let program = parts[0].clone();
@@ -355,19 +496,107 @@ fn parse_command(command: &str) -> Result<(String, Vec<String>)> {
 }
 
 /// Check if an idempotent command has already been run
-fn is_command_already_run(task: &CommandTask) -> Result<bool> {
-    // Simple implementation: check for a marker file
-    // In a real implementation, you'd use a proper state store
-    let marker_path = format!("/tmp/driftless_cmd_{}", hash_command(task));
-    Ok(std::path::Path::new(&marker_path).exists())
+fn is_command_already_run(task: &CommandTask, executor: &TaskExecutor) -> Result<bool> {
+    let state_file = get_command_state_file(task, executor);
+    if !state_file.exists() {
+        return Ok(false);
+    }
+
+    // Read and parse the state file
+    let content = fs::read_to_string(&state_file)
+        .with_context(|| format!("Failed to read state file: {:?}", state_file))?;
+
+    let state: CommandState = serde_json::from_str(&content)
+        .with_context(|| format!("Failed to parse state file: {:?}", state_file))?;
+
+    // Check if the command state matches
+    Ok(state.matches(task))
 }
 
 /// Mark a command as having been run
-fn mark_command_as_run(task: &CommandTask) -> Result<()> {
-    let marker_path = format!("/tmp/driftless_cmd_{}", hash_command(task));
-    std::fs::write(&marker_path, "")
-        .with_context(|| format!("Failed to create marker file: {}", marker_path))?;
+fn mark_command_as_run(task: &CommandTask, executor: &TaskExecutor) -> Result<()> {
+    let state_file = get_command_state_file(task, executor);
+
+    // Create state directory if it doesn't exist
+    if let Some(parent) = state_file.parent() {
+        fs::create_dir_all(parent)
+            .with_context(|| format!("Failed to create state directory: {:?}", parent))?;
+    }
+
+    // Create state object
+    let state = CommandState::from_task(task);
+
+    // Write state file
+    let content = serde_json::to_string_pretty(&state)
+        .with_context(|| "Failed to serialize command state")?;
+
+    fs::write(&state_file, content)
+        .with_context(|| format!("Failed to write state file: {:?}", state_file))?;
+
     Ok(())
+}
+
+/// Get the state file path for a command
+fn get_command_state_file(task: &CommandTask, executor: &TaskExecutor) -> PathBuf {
+    // Use the configured state directory from the executor config
+    let state_dir = &executor.config().state_dir;
+
+    let hash = hash_command(task);
+    Path::new(&state_dir)
+        .join("commands")
+        .join(format!("{}.json", hash))
+}
+
+/// Command execution state for persistence
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct CommandState {
+    /// Command that was executed
+    command: String,
+    /// Working directory
+    cwd: Option<String>,
+    /// Environment variables (sorted for consistent hashing)
+    env: Vec<(String, String)>,
+    /// Hash of the command for verification
+    hash: String,
+    /// Timestamp when command was executed
+    executed_at: chrono::DateTime<chrono::Utc>,
+}
+
+impl CommandState {
+    /// Create a new command state from a task
+    fn from_task(task: &CommandTask) -> Self {
+        let mut env: Vec<_> = task
+            .env
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
+        env.sort_by(|a, b| a.0.cmp(&b.0));
+
+        Self {
+            command: task.command.clone(),
+            cwd: task.cwd.clone(),
+            env,
+            hash: hash_command(task),
+            executed_at: chrono::Utc::now(),
+        }
+    }
+
+    /// Check if this state matches a task
+    fn matches(&self, task: &CommandTask) -> bool {
+        if self.command != task.command || self.cwd != task.cwd {
+            return false;
+        }
+
+        // Check environment variables
+        let mut task_env: Vec<_> = task
+            .env
+            .iter()
+            .map(|(k, v)| (k.clone(), v.clone()))
+            .collect();
+        task_env.sort_by(|a, b| a.0.cmp(&b.0));
+
+        self.env == task_env
+    }
 }
 
 /// Generate a hash of the command for idempotency tracking
@@ -409,9 +638,11 @@ mod tests {
             exit_code: 0,
             user: None,
             group: None,
+            stream_output: false,
         };
 
-        let result = execute_command_task(&task, true).await;
+        let executor = TaskExecutor::new(true);
+        let result = execute_command_task(&task, &executor).await;
         assert!(result.is_ok());
     }
 
@@ -426,9 +657,11 @@ mod tests {
             exit_code: 0,
             user: None,
             group: None,
+            stream_output: false,
         };
 
-        let result = execute_command_task(&task, false).await;
+        let executor = TaskExecutor::new(false);
+        let result = execute_command_task(&task, &executor).await;
         assert!(result.is_ok());
     }
 
@@ -443,9 +676,11 @@ mod tests {
             exit_code: 0, // But we expect 0
             user: None,
             group: None,
+            stream_output: false,
         };
 
-        let result = execute_command_task(&task, false).await;
+        let executor = TaskExecutor::new(false);
+        let result = execute_command_task(&task, &executor).await;
         assert!(result.is_err());
         assert!(result
             .unwrap_err()
@@ -475,6 +710,7 @@ mod tests {
             exit_code: 0,
             user: None,
             group: None,
+            stream_output: false,
         };
 
         let task2 = CommandTask {
@@ -486,6 +722,7 @@ mod tests {
             exit_code: 0,
             user: None,
             group: None,
+            stream_output: false,
         };
 
         let hash1 = hash_command(&task1);

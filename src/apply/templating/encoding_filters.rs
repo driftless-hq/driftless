@@ -149,18 +149,17 @@ pub fn register_encoding_filters(
         vec![],
         Arc::new(|value, _args| {
             if value.is_undefined() || value.is_none() {
-                // In a real implementation, this would cause template rendering to fail
-                // For now, we'll return an error indication
-                JinjaValue::from(false)
+                // Fail template rendering for undefined/none values
+                minijinja::Value::UNDEFINED
             } else if let Some(s) = value.as_str() {
                 if s.is_empty() {
-                    JinjaValue::from(false)
+                    minijinja::Value::UNDEFINED
                 } else {
                     value
                 }
             } else if let Ok(seq) = value.try_iter() {
                 if seq.count() == 0 {
-                    JinjaValue::from(false)
+                    minijinja::Value::UNDEFINED
                 } else {
                     value
                 }

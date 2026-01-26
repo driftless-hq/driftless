@@ -9,6 +9,8 @@ use crate::apply::variables::VariableContext;
 #[cfg(test)]
 use crate::apply::wait_for::ConnectionState;
 #[cfg(test)]
+use crate::apply::ApplyConfig;
+#[cfg(test)]
 use crate::apply::{
     AssertTask, DebugTask, FailTask, IncludeRoleTask, IncludeTasksTask, PauseTask, SetFactTask,
     Task, TaskAction, WaitForTask,
@@ -197,6 +199,11 @@ async fn test_include_tasks_successful_execution() {
         VariableContext::new(),
         temp_dir.path().to_path_buf(),
         None,
+        ApplyConfig {
+            vars: std::collections::HashMap::new(),
+            tasks: Vec::new(),
+            state_dir: crate::apply::default_state_dir(),
+        },
     );
 
     // Create include task
@@ -242,6 +249,11 @@ async fn test_include_tasks_with_condition_true() {
         VariableContext::new(),
         temp_dir.path().to_path_buf(),
         None,
+        ApplyConfig {
+            vars: std::collections::HashMap::new(),
+            tasks: Vec::new(),
+            state_dir: crate::apply::default_state_dir(),
+        },
     );
 
     // Create include task with condition
@@ -289,6 +301,11 @@ async fn test_include_tasks_with_condition_false() {
         VariableContext::new(),
         temp_dir.path().to_path_buf(),
         None,
+        ApplyConfig {
+            vars: std::collections::HashMap::new(),
+            tasks: Vec::new(),
+            state_dir: crate::apply::default_state_dir(),
+        },
     );
 
     // Create include task with condition that evaluates to false
@@ -322,6 +339,11 @@ async fn test_include_tasks_missing_file() {
         VariableContext::new(),
         temp_dir.path().to_path_buf(),
         None,
+        ApplyConfig {
+            vars: std::collections::HashMap::new(),
+            tasks: Vec::new(),
+            state_dir: crate::apply::default_state_dir(),
+        },
     );
 
     // Create include task pointing to non-existent file
@@ -383,6 +405,11 @@ role_var: "default_value"
         VariableContext::new(),
         temp_dir.path().to_path_buf(),
         None,
+        ApplyConfig {
+            vars: std::collections::HashMap::new(),
+            tasks: Vec::new(),
+            state_dir: crate::apply::default_state_dir(),
+        },
     );
 
     // Create include role task
@@ -415,6 +442,11 @@ async fn test_include_role_missing_role() {
         VariableContext::new(),
         temp_dir.path().to_path_buf(),
         None,
+        ApplyConfig {
+            vars: std::collections::HashMap::new(),
+            tasks: Vec::new(),
+            state_dir: crate::apply::default_state_dir(),
+        },
     );
 
     // Create include role task pointing to non-existent role
@@ -456,6 +488,11 @@ async fn test_include_role_missing_tasks_file() {
         VariableContext::new(),
         temp_dir.path().to_path_buf(),
         None,
+        ApplyConfig {
+            vars: std::collections::HashMap::new(),
+            tasks: Vec::new(),
+            state_dir: crate::apply::default_state_dir(),
+        },
     );
 
     // Create include role task
@@ -512,6 +549,11 @@ async fn test_include_tasks_variable_passing() {
         VariableContext::new(),
         temp_dir.path().to_path_buf(),
         None,
+        ApplyConfig {
+            vars: std::collections::HashMap::new(),
+            tasks: Vec::new(),
+            state_dir: crate::apply::default_state_dir(),
+        },
     );
 
     // Create include task with vars

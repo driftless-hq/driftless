@@ -12,12 +12,33 @@ Driftless agent mode provides continuous configuration enforcement, metrics coll
 - **Circuit Breaker Pattern**: Graceful degradation when individual components fail
 - **Hot Configuration Reload**: Automatically reloads configuration when files change
 
+### Configuration Directory Resolution
+
+Driftless automatically detects configuration directories in this order:
+1. **System-wide**: `/etc/driftless/` (highest priority - for system administrators)
+2. **User-specific**: `~/.config/driftless/` (fallback - for individual users)
+
+You can also explicitly specify a configuration directory using the `--config` CLI flag.
+
 ### Quick Start
 
+#### User Configuration
 1. Create agent configuration:
 ```yaml
 # ~/.config/driftless/config/agent.yml
 config_dir: "~/.config/driftless/config"
+apply_interval: 300    # 5 minutes
+facts_interval: 60     # 1 minute
+apply_dry_run: false
+metrics_port: 8000
+enabled: true
+```
+
+#### System-wide Configuration
+1. Create agent configuration:
+```yaml
+# /etc/driftless/agent.yml
+config_dir: "/etc/driftless/config"
 apply_interval: 300    # 5 minutes
 facts_interval: 60     # 1 minute
 apply_dry_run: false

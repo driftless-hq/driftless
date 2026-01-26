@@ -4,24 +4,38 @@ This example demonstrates how to create custom facts collectors for the Driftles
 
 ## Overview
 
-This plugin provides two custom facts collectors:
+This plugin provides two custom facts collectors that use real Python APIs:
 
-1. **python_system_info**: Collects basic system information (CPU, memory, Python version)
-2. **python_network_interfaces**: Collects network interface information
+1. **python_system_info**: Collects system information using `platform` and `psutil`
+2. **python_network_interfaces**: Collects network interface information using `socket` and `psutil`
+
+## Dependencies
+
+Install the required dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+### Required Packages
+- **psutil**: For detailed system and network information
+- **requests**: For HTTP operations (future use)
+- **pyodide-build**: For WebAssembly compilation
 
 ## Important Notes
 
-**⚠️ Experimental**: Python plugin support via Pyodide is experimental and may not be fully compatible with the current Driftless plugin system. This example demonstrates the conceptual approach.
+**⚠️ Experimental**: Python plugin support via Pyodide is experimental and may not be fully compatible with the current Driftless plugin system. This example demonstrates the conceptual approach with real APIs.
 
-**Requirements**:
-- Pyodide for Python-to-WebAssembly compilation
-- Additional tooling for WASM integration
-- May require custom build processes
+**API Usage**:
+- Uses `psutil` for CPU, memory, and network interface monitoring
+- Uses `platform` for system architecture and Python version info
+- Uses `socket` for network operations
+- Gracefully handles missing dependencies with fallback behavior
 
 ## Building (Conceptual)
 
 ```bash
-# Install Pyodide build tools
+# Install dependencies
 pip install -r requirements.txt
 
 # Build process would typically involve:

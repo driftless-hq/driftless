@@ -20,15 +20,30 @@ This plugin provides several template extensions:
 # Install dependencies
 npm install
 
-# Build the plugin
+# Build the plugin (includes WebAssembly compilation)
 npm run build
 ```
 
-This compiles TypeScript and bundles the JavaScript for WebAssembly usage.
+This compiles TypeScript to JavaScript, bundles it with webpack, and then compiles the JavaScript to WebAssembly using `javy`.
 
 ## Usage
 
-After building, the JavaScript file needs to be packaged for use with Driftless. In a real implementation, this would be compiled to WebAssembly using tools like `javy` or similar.
+After building, the `dist/driftless-ts-template-extension-plugin.wasm` file can be used directly with Driftless as a plugin.
+
+### Manual Build Steps
+
+If you prefer to build step-by-step:
+
+```bash
+# Compile TypeScript
+npm run dev
+
+# Bundle JavaScript
+npm run build:dev
+
+# Compile to WebAssembly
+npm run compile-wasm
+```
 
 ## Template Examples
 

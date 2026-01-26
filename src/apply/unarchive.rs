@@ -218,6 +218,7 @@ use std::collections::HashMap;
 use crate::apply::archive::ArchiveFormat;
 use crate::apply::default_true;
 use anyhow::{Context, Result};
+use chrono;
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -266,9 +267,15 @@ async fn ensure_archive_extracted(task: &UnarchiveTask, dry_run: bool) -> Result
 
     // Check if extraction is needed
     let needs_extraction = if dest_path.exists() {
-        // For simplicity, we'll assume extraction is needed if dest exists
-        // A full implementation would check if files are up to date
-        !task.creates // If creates=false, assume we need to check
+        // Check if archive has changed since last extraction
+        match check_archive_changed(task, &archive_path).await {
+            Ok(changed) => changed,
+            Err(_) => {
+                // If we can't check, assume extraction is needed for safety
+                println!("Warning: Could not check if archive changed, will re-extract");
+                true
+            }
+        }
     } else {
         true
     };
@@ -295,8 +302,18 @@ async fn ensure_archive_extracted(task: &UnarchiveTask, dry_run: bool) -> Result
             ));
         }
 
-        // Perform extraction
+        // Perform extraction with progress tracking
+        println!(
+            "Extracting {} (format: {:?}) to {}",
+            task.src, format, task.dest
+        );
         extract_archive_from_path(&archive_path, dest_path, task, &format).await?;
+        println!("Extraction completed");
+
+        // Update extraction state
+        if let Err(e) = update_extraction_state(task, &archive_path) {
+            println!("Warning: Failed to update extraction state: {}", e);
+        }
 
         println!("Extracted {} to {}", task.src, task.dest);
     }
@@ -337,6 +354,72 @@ async fn ensure_archive_not_extracted(task: &UnarchiveTask, dry_run: bool) -> Re
 /// Check if a string is a URL
 fn is_url(s: &str) -> bool {
     s.starts_with("http://") || s.starts_with("https://") || s.starts_with("ftp://")
+}
+
+/// Check if archive has changed since last extraction
+async fn check_archive_changed(task: &UnarchiveTask, archive_path: &Path) -> Result<bool> {
+    let dest_path = Path::new(&task.dest);
+
+    // Get archive metadata
+    let archive_metadata = fs::metadata(archive_path)?;
+    let archive_mtime = archive_metadata.modified()?;
+    let archive_size = archive_metadata.len();
+
+    // Check if there's a state file with previous extraction info
+    let state_file = dest_path.join(".driftless_unarchive_state");
+    if state_file.exists() {
+        if let Ok(state_content) = fs::read_to_string(&state_file) {
+            if let Ok(state) = serde_json::from_str::<serde_json::Value>(&state_content) {
+                if let (Some(stored_mtime), Some(stored_size)) = (
+                    state.get("archive_mtime").and_then(|v| v.as_u64()),
+                    state.get("archive_size").and_then(|v| v.as_u64()),
+                ) {
+                    let archive_mtime_secs = archive_mtime
+                        .duration_since(std::time::UNIX_EPOCH)?
+                        .as_secs();
+
+                    if stored_mtime == archive_mtime_secs && stored_size == archive_size {
+                        println!("Archive unchanged since last extraction");
+                        return Ok(false);
+                    }
+                }
+            }
+        }
+    }
+
+    // Archive has changed or no state file exists
+    println!("Archive has changed or no previous extraction state found");
+    Ok(true)
+}
+
+/// Update extraction state after successful extraction
+fn update_extraction_state(task: &UnarchiveTask, archive_path: &Path) -> Result<()> {
+    let dest_path = Path::new(&task.dest);
+    let state_file = dest_path.join(".driftless_unarchive_state");
+
+    // Get archive metadata
+    let archive_metadata = fs::metadata(archive_path)?;
+    let archive_mtime = archive_metadata.modified()?;
+    let archive_size = archive_metadata.len();
+
+    let archive_mtime_secs = archive_mtime
+        .duration_since(std::time::UNIX_EPOCH)?
+        .as_secs();
+
+    let state = serde_json::json!({
+        "archive_path": archive_path.to_string_lossy(),
+        "archive_mtime": archive_mtime_secs,
+        "archive_size": archive_size,
+        "extraction_time": chrono::Utc::now().timestamp(),
+    });
+
+    // Ensure destination directory exists
+    fs::create_dir_all(dest_path)?;
+
+    // Write state file
+    fs::write(&state_file, serde_json::to_string_pretty(&state)?)?;
+
+    Ok(())
 }
 
 /// Download URL to temporary file

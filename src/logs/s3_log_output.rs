@@ -157,7 +157,7 @@ impl S3LogOutput {
     fn should_upload(&self) -> bool {
         let time_since_last = Utc::now().signed_duration_since(self.last_upload);
         time_since_last.num_seconds() >= self.config.upload_interval as i64
-            || self.buffer.len() >= 1000 // TODO: Make batch size configurable
+            || self.buffer.len() >= self.config.batch_size
     }
 }
 
@@ -220,6 +220,7 @@ mod tests {
             region: "us-east-1".to_string(),
             prefix: "test-logs/".to_string(),
             upload_interval: 1, // Upload immediately for testing
+            batch_size: 10,     // Small batch size for testing
             compression: CompressionConfig::default(),
             access_key: None,
             secret_key: None,
@@ -246,6 +247,7 @@ mod tests {
             region: "us-east-1".to_string(),
             prefix: "test-logs-compressed/".to_string(),
             upload_interval: 1,
+            batch_size: 10,
             compression: CompressionConfig {
                 enabled: true,
                 algorithm: CompressionAlgorithm::Gzip,
@@ -284,6 +286,7 @@ mod tests {
             region: "us-east-1".to_string(),
             prefix: "logs/".to_string(),
             upload_interval: 300,
+            batch_size: 1000,
             compression: CompressionConfig::default(),
             access_key: None,
             secret_key: None,

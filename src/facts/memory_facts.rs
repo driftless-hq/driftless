@@ -95,7 +95,67 @@ use crate::facts::MemoryCollector;
 use anyhow::Result;
 use serde_yaml::Value;
 use std::collections::HashMap;
+use std::fs;
 use sysinfo::System;
+
+/// Extended memory information structure
+#[derive(Debug, Clone, Default)]
+struct ExtendedMemoryInfo {
+    buffers: Option<u64>,
+    cached: Option<u64>,
+    slab: Option<u64>,
+    page_tables: Option<u64>,
+    vmalloc_used: Option<u64>,
+    hardware_corrupted: Option<u64>,
+    anon_huge_pages: Option<u64>,
+    shmem: Option<u64>,
+    kmem: Option<u64>,
+    direct_map_4k: Option<u64>,
+    direct_map_2m: Option<u64>,
+    direct_map_1g: Option<u64>,
+}
+
+/// Collect extended memory information from /proc/meminfo (Linux-specific)
+fn collect_extended_memory_info() -> Result<ExtendedMemoryInfo> {
+    #[cfg(target_os = "linux")]
+    {
+        let content = fs::read_to_string("/proc/meminfo")?;
+        let mut info = ExtendedMemoryInfo::default();
+
+        for line in content.lines() {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() >= 2 {
+                let key = parts[0].trim_end_matches(':');
+                if let Ok(value_kb) = parts[1].parse::<u64>() {
+                    let value_bytes = value_kb * 1024; // Convert KB to bytes
+
+                    match key {
+                        "Buffers" => info.buffers = Some(value_bytes),
+                        "Cached" => info.cached = Some(value_bytes),
+                        "Slab" => info.slab = Some(value_bytes),
+                        "PageTables" => info.page_tables = Some(value_bytes),
+                        "VmallocUsed" => info.vmalloc_used = Some(value_bytes),
+                        "HardwareCorrupted" => info.hardware_corrupted = Some(value_bytes),
+                        "AnonHugePages" => info.anon_huge_pages = Some(value_bytes),
+                        "Shmem" => info.shmem = Some(value_bytes),
+                        "KReclaimable" => info.kmem = Some(value_bytes), // Kernel reclaimable memory
+                        "DirectMap4k" => info.direct_map_4k = Some(value_bytes),
+                        "DirectMap2M" => info.direct_map_2m = Some(value_bytes),
+                        "DirectMap1G" => info.direct_map_1g = Some(value_bytes),
+                        _ => {}
+                    }
+                }
+            }
+        }
+
+        Ok(info)
+    }
+
+    #[cfg(not(target_os = "linux"))]
+    {
+        Ok(ExtendedMemoryInfo::default())
+    }
+}
 
 /// Execute memory facts collection
 pub fn collect_memory_facts(collector: &MemoryCollector) -> Result<Value> {
@@ -282,6 +342,90 @@ pub fn collect_memory_facts(collector: &MemoryCollector) -> Result<Value> {
         }
     }
 
+    // Collect extended memory information
+    if collector.collect.extended {
+        match collect_extended_memory_info() {
+            Ok(extended) => {
+                if let Some(buffers) = extended.buffers {
+                    facts.insert("buffers_bytes".to_string(), Value::Number(buffers.into()));
+                    facts.insert(
+                        "buffers_mb".to_string(),
+                        Value::Number((buffers / 1024 / 1024).into()),
+                    );
+                }
+                if let Some(cached) = extended.cached {
+                    facts.insert("cached_bytes".to_string(), Value::Number(cached.into()));
+                    facts.insert(
+                        "cached_mb".to_string(),
+                        Value::Number((cached / 1024 / 1024).into()),
+                    );
+                }
+                if let Some(slab) = extended.slab {
+                    facts.insert("slab_bytes".to_string(), Value::Number(slab.into()));
+                    facts.insert(
+                        "slab_mb".to_string(),
+                        Value::Number((slab / 1024 / 1024).into()),
+                    );
+                }
+                if let Some(page_tables) = extended.page_tables {
+                    facts.insert(
+                        "page_tables_bytes".to_string(),
+                        Value::Number(page_tables.into()),
+                    );
+                }
+                if let Some(vmalloc_used) = extended.vmalloc_used {
+                    facts.insert(
+                        "vmalloc_used_bytes".to_string(),
+                        Value::Number(vmalloc_used.into()),
+                    );
+                }
+                if let Some(hardware_corrupted) = extended.hardware_corrupted {
+                    facts.insert(
+                        "hardware_corrupted_bytes".to_string(),
+                        Value::Number(hardware_corrupted.into()),
+                    );
+                }
+                if let Some(anon_huge_pages) = extended.anon_huge_pages {
+                    facts.insert(
+                        "anon_huge_pages_bytes".to_string(),
+                        Value::Number(anon_huge_pages.into()),
+                    );
+                }
+                if let Some(shmem) = extended.shmem {
+                    facts.insert("shmem_bytes".to_string(), Value::Number(shmem.into()));
+                }
+                if let Some(kmem) = extended.kmem {
+                    facts.insert(
+                        "kernel_reclaimable_bytes".to_string(),
+                        Value::Number(kmem.into()),
+                    );
+                }
+                if let Some(direct_map_4k) = extended.direct_map_4k {
+                    facts.insert(
+                        "direct_map_4k_bytes".to_string(),
+                        Value::Number(direct_map_4k.into()),
+                    );
+                }
+                if let Some(direct_map_2m) = extended.direct_map_2m {
+                    facts.insert(
+                        "direct_map_2m_bytes".to_string(),
+                        Value::Number(direct_map_2m.into()),
+                    );
+                }
+                if let Some(direct_map_1g) = extended.direct_map_1g {
+                    facts.insert(
+                        "direct_map_1g_bytes".to_string(),
+                        Value::Number(direct_map_1g.into()),
+                    );
+                }
+            }
+            Err(_) => {
+                // Extended memory info not available
+                facts.insert("extended_memory_supported".to_string(), Value::Bool(false));
+            }
+        }
+    }
+
     // Add base labels if any
     if !collector.base.labels.is_empty() {
         let mut labels = HashMap::new();
@@ -329,6 +473,7 @@ mod tests {
                 available: true,
                 swap: true,
                 percentage: true,
+                extended: false,
             },
             thresholds: MemoryThresholds {
                 usage_warning: Some(85.0),
@@ -392,6 +537,7 @@ mod tests {
                 available: false,
                 swap: false,
                 percentage: true,
+                extended: false,
             },
             thresholds: MemoryThresholds::default(),
         };
@@ -477,6 +623,7 @@ mod tests {
                 available: false,
                 swap: false,
                 percentage: true,
+                extended: false,
             },
             thresholds: MemoryThresholds {
                 usage_warning: Some(50.0), // Low threshold to ensure it triggers

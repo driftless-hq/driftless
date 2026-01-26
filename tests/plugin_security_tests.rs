@@ -301,13 +301,12 @@ fn test_security_dangerous_exports_warning() {
 
     let module = Module::from_binary(manager.test_get_engine(), &wasm_bytes).unwrap();
 
-    // This should succeed but log warnings about dangerous exports
+    // This should now fail due to dangerous exports
     let result = manager.test_validate_wasm_module(&module, "dangerous_exports_plugin");
-    // The validation currently allows this but logs warnings
-    // In a real implementation, we might want to block dangerous exports too
+    // The validation should now block dangerous exports
     assert!(
-        result.is_ok(),
-        "Plugin with dangerous exports should pass validation (with warnings)"
+        result.is_err(),
+        "Plugin with dangerous exports should be blocked"
     );
 }
 

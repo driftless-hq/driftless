@@ -213,9 +213,11 @@ pub struct FileTask {
 }
 
 use anyhow::{Context, Result};
+use nix::unistd::{chown, Gid, Uid};
 use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::Path;
+use users::{get_group_by_name, get_user_by_name};
 
 /// Execute a file task
 pub async fn execute_file_task(task: &FileTask, dry_run: bool) -> Result<()> {
@@ -352,10 +354,26 @@ fn set_file_ownership(
     group: Option<&str>,
     dry_run: bool,
 ) -> Result<()> {
-    // Note: This is a simplified implementation. In a real system, you'd need to:
-    // 1. Look up UID/GID from username/groupname
-    // 2. Handle cases where user/group doesn't exist
-    // 3. Check permissions for chown operation
+    // Look up UIDs and GIDs from usernames/groupnames
+    let uid: Option<u32> = if let Some(owner_name) = owner {
+        Some(
+            get_user_by_name(owner_name)
+                .with_context(|| format!("User '{}' not found", owner_name))?
+                .uid(),
+        )
+    } else {
+        None
+    };
+
+    let gid: Option<u32> = if let Some(group_name) = group {
+        Some(
+            get_group_by_name(group_name)
+                .with_context(|| format!("Group '{}' not found", group_name))?
+                .gid(),
+        )
+    } else {
+        None
+    };
 
     let owner_str = owner.unwrap_or("unchanged");
     let group_str = group.unwrap_or("unchanged");
@@ -368,12 +386,16 @@ fn set_file_ownership(
             group_str
         );
     } else {
-        // For now, just log what would be done
-        // In a real implementation, you'd use the users crate or similar
-        println!(
-            "Note: Ownership setting not fully implemented yet for {}:{}",
-            owner_str, group_str
-        );
+        // Use nix::unistd::chown for proper ownership setting
+        chown(path, uid.map(Uid::from_raw), gid.map(Gid::from_raw)).with_context(|| {
+            format!(
+                "Failed to set ownership of {} to {}:{}",
+                path.display(),
+                owner_str,
+                group_str
+            )
+        })?;
+
         println!(
             "Set ownership of {} to {}:{}",
             path.display(),

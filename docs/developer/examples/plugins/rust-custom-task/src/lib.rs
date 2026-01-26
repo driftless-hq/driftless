@@ -68,6 +68,15 @@ pub fn get_task_definitions() -> String {
 }
 
 #[wasm_bindgen]
+pub fn get_plugin_metadata() -> String {
+    serde_json::json!({
+        "version": "1.0.0",
+        "description": "Example custom task plugin demonstrating echo and file_touch tasks"
+    })
+    .to_string()
+}
+
+#[wasm_bindgen]
 pub fn execute_task(name: &str, config_json: &str) -> String {
     match name {
         "echo" => execute_echo_task(config_json),
