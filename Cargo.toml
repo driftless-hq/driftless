@@ -54,7 +54,9 @@ sysinfo = "0.30"
 axum = "0.7"
 tower-http = { version = "0.5", features = ["cors"] }
 
-# Secrets management (TODO: add appropriate crate)
+# Secrets management
+secrecy = "0.8"
+# TODO: Add remote secrets providers (AWS, GCP, Vault/OpenBao, etc)
 
 # File watching for configuration changes
 notify = "6.1"

@@ -6,8 +6,10 @@
 use crate::apply::{executor::TaskExecutor, ApplyConfig};
 use crate::facts::{FactsConfig, FactsOrchestrator};
 use crate::logs::{LogOrchestrator, LogsConfig};
+// use crate::secrets::SecretsManager;
 use anyhow::Result;
 use notify::{Config, Event, RecommendedWatcher, RecursiveMode, Watcher};
+use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -252,6 +254,10 @@ pub struct Agent {
     logs_running: bool,
     // Configuration change tracking
     config_changed: Arc<AtomicBool>,
+    // Configuration hash tracking for change detection
+    apply_config_hash: Option<String>,
+    facts_config_hash: Option<String>,
+    logs_config_hash: Option<String>,
     // Error recovery and circuit breaker
     apply_circuit_breaker: CircuitBreaker,
     facts_circuit_breaker: CircuitBreaker,
@@ -337,6 +343,15 @@ fn outputs_are_equal(a: &crate::logs::LogOutput, b: &crate::logs::LogOutput) -> 
     }
 }
 
+/// Calculate SHA256 hash of a serializable configuration
+fn calculate_config_hash<T: serde::Serialize>(config: &T) -> Result<String> {
+    let json = serde_json::to_string(config)?;
+    let mut hasher = Sha256::new();
+    hasher.update(json.as_bytes());
+    let result = hasher.finalize();
+    Ok(format!("{:x}", result))
+}
+
 impl Agent {
     /// Create a new agent with the given configuration
     pub fn new(config: AgentConfig) -> Self {
@@ -375,6 +390,10 @@ impl Agent {
             logs_output_count: 0,
             logs_running: false,
             config_changed: Arc::new(AtomicBool::new(false)),
+            // Initialize configuration hash tracking
+            apply_config_hash: None,
+            facts_config_hash: None,
+            logs_config_hash: None,
             // Initialize circuit breakers with reasonable defaults
             apply_circuit_breaker: CircuitBreaker::new(5, Duration::from_secs(60)),
             facts_circuit_breaker: CircuitBreaker::new(3, Duration::from_secs(30)),
@@ -1234,6 +1253,29 @@ impl Agent {
         Ok(Some(config))
     }
 
+    /// Load apply configuration with change detection
+    fn load_apply_config_with_change_detection(&mut self) -> Result<Option<(ApplyConfig, bool)>> {
+        let config = match self.load_apply_config()? {
+            Some(config) => config,
+            None => return Ok(None),
+        };
+
+        // Calculate hash of new configuration
+        let new_hash = calculate_config_hash(&config)?;
+
+        // Check if configuration has changed
+        let changed = match &self.apply_config_hash {
+            Some(current_hash) => current_hash != &new_hash,
+            None => true, // First load
+        };
+
+        if changed {
+            self.apply_config_hash = Some(new_hash);
+        }
+
+        Ok(Some((config, changed)))
+    }
+
     /// Load facts configuration from config directory
     fn load_facts_config(&self) -> Result<Option<FactsConfig>> {
         let config_path = self.config.config_dir.join("facts.yml");
@@ -1252,6 +1294,29 @@ impl Agent {
         let contents = std::fs::read_to_string(&config_path)?;
         let config: FactsConfig = serde_yaml::from_str(&contents)?;
         Ok(Some(config))
+    }
+
+    /// Load facts configuration with change detection
+    fn load_facts_config_with_change_detection(&mut self) -> Result<Option<(FactsConfig, bool)>> {
+        let config = match self.load_facts_config()? {
+            Some(config) => config,
+            None => return Ok(None),
+        };
+
+        // Calculate hash of new configuration
+        let new_hash = calculate_config_hash(&config)?;
+
+        // Check if configuration has changed
+        let changed = match &self.facts_config_hash {
+            Some(current_hash) => current_hash != &new_hash,
+            None => true, // First load
+        };
+
+        if changed {
+            self.facts_config_hash = Some(new_hash);
+        }
+
+        Ok(Some((config, changed)))
     }
 
     /// Load logs configuration from config directory
@@ -1274,6 +1339,29 @@ impl Agent {
         Ok(Some(config))
     }
 
+    /// Load logs configuration with change detection
+    fn load_logs_config_with_change_detection(&mut self) -> Result<Option<(LogsConfig, bool)>> {
+        let config = match self.load_logs_config()? {
+            Some(config) => config,
+            None => return Ok(None),
+        };
+
+        // Calculate hash of new configuration
+        let new_hash = calculate_config_hash(&config)?;
+
+        // Check if configuration has changed
+        let changed = match &self.logs_config_hash {
+            Some(current_hash) => current_hash != &new_hash,
+            None => true, // First load
+        };
+
+        if changed {
+            self.logs_config_hash = Some(new_hash);
+        }
+
+        Ok(Some((config, changed)))
+    }
+
     /// Run apply tasks
     #[instrument(skip(self))]
     async fn run_apply_tasks(&mut self) -> Result<()> {
@@ -1293,22 +1381,29 @@ impl Agent {
         );
 
         // Reload apply configuration in case it changed
-        match self.load_apply_config() {
-            Ok(Some(config)) => {
-                // Validate the new config
-                if let Err(e) = self.validate_apply_config(&config) {
-                    error!("Apply configuration validation failed: {}", e);
-                    self.apply_failure_count += 1;
-                    return Err(e);
+        match self.load_apply_config_with_change_detection() {
+            Ok(Some((config, changed))) => {
+                if changed {
+                    // Validate the new config
+                    if let Err(e) = self.validate_apply_config(&config) {
+                        error!("Apply configuration validation failed: {}", e);
+                        self.apply_failure_count += 1;
+                        return Err(e);
+                    }
+                    self.apply_config = Some(config);
+                    debug!("Apply configuration reloaded and validated (configuration changed)");
+                } else {
+                    debug!("Apply configuration unchanged, skipping reload");
                 }
-                self.apply_config = Some(config);
-                debug!("Apply configuration reloaded and validated");
             }
             Ok(None) => {
                 // Configuration was removed, clear it
-                self.apply_config = None;
-                self.apply_executor = None;
-                info!("Apply configuration removed, stopping apply task execution");
+                if self.apply_config.is_some() {
+                    self.apply_config = None;
+                    self.apply_executor = None;
+                    self.apply_config_hash = None; // Clear hash
+                    info!("Apply configuration removed, stopping apply task execution");
+                }
                 return Ok(());
             }
             Err(e) => {
@@ -1364,38 +1459,45 @@ impl Agent {
         );
 
         // Reload facts configuration in case it changed
-        match self.load_facts_config() {
-            Ok(Some(config)) => {
-                // Validate the new config
-                if let Err(e) = self.validate_facts_config(&config) {
-                    error!("Facts configuration validation failed: {}", e);
-                    self.facts_failure_count += 1;
-                    return Err(e);
-                }
-
-                // Reinitialize orchestrator with new config
-                match FactsOrchestrator::new_with_registry_and_plugins(
-                    config,
-                    self.metrics_registry.clone(),
-                    self.plugin_manager.clone(),
-                ) {
-                    Ok(orchestrator) => {
-                        self.facts_collector_count = orchestrator.collector_count();
-                        self.facts_exporter_count = orchestrator.exporter_count();
-                        self.facts_orchestrator = Some(Arc::new(Mutex::new(orchestrator)));
-                        debug!("Facts orchestrator reinitialized with new configuration");
-                    }
-                    Err(e) => {
-                        error!("Failed to create facts orchestrator: {}", e);
+        match self.load_facts_config_with_change_detection() {
+            Ok(Some((config, changed))) => {
+                if changed {
+                    // Validate the new config
+                    if let Err(e) = self.validate_facts_config(&config) {
+                        error!("Facts configuration validation failed: {}", e);
                         self.facts_failure_count += 1;
                         return Err(e);
                     }
+
+                    // Reinitialize orchestrator with new config
+                    match FactsOrchestrator::new_with_registry_and_plugins(
+                        config,
+                        self.metrics_registry.clone(),
+                        self.plugin_manager.clone(),
+                    ) {
+                        Ok(orchestrator) => {
+                            self.facts_collector_count = orchestrator.collector_count();
+                            self.facts_exporter_count = orchestrator.exporter_count();
+                            self.facts_orchestrator = Some(Arc::new(Mutex::new(orchestrator)));
+                            debug!("Facts orchestrator reinitialized with new configuration (configuration changed)");
+                        }
+                        Err(e) => {
+                            error!("Failed to create facts orchestrator: {}", e);
+                            self.facts_failure_count += 1;
+                            return Err(e);
+                        }
+                    }
+                } else {
+                    debug!("Facts configuration unchanged, skipping reload");
                 }
             }
             Ok(None) => {
                 // Configuration was removed, clear it
-                self.facts_orchestrator = None;
-                info!("Facts configuration removed, stopping facts collection");
+                if self.facts_orchestrator.is_some() {
+                    self.facts_orchestrator = None;
+                    self.facts_config_hash = None; // Clear hash
+                    info!("Facts configuration removed, stopping facts collection");
+                }
                 return Ok(());
             }
             Err(e) => {
@@ -1444,44 +1546,48 @@ impl Agent {
         // If logs processing is already running, check if config changed
         if self.logs_running {
             // Check if configuration has changed
-            match self.load_logs_config() {
-                Ok(Some(config)) => {
-                    // Validate the new config
-                    if let Err(e) = self.validate_logs_config(&config) {
-                        error!("Logs configuration validation failed: {}", e);
-                        self.logs_failure_count += 1;
-                        return Err(e);
-                    }
-
-                    let needs_restart = match &self.logs_config {
-                        Some(current_config) => !configs_are_equal(current_config, &config),
-                        None => true, // No current config, so restart needed
-                    };
-
-                    if needs_restart {
-                        info!("Logs configuration changed, restarting logs processing...");
-
-                        // Stop current logs processing
-                        if let Some(orchestrator) = &self.logs_orchestrator {
-                            let mut orchestrator = orchestrator.lock().await;
-                            if let Err(e) = orchestrator.stop().await {
-                                error!("Error stopping logs orchestrator: {}", e);
-                            }
+            match self.load_logs_config_with_change_detection() {
+                Ok(Some((config, changed))) => {
+                    if changed {
+                        // Validate the new config
+                        if let Err(e) = self.validate_logs_config(&config) {
+                            error!("Logs configuration validation failed: {}", e);
+                            self.logs_failure_count += 1;
+                            return Err(e);
                         }
-                        self.logs_running = false;
 
-                        // Reinitialize orchestrator with new config
-                        let orchestrator = LogOrchestrator::new_with_plugins(
-                            config.clone(),
-                            self.plugin_manager.clone(),
-                        );
-                        self.logs_source_count = orchestrator.source_count();
-                        self.logs_output_count = orchestrator.output_count();
-                        self.logs_orchestrator = Some(Arc::new(Mutex::new(orchestrator)));
-                        self.logs_config = Some(config);
-                        debug!("Logs orchestrator reinitialized with new configuration");
+                        let needs_restart = match &self.logs_config {
+                            Some(current_config) => !configs_are_equal(current_config, &config),
+                            None => true, // No current config, so restart needed
+                        };
+
+                        if needs_restart {
+                            info!("Logs configuration changed, restarting logs processing...");
+
+                            // Stop current logs processing
+                            if let Some(orchestrator) = &self.logs_orchestrator {
+                                let mut orchestrator = orchestrator.lock().await;
+                                if let Err(e) = orchestrator.stop().await {
+                                    error!("Error stopping logs orchestrator: {}", e);
+                                }
+                            }
+                            self.logs_running = false;
+
+                            // Reinitialize orchestrator with new config
+                            let orchestrator = LogOrchestrator::new_with_plugins(
+                                config.clone(),
+                                self.plugin_manager.clone(),
+                            );
+                            self.logs_source_count = orchestrator.source_count();
+                            self.logs_output_count = orchestrator.output_count();
+                            self.logs_orchestrator = Some(Arc::new(Mutex::new(orchestrator)));
+                            self.logs_config = Some(config);
+                            debug!("Logs orchestrator reinitialized with new configuration");
+                        } else {
+                            debug!("Logs configuration unchanged, no restart needed");
+                        }
                     } else {
-                        debug!("Logs configuration unchanged, no restart needed");
+                        debug!("Logs configuration hash unchanged, no reload needed");
                     }
                 }
                 Ok(None) => {
@@ -1494,6 +1600,8 @@ impl Agent {
                     }
                     self.logs_running = false;
                     self.logs_orchestrator = None;
+                    self.logs_config = None;
+                    self.logs_config_hash = None; // Clear hash
                     self.logs_source_count = 0;
                     self.logs_output_count = 0;
                     info!("Logs configuration removed, stopping logs processing");
