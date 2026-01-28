@@ -94,7 +94,7 @@ once_cell = "1.0"
 wasmtime = "41.0"
 
 # HTTP client for plugin registry
-reqwest = { version = "0.12", features = ["json"] }
+reqwest = { version = "0.13", features = ["json"] }
 sha256 = "1.5"
 users = "0.11.0"
 futures-util = "0.3.31"
