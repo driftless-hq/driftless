@@ -4,19 +4,20 @@ This document outlines the AI models and tools used in the development of the Dr
 
 ## Code and Documentation
 
-Nearly all code and documentation in the Driftless project was written by **Grok Code Fast 1**, an AI model developed by xAI. This includes:
+Nearly all code and documentation in the Driftless project was written by **Grok Code Fast 1**, an AI model developed by xAI, using Visual Studio Code with the Copilot extension. This includes:
 
 - Rust source code in the `src/` directory
 - Documentation in the `docs/` directory
 - Configuration files and scripts
 - Test files
 
-## GitHub Actions Workflows
+## GitHub Actions Workflows and Code Reviews
 
-The GitHub Actions workflows were created and debugged using **Claude Sonnet 4.5** integrated with GitHub Copilot. This includes:
+The GitHub Actions workflows were created and debugged using **Claude Sonnet 4.5** integrated with the GitHub Copilot web interface. This includes:
 
 - CI/CD pipelines in `.github/workflows/`
 - Workflow validation and debugging
+- Code review assistance for PRs
 
 ## Disclaimer
 

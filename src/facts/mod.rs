@@ -234,18 +234,19 @@ impl FactsRegistry {
     #[allow(unused)]
     pub fn collect_facts(collector: &Collector) -> Result<serde_yaml::Value> {
         let collector_type = match collector {
-            Collector::System(_) => "system",
-            Collector::Cpu(_) => "cpu",
-            Collector::Memory(_) => "memory",
-            Collector::Disk(_) => "disk",
-            Collector::Network(_) => "network",
-            Collector::Process(_) => "process",
-            Collector::Command(_) => "command",
+            Collector::System(_) => "system".to_string(),
+            Collector::Cpu(_) => "cpu".to_string(),
+            Collector::Memory(_) => "memory".to_string(),
+            Collector::Disk(_) => "disk".to_string(),
+            Collector::Network(_) => "network".to_string(),
+            Collector::Process(_) => "process".to_string(),
+            Collector::Command(_) => "command".to_string(),
+            Collector::Plugin(plugin_collector) => plugin_collector.name.clone(),
         };
 
         let entry = {
             let registry = FACTS_REGISTRY.read().unwrap();
-            registry.get(collector_type).cloned()
+            registry.get(&collector_type).cloned()
         };
 
         if let Some(entry) = entry {
@@ -256,6 +257,29 @@ impl FactsRegistry {
                 collector_type
             ))
         }
+    }
+
+    /// Register a plugin-provided facts collector at runtime
+    #[allow(dead_code)]
+    pub fn register_plugin_collector(
+        collector_name: &str,
+        collector: FactsCollectorFn,
+    ) -> Result<()> {
+        let mut registry = FACTS_REGISTRY.write().unwrap();
+        if registry.contains_key(collector_name) {
+            return Err(anyhow::anyhow!(
+                "Collector '{}' is already registered",
+                collector_name
+            ));
+        }
+        let entry = FactsRegistryEntry {
+            collector,
+            category: "Plugin Collectors".to_string(),
+            description: format!("Plugin-provided collector: {}", collector_name),
+            filename: "plugin".to_string(),
+        };
+        registry.insert(collector_name.to_string(), entry);
+        Ok(())
     }
 }
 
@@ -275,6 +299,35 @@ pub struct FactsConfig {
     /// Export configuration
     #[serde(default)]
     pub export: ExportConfig,
+}
+
+impl FactsConfig {
+    /// Merge another FactsConfig into this one
+    pub fn merge(&mut self, other: FactsConfig) {
+        // Merge global settings (other takes precedence for simple fields)
+        if other.global.poll_interval != default_poll_interval() {
+            self.global.poll_interval = other.global.poll_interval;
+        }
+        if !other.global.enabled {
+            self.global.enabled = other.global.enabled;
+        }
+        // Merge labels (other labels take precedence)
+        for (key, value) in other.global.labels {
+            self.global.labels.insert(key, value);
+        }
+
+        // Merge collectors (extend the list)
+        self.collectors.extend(other.collectors);
+
+        // Merge export config (other takes precedence)
+        if other.export.enabled {
+            self.export.enabled = true;
+        }
+        self.export.prometheus = other.export.prometheus.clone();
+        if let Some(ref s3) = other.export.s3 {
+            self.export.s3 = Some(s3.clone());
+        }
+    }
 }
 
 /// Global settings for facts collection
@@ -301,6 +354,18 @@ impl Default for GlobalSettings {
     }
 }
 
+/// Plugin-provided facts collector configuration
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PluginCollector {
+    #[serde(flatten)]
+    pub base: BaseCollector,
+    /// Plugin collector name
+    pub name: String,
+    /// Collector-specific configuration
+    #[serde(flatten)]
+    pub config: serde_yaml::Value,
+}
+
 /// Types of collectors
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
@@ -319,6 +384,8 @@ pub enum Collector {
     Process(ProcessCollector),
     /// Custom command output collector
     Command(CommandCollector),
+    /// Plugin-provided facts collector
+    Plugin(PluginCollector),
 }
 
 /// Base collector configuration
@@ -453,6 +520,9 @@ pub struct MemoryCollectOptions {
     /// Collect memory usage percentage
     #[serde(default = "default_true")]
     pub percentage: bool,
+    /// Collect extended memory details (buffers, cache, etc.)
+    #[serde(default)]
+    pub extended: bool,
 }
 
 /// Memory thresholds for alerting
@@ -616,6 +686,9 @@ pub enum CommandOutputFormat {
 /// Export configuration
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ExportConfig {
+    /// Whether exporting is enabled
+    #[serde(default)]
+    pub enabled: bool,
     /// Prometheus export settings
     #[serde(default)]
     pub prometheus: PrometheusExport,

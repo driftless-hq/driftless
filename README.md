@@ -1,6 +1,7 @@
 # Driftless
 
 [![Build Status](https://github.com/driftless-hq/driftless/workflows/CI/badge.svg)](https://github.com/driftless-hq/driftless/actions)
+[![codecov](https://codecov.io/gh/driftless-hq/driftless/branch/main/graph/badge.svg)](https://codecov.io/gh/driftless-hq/driftless)
 [![Documentation](https://img.shields.io/badge/docs-generated-blue)](https://driftless-hq.github.io/driftless/)
 
 > **Warning:** This is an experimental, AI-assisted project. Bugs and other shortcomings are expected and should be reported as GitHub Issues. PRs are welcome!
@@ -15,6 +16,7 @@ A lightweight Rust agent for declarative system configuration, metrics gathering
 
 ## Quick Start
 
+### User Installation (Per-User Configuration)
 ```bash
 # Install
 cargo install driftless
@@ -24,6 +26,19 @@ mkdir -p ~/.config/driftless/config
 
 # Run
 driftless apply
+```
+
+### System-wide Installation (System Configuration)
+```bash
+# Install
+cargo install driftless
+
+# Create system configuration (requires root)
+sudo mkdir -p /etc/driftless
+sudo chown -R $USER:$USER /etc/driftless
+
+# Run with system config
+sudo driftless --config /etc/driftless apply
 ```
 
 For detailed installation instructions, configuration examples, and comprehensive guides, see the [full documentation](https://driftless-hq.github.io/driftless/).

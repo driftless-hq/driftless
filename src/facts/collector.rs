@@ -5,19 +5,30 @@
 
 use crate::facts::{Collector, FactsConfig};
 use anyhow::Result;
+use axum::http::{header, StatusCode};
+use axum::response::{IntoResponse, Response};
 use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::RwLock;
+
+/// Prometheus exposition format version
+const PROMETHEUS_EXPOSITION_VERSION: &str = "text/plain; version=0.0.4";
 
 /// Metrics collector for system facts
 #[allow(dead_code)]
 pub struct MetricsCollector {
     config: FactsConfig,
+    collected_metrics: Arc<RwLock<HashMap<String, serde_json::Value>>>,
 }
 
 #[allow(unused)]
 impl MetricsCollector {
     /// Create a new metrics collector
     pub fn new(config: FactsConfig) -> Self {
-        Self { config }
+        Self {
+            config,
+            collected_metrics: Arc::new(RwLock::new(HashMap::new())),
+        }
     }
 
     /// Start collecting metrics
@@ -27,34 +38,54 @@ impl MetricsCollector {
             self.config.collectors.len()
         );
 
-        // TODO: Implement actual metrics collection loop
-        // This would typically run in a loop with the configured poll_interval
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(
+            self.config.global.poll_interval,
+        ));
 
-        // For now, just show what would be collected
-        for collector in &self.config.collectors {
-            if self.is_collector_enabled(collector) {
-                println!("Would collect: {}", self.get_collector_name(collector));
+        loop {
+            interval.tick().await;
+            if let Err(e) = self.collect_once().await {
+                eprintln!("Error collecting metrics: {}", e);
             }
         }
-
-        Ok(())
     }
 
     /// Collect a single round of metrics
-    pub async fn collect_once(&self) -> Result<HashMap<String, serde_json::Value>> {
+    pub async fn collect_once(&self) -> Result<()> {
+        let metrics = self.collect_metrics().await?;
+        let mut collected = self.collected_metrics.write().await;
+        *collected = metrics;
+        Ok(())
+    }
+
+    /// Collect metrics from all enabled collectors
+    pub async fn collect_metrics(&self) -> Result<HashMap<String, serde_json::Value>> {
         let mut metrics = HashMap::new();
 
-        // TODO: Implement actual metric collection
-        // This would gather real system metrics
-
-        // Placeholder metrics for demonstration
-        metrics.insert(
-            "timestamp".to_string(),
-            chrono::Utc::now().timestamp().into(),
-        );
-        metrics.insert("hostname".to_string(), "localhost".into());
+        for collector in &self.config.collectors {
+            if self.is_collector_enabled(collector) {
+                let collector_name = self.get_collector_name(collector);
+                match crate::facts::FactsRegistry::collect_facts(collector) {
+                    Ok(facts) => {
+                        // Convert yaml Value to json Value
+                        let json_str = serde_yaml::to_string(&facts)?;
+                        let json_value: serde_json::Value = serde_json::from_str(&json_str)?;
+                        metrics.insert(collector_name.to_string(), json_value);
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to collect facts from {}: {}", collector_name, e);
+                    }
+                }
+            }
+        }
 
         Ok(metrics)
+    }
+
+    /// Get the collected metrics
+    pub async fn get_collected_metrics(&self) -> Result<HashMap<String, serde_json::Value>> {
+        let metrics = self.collected_metrics.read().await;
+        Ok(metrics.clone())
     }
 
     /// Check if a collector is enabled based on global and collector-specific settings
@@ -69,6 +100,7 @@ impl MetricsCollector {
             Network(c) => c.base.enabled,
             Process(c) => c.base.enabled,
             Command(c) => c.base.enabled,
+            Plugin(c) => c.base.enabled,
         };
 
         self.config.global.enabled && collector_enabled
@@ -86,6 +118,7 @@ impl MetricsCollector {
             Network(c) => &c.base.name,
             Process(c) => &c.base.name,
             Command(c) => &c.base.name,
+            Plugin(c) => &c.name,
         }
     }
 
@@ -101,6 +134,7 @@ impl MetricsCollector {
             Network(c) => c.base.poll_interval,
             Process(c) => c.base.poll_interval,
             Command(c) => c.base.poll_interval,
+            Plugin(c) => c.base.poll_interval,
         }
     }
 }
@@ -109,13 +143,14 @@ impl MetricsCollector {
 #[allow(dead_code)]
 pub struct PrometheusExporter {
     config: crate::facts::PrometheusExport,
+    collector: Arc<MetricsCollector>,
 }
 
 #[allow(unused)]
 impl PrometheusExporter {
     /// Create a new Prometheus exporter
-    pub fn new(config: crate::facts::PrometheusExport) -> Self {
-        Self { config }
+    pub fn new(config: crate::facts::PrometheusExport, collector: Arc<MetricsCollector>) -> Self {
+        Self { config, collector }
     }
 
     /// Start the Prometheus HTTP server
@@ -129,20 +164,73 @@ impl PrometheusExporter {
             self.config.host, self.config.port
         );
 
-        // TODO: Implement actual Prometheus HTTP server
-        // This would start a warp or axum server serving metrics
+        let collector = Arc::clone(&self.collector);
+        let path = self.config.path.clone();
+
+        let app = axum::Router::new().route(
+            &path,
+            axum::routing::get(move || {
+                let collector = Arc::clone(&collector);
+                async move {
+                    match collector.get_collected_metrics().await {
+                        Ok(metrics) => {
+                            let body = Self::generate_metrics(&metrics);
+                            Response::builder()
+                                .status(StatusCode::OK)
+                                .header(header::CONTENT_TYPE, PROMETHEUS_EXPOSITION_VERSION)
+                                .body(body)
+                                .unwrap()
+                                .into_response()
+                        }
+                        Err(e) => {
+                            eprintln!("Error getting metrics: {}", e);
+                            Response::builder()
+                                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                                .header(header::CONTENT_TYPE, PROMETHEUS_EXPOSITION_VERSION)
+                                .body("# Error getting metrics\n".to_string())
+                                .unwrap()
+                                .into_response()
+                        }
+                    }
+                }
+            }),
+        );
+
+        let addr = format!("{}:{}", self.config.host, self.config.port);
+        let listener = tokio::net::TcpListener::bind(&addr).await?;
+        axum::serve(listener, app).await?;
 
         Ok(())
     }
 
     /// Generate Prometheus format metrics
-    pub fn generate_metrics(&self) -> String {
-        // TODO: Implement actual metrics formatting
-        "# HELP driftless_info Driftless agent information
-# TYPE driftless_info gauge
-driftless_info{version=\"0.1.0\"} 1
-"
-        .to_string()
+    pub fn generate_metrics(metrics: &HashMap<String, serde_json::Value>) -> String {
+        let mut output = String::new();
+
+        for (collector_name, facts) in metrics {
+            if let serde_json::Value::Object(fact_map) = facts {
+                for (key, value) in fact_map {
+                    if let serde_json::Value::Number(num) = value {
+                        if let Some(num_val) = num.as_f64() {
+                            output.push_str(&format!(
+                                "# HELP driftless_{}_{} {}\n",
+                                collector_name, key, key
+                            ));
+                            output.push_str(&format!(
+                                "# TYPE driftless_{}_{} gauge\n",
+                                collector_name, key
+                            ));
+                            output.push_str(&format!(
+                                "driftless_{}_{} {}\n",
+                                collector_name, key, num_val
+                            ));
+                        }
+                    }
+                }
+            }
+        }
+
+        output
     }
 }
 
@@ -172,10 +260,10 @@ mod tests {
         };
 
         let collector = MetricsCollector::new(config);
-        let metrics = collector.collect_once().await.unwrap();
+        let metrics = collector.collect_metrics().await.unwrap();
 
-        assert!(metrics.contains_key("timestamp"));
-        assert!(metrics.contains_key("hostname"));
+        // Check that we have some metrics collected
+        assert!(!metrics.is_empty());
     }
 
     #[test]

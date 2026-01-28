@@ -4,12 +4,17 @@ use std::sync::Arc;
 use tokio::sync::Mutex;
 use tracing::{error, info};
 
+use crate::plugins::PluginManager;
+
 mod agent;
 mod apply;
+mod config;
 mod doc_extractor;
 mod docs;
 mod facts;
 mod logs;
+mod plugin_interface;
+mod plugins;
 
 use axum::{extract::State, http::StatusCode, response::Json, routing::get, Router};
 
@@ -20,9 +25,12 @@ use axum::{extract::State, http::StatusCode, response::Json, routing::get, Route
 )]
 #[command(version)]
 struct Cli {
-    /// Configuration directory (default: ~/.config/driftless/config)
+    /// Configuration directory (default: /etc/driftless/config if exists, otherwise ~/.config/driftless/config)
     #[arg(short, long)]
     config: Option<PathBuf>,
+    /// Plugin directory (default: /etc/driftless/plugins if exists, otherwise ~/.config/driftless/plugins)
+    #[arg(long)]
+    plugin_dir: Option<PathBuf>,
 
     #[command(subcommand)]
     command: Commands,
@@ -40,6 +48,11 @@ enum Commands {
     Facts,
     /// Run log sources and outputs for log collection and forwarding
     Logs,
+    /// Manage plugins (list, install, validate, etc.)
+    Plugins {
+        #[command(subcommand)]
+        plugin_command: PluginCommands,
+    },
     /// Generate documentation
     Docs {
         /// Output format (markdown)
@@ -72,6 +85,40 @@ enum Commands {
     },
 }
 
+#[derive(Subcommand)]
+enum PluginCommands {
+    /// List available plugins from registries
+    List,
+    /// List locally installed plugins
+    Installed,
+    /// Install a plugin from registry
+    Install {
+        /// Plugin specification (name, name@version, or registry/name@version)
+        plugin: String,
+    },
+    /// Remove a locally installed plugin
+    Remove {
+        /// Plugin name
+        name: String,
+        /// Plugin version (optional)
+        #[arg(short, long)]
+        version: Option<String>,
+    },
+    /// Validate a locally installed plugin or a plugin file
+    Validate {
+        /// Plugin name (for installed plugins)
+        name: Option<String>,
+        /// Plugin version (optional, for installed plugins)
+        #[arg(short, long)]
+        version: Option<String>,
+        /// Path to plugin file to validate directly
+        #[arg(short, long)]
+        file: Option<PathBuf>,
+    },
+    /// Update all installed plugins to latest versions
+    Update,
+}
+
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     // Initialize tracing
@@ -79,13 +126,91 @@ async fn main() -> anyhow::Result<()> {
 
     let cli = Cli::parse();
 
-    // Use default config directory if not specified
+    // Determine config directory with proper precedence:
+    // 1. CLI argument if provided
+    // 2. System-wide config (/etc/driftless/config) if it exists
+    // 3. User config (~/.config/driftless/config)
     let config_dir = cli.config.unwrap_or_else(|| {
-        dirs::config_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join("driftless")
-            .join("config")
+        // Check for system-wide config first
+        let system_config = PathBuf::from("/etc/driftless/config");
+        if system_config.exists() {
+            system_config
+        } else {
+            // Fall back to user config
+            dirs::config_dir()
+                .unwrap_or_else(|| PathBuf::from("."))
+                .join("driftless")
+                .join("config")
+        }
     });
+
+    // Determine plugin directory with proper precedence:
+    // 1. CLI argument if provided
+    // 2. System-wide plugins (/etc/driftless/plugins) if it exists
+    // 3. User plugins (~/.config/driftless/plugins)
+    let plugin_dir = cli.plugin_dir.unwrap_or_else(|| {
+        // Check for system-wide plugins first
+        let system_plugins = PathBuf::from("/etc/driftless/plugins");
+        if system_plugins.exists() {
+            system_plugins
+        } else {
+            // Fall back to user plugins
+            dirs::config_dir()
+                .unwrap_or_else(|| PathBuf::from("."))
+                .join("driftless")
+                .join("plugins")
+        }
+    });
+
+    // Load plugin registry configuration for security settings
+    let plugin_registry_config = crate::config::load_plugin_registry_config(&config_dir)
+        .unwrap_or_else(|_| {
+            eprintln!("Warning: Failed to load plugin registry config, using defaults");
+            crate::config::PluginRegistryConfig::default()
+        });
+
+    // Initialize plugin manager with security configuration
+    let plugin_manager = match crate::plugins::PluginManager::new_with_security_config(
+        plugin_dir.clone(),
+        plugin_registry_config.security,
+    ) {
+        Ok(mut pm) => {
+            // Try to scan and load plugins
+            if let Err(e) = pm.scan_plugins() {
+                eprintln!("Warning: Failed to scan plugins: {}", e);
+            }
+            if let Err(e) = pm.load_all_plugins() {
+                eprintln!("Warning: Failed to load plugins: {}", e);
+            }
+            // Register plugin components
+            let pm_arc = std::sync::Arc::new(std::sync::RwLock::new(pm));
+            {
+                let mut pm_write = pm_arc.write().unwrap();
+                if let Err(e) = pm_write.register_plugin_tasks() {
+                    eprintln!("Warning: Failed to register plugin tasks: {}", e);
+                }
+                if let Err(e) = pm_write.register_plugin_facts_collectors() {
+                    eprintln!("Warning: Failed to register plugin facts collectors: {}", e);
+                }
+                if let Err(e) = pm_write.register_plugin_logs_components() {
+                    eprintln!("Warning: Failed to register plugin logs components: {}", e);
+                }
+                if let Err(e) = pm_write.register_plugin_template_extensions(pm_arc.clone()) {
+                    eprintln!(
+                        "Warning: Failed to register plugin template extensions: {}",
+                        e
+                    );
+                }
+            }
+            // Set the global plugin manager for registry callbacks
+            crate::plugins::set_global_plugin_manager(pm_arc.clone());
+            Some(pm_arc)
+        }
+        Err(e) => {
+            eprintln!("Warning: Failed to initialize plugin manager: {}", e);
+            None
+        }
+    };
 
     match cli.command {
         Commands::Apply { dry_run } => {
@@ -108,6 +233,8 @@ async fn main() -> anyhow::Result<()> {
                         config.vars.clone(),
                         temp_vars,
                         config_dir.clone(),
+                        plugin_manager.clone(),
+                        config.clone(),
                     );
 
                     // Validate tasks first
@@ -155,9 +282,10 @@ async fn main() -> anyhow::Result<()> {
                     }
 
                     // Create and run the facts orchestrator
-                    match facts::FactsOrchestrator::new_with_registry(
+                    match facts::FactsOrchestrator::new_with_registry_and_plugins(
                         config,
                         prometheus::Registry::new(),
+                        plugin_manager.clone(),
                     ) {
                         Ok(orchestrator) => {
                             println!("Facts orchestrator created successfully");
@@ -209,11 +337,36 @@ async fn main() -> anyhow::Result<()> {
 
                     if enabled_sources > 0 && enabled_outputs > 0 {
                         println!("Log collection started...");
+
+                        // Create and start the log orchestrator
+                        let mut orchestrator =
+                            logs::LogOrchestrator::new_with_plugins(config, plugin_manager.clone());
+
+                        // Start the log processing pipeline
+                        if let Err(e) = orchestrator.start().await {
+                            eprintln!("Failed to start log processing: {}", e);
+                            std::process::exit(1);
+                        }
+
+                        // Wait for shutdown signal (Ctrl+C)
+                        match tokio::signal::ctrl_c().await {
+                            Ok(()) => {
+                                println!("Received shutdown signal, stopping log collection...");
+                            }
+                            Err(e) => {
+                                eprintln!("Failed to listen for shutdown signal: {}", e);
+                            }
+                        }
+
+                        // Stop the orchestrator
+                        if let Err(e) = orchestrator.stop().await {
+                            eprintln!("Error stopping log orchestrator: {}", e);
+                        }
+
+                        println!("Log collection stopped");
                     } else {
                         println!("No enabled sources or outputs - nothing to do");
                     }
-
-                    // TODO: Implement actual log collection and forwarding
                 }
                 Err(e) => {
                     eprintln!("Failed to load logs configuration: {}", e);
@@ -272,6 +425,195 @@ async fn main() -> anyhow::Result<()> {
                         format
                     );
                     std::process::exit(1);
+                }
+            }
+        }
+        Commands::Plugins { plugin_command } => {
+            println!("Managing plugins...");
+
+            // Load plugin registry configuration
+            let registry_config = match crate::config::load_plugin_registry_config(&config_dir) {
+                Ok(config) => config,
+                Err(e) => {
+                    eprintln!("Failed to load plugin registry configuration: {}", e);
+                    eprintln!("Using default configuration");
+                    crate::config::PluginRegistryConfig::default()
+                }
+            };
+
+            let lifecycle_manager = crate::plugins::registry::PluginLifecycleManager::new(
+                registry_config,
+                plugin_dir.clone(),
+            );
+
+            match plugin_command {
+                PluginCommands::List => {
+                    println!("Listing available plugins from registries...");
+
+                    match lifecycle_manager.list_available_plugins().await {
+                        Ok(plugins_by_registry) => {
+                            for (registry_name, plugins) in plugins_by_registry {
+                                println!("Registry: {}", registry_name);
+                                for plugin in plugins {
+                                    println!(
+                                        "  {}@{} - {}",
+                                        plugin.name,
+                                        plugin.version,
+                                        plugin.description.as_deref().unwrap_or("No description")
+                                    );
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to list plugins: {}", e);
+                            std::process::exit(1);
+                        }
+                    }
+                }
+                PluginCommands::Installed => {
+                    println!("Listing locally installed plugins...");
+
+                    match lifecycle_manager.list_installed_plugins() {
+                        Ok(installed) => {
+                            if installed.is_empty() {
+                                println!("No plugins installed locally");
+                            } else {
+                                for (name, version, path) in installed {
+                                    println!("  {}@{} - {}", name, version, path.display());
+                                }
+                            }
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to list installed plugins: {}", e);
+                            std::process::exit(1);
+                        }
+                    }
+                }
+                PluginCommands::Install { plugin } => {
+                    println!("Installing plugin: {}", plugin);
+
+                    match lifecycle_manager.install_plugin(&plugin).await {
+                        Ok(()) => {
+                            println!("Plugin {} installed successfully", plugin);
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to install plugin {}: {}", plugin, e);
+                            std::process::exit(1);
+                        }
+                    }
+                }
+                PluginCommands::Remove { name, version } => {
+                    println!("Removing plugin: {}", name);
+
+                    match lifecycle_manager.remove_plugin(&name, version.as_deref()) {
+                        Ok(()) => {
+                            println!("Plugin {} removed successfully", name);
+                        }
+                        Err(e) => {
+                            eprintln!("Failed to remove plugin {}: {}", name, e);
+                            std::process::exit(1);
+                        }
+                    }
+                }
+                PluginCommands::Validate {
+                    name,
+                    version,
+                    file,
+                } => {
+                    if let Some(file_path) = file {
+                        println!("Validating plugin file: {}", file_path.display());
+
+                        // For file validation, we need the plugin manager
+                        if let Some(pm) = &plugin_manager {
+                            let pm_read = pm.read().unwrap();
+                            match pm_read.validate_plugin_file(&file_path) {
+                                Ok(()) => {
+                                    println!(
+                                        "Plugin file {} validated successfully",
+                                        file_path.display()
+                                    );
+                                }
+                                Err(e) => {
+                                    eprintln!(
+                                        "Plugin file {} validation failed: {}",
+                                        file_path.display(),
+                                        e
+                                    );
+                                    std::process::exit(1);
+                                }
+                            }
+                        } else {
+                            eprintln!("Error: Plugin manager not available for file validation");
+                            std::process::exit(1);
+                        }
+                    } else if let Some(name) = name {
+                        println!("Validating plugin: {}", name);
+
+                        match lifecycle_manager.validate_plugin(&name, version.as_deref()) {
+                            Ok(()) => {
+                                println!("Plugin {} validated successfully", name);
+                            }
+                            Err(e) => {
+                                eprintln!("Plugin {} validation failed: {}", name, e);
+                                std::process::exit(1);
+                            }
+                        }
+                    } else {
+                        eprintln!(
+                            "Error: Either --name or --file must be specified for validate command"
+                        );
+                        std::process::exit(1);
+                    }
+                }
+                PluginCommands::Update => {
+                    println!("Updating all installed plugins...");
+
+                    // Initialize plugin manager
+                    let mut plugin_manager = PluginManager::new(plugin_dir.clone())?;
+
+                    // Scan for plugins
+                    plugin_manager
+                        .scan_plugins()
+                        .map_err(|e| anyhow::anyhow!("Failed to scan plugins: {}", e))?;
+
+                    // Get list of loaded plugins
+                    let _loaded_plugins = plugin_manager.get_loaded_plugins();
+
+                    // Get list of loaded plugins
+                    let loaded_plugins = plugin_manager.get_loaded_plugins();
+                    let total_plugins = loaded_plugins.len();
+
+                    if total_plugins == 0 {
+                        println!("No plugins currently loaded");
+                        return Ok(());
+                    }
+
+                    println!(
+                        "Found {} loaded plugins to check for updates",
+                        total_plugins
+                    );
+
+                    // For each plugin, attempt to reload/update
+                    let mut updated_count = 0;
+                    for plugin_name in loaded_plugins {
+                        println!("Checking plugin: {}", plugin_name);
+
+                        // Try to reload the plugin (this will pick up any file changes)
+                        match plugin_manager.load_plugin(&plugin_name) {
+                            Ok(_) => {
+                                println!("Successfully updated plugin: {}", plugin_name);
+                                updated_count += 1;
+                            }
+                            Err(e) => {
+                                println!("Failed to update plugin {}: {}", plugin_name, e);
+                            }
+                        }
+                    }
+
+                    println!(
+                        "Plugin update complete. Updated {} out of {} plugins",
+                        updated_count, total_plugins
+                    );
                 }
             }
         }
@@ -393,25 +735,30 @@ fn load_facts_config(config_dir: &PathBuf) -> anyhow::Result<facts::FactsConfig>
         ));
     }
 
-    // For now, load the first facts config file found
-    // TODO: Support merging multiple facts config files
-    let config_file = &facts_files[0];
-    println!("Loading facts config from: {}", config_file.display());
+    // Load and merge all facts configuration files
+    let mut merged_config = facts::FactsConfig::default();
 
-    let content = fs::read_to_string(config_file)?;
-    let config: facts::FactsConfig = match config_file.extension().and_then(|s| s.to_str()) {
-        Some("json") => serde_json::from_str(&content)?,
-        Some("toml") => toml::from_str(&content)?,
-        Some("yaml") | Some("yml") => serde_yaml::from_str(&content)?,
-        _ => {
-            return Err(anyhow::anyhow!(
-                "Unsupported config file format: {}",
-                config_file.display()
-            ))
-        }
-    };
+    for config_file in &facts_files {
+        println!("Loading facts config from: {}", config_file.display());
 
-    Ok(config)
+        let content = fs::read_to_string(config_file)?;
+        let config: facts::FactsConfig = match config_file.extension().and_then(|s| s.to_str()) {
+            Some("json") => serde_json::from_str(&content)?,
+            Some("toml") => toml::from_str(&content)?,
+            Some("yaml") | Some("yml") => serde_yaml::from_str(&content)?,
+            _ => {
+                return Err(anyhow::anyhow!(
+                    "Unsupported config file format: {}",
+                    config_file.display()
+                ))
+            }
+        };
+
+        // Merge configurations
+        merged_config.merge(config);
+    }
+
+    Ok(merged_config)
 }
 
 /// Load agent configuration from the config directory
@@ -461,6 +808,7 @@ fn is_collector_enabled(collector: &facts::Collector, global_enabled: bool) -> b
         Network(c) => c.base.enabled,
         Process(c) => c.base.enabled,
         Command(c) => c.base.enabled,
+        Plugin(c) => c.base.enabled,
     };
 
     global_enabled && collector_enabled
@@ -480,25 +828,35 @@ fn load_logs_config(config_dir: &PathBuf) -> anyhow::Result<logs::LogsConfig> {
         ));
     }
 
-    // For now, load the first logs config file found
-    // TODO: Support merging multiple logs config files
-    let config_file = &logs_files[0];
-    println!("Loading logs config from: {}", config_file.display());
-
-    let content = fs::read_to_string(config_file)?;
-    let config: logs::LogsConfig = match config_file.extension().and_then(|s| s.to_str()) {
-        Some("json") => serde_json::from_str(&content)?,
-        Some("toml") => toml::from_str(&content)?,
-        Some("yaml") | Some("yml") => serde_yaml::from_str(&content)?,
-        _ => {
-            return Err(anyhow::anyhow!(
-                "Unsupported config file format: {}",
-                config_file.display()
-            ))
-        }
+    // Load and merge all logs configuration files
+    let mut merged_config = logs::LogsConfig {
+        global: logs::GlobalSettings::default(),
+        sources: Vec::new(),
+        outputs: Vec::new(),
+        processing: logs::ProcessingConfig::default(),
     };
 
-    Ok(config)
+    for config_file in &logs_files {
+        println!("Loading logs config from: {}", config_file.display());
+
+        let content = fs::read_to_string(config_file)?;
+        let config: logs::LogsConfig = match config_file.extension().and_then(|s| s.to_str()) {
+            Some("json") => serde_json::from_str(&content)?,
+            Some("toml") => toml::from_str(&content)?,
+            Some("yaml") | Some("yml") => serde_yaml::from_str(&content)?,
+            _ => {
+                return Err(anyhow::anyhow!(
+                    "Unsupported config file format: {}",
+                    config_file.display()
+                ))
+            }
+        };
+
+        // Merge configurations
+        merged_config.merge(config);
+    }
+
+    Ok(merged_config)
 }
 
 /// Find logs configuration files in the config directory
@@ -569,6 +927,7 @@ fn is_output_enabled(output: &logs::LogOutput) -> bool {
         Http(o) => o.enabled,
         Syslog(o) => o.enabled,
         Console(o) => o.enabled,
+        Plugin(o) => o.enabled,
     }
 }
 
@@ -586,29 +945,39 @@ fn load_apply_config(config_dir: &PathBuf) -> anyhow::Result<apply::ApplyConfig>
         ));
     }
 
-    // For now, load the first apply config file found
-    // TODO: Support merging multiple apply config files
-    let config_file = &apply_files[0];
-    println!("Loading apply config from: {}", config_file.display());
-
-    let content = fs::read_to_string(config_file)?;
-    let config: apply::ApplyConfig = match config_file.extension().and_then(|s| s.to_str()) {
-        Some("json") => serde_json::from_str(&content)?,
-        Some("toml") => toml::from_str(&content)?,
-        Some("yaml") | Some("yml") => serde_yaml::from_str(&content)?,
-        _ => {
-            return Err(anyhow::anyhow!(
-                "Unsupported config file format: {}",
-                config_file.display()
-            ))
-        }
+    // Load and merge all apply configuration files
+    let mut merged_config = apply::ApplyConfig {
+        vars: std::collections::HashMap::new(),
+        tasks: Vec::new(),
+        state_dir: apply::default_state_dir(),
     };
 
-    println!("DEBUG: Loaded config with {} vars", config.vars.len());
-    for (k, v) in &config.vars {
-        println!("DEBUG: Config var {} = {:?}", k, v);
+    for config_file in &apply_files {
+        println!("Loading apply config from: {}", config_file.display());
+
+        let content = fs::read_to_string(config_file)?;
+        let config: apply::ApplyConfig = match config_file.extension().and_then(|s| s.to_str()) {
+            Some("json") => serde_json::from_str(&content)?,
+            Some("toml") => toml::from_str(&content)?,
+            Some("yaml") | Some("yml") => serde_yaml::from_str(&content)?,
+            _ => {
+                return Err(anyhow::anyhow!(
+                    "Unsupported config file format: {}",
+                    config_file.display()
+                ))
+            }
+        };
+
+        // Merge configurations
+        merged_config.merge(config);
     }
-    Ok(config)
+
+    println!(
+        "DEBUG: Loaded merged config with {} vars and {} tasks",
+        merged_config.vars.len(),
+        merged_config.tasks.len()
+    );
+    Ok(merged_config)
 }
 
 /// Find apply configuration files in the config directory
@@ -768,6 +1137,7 @@ mod tests {
         // Create test agent config
         let agent_config = r#"{
             "config_dir": "/tmp/test",
+            "plugin_dir": "./plugins",
             "apply_interval": 123,
             "facts_interval": 456,
             "apply_dry_run": true,

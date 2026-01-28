@@ -172,6 +172,12 @@ pub struct ScriptTask {
     /// Force script execution
     #[serde(default)]
     pub force: bool,
+    /// Files/directories created by the script (for creates check)
+    #[serde(default)]
+    pub creates_files: Vec<String>,
+    /// Files/directories removed by the script (for removes check)
+    #[serde(default)]
+    pub removes_files: Vec<String>,
 }
 
 use anyhow::{Context, Result};
@@ -179,7 +185,10 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
-use std::process::Command;
+use std::process::Stdio;
+use tokio::io::AsyncReadExt;
+use tokio::process::Command as TokioCommand;
+use tokio::time::Duration;
 
 /// Execute a script task
 pub async fn execute_script_task(task: &ScriptTask, dry_run: bool) -> Result<()> {
@@ -196,16 +205,40 @@ pub async fn execute_script_task(task: &ScriptTask, dry_run: bool) -> Result<()>
     }
 
     // Check if script creates/removes resources
-    if task.creates && !dry_run {
-        // Check if resources already exist
-        // This is a simplified check - in practice, you'd check for specific files/directories
-        println!("Note: 'creates' check not fully implemented for scripts");
+    if task.creates && !dry_run && !task.force && !task.creates_files.is_empty() {
+        // Check if any of the expected files/directories already exist
+        let mut all_exist = true;
+        for file_path in &task.creates_files {
+            if !Path::new(file_path).exists() {
+                all_exist = false;
+                break;
+            }
+        }
+        if all_exist {
+            println!(
+                "Script creates resources that already exist, skipping: {}",
+                task.path
+            );
+            return Ok(());
+        }
     }
 
-    if task.removes && !dry_run {
-        // Check if resources need to be removed
-        // This is a simplified check - in practice, you'd check for specific files/directories
-        println!("Note: 'removes' check not fully implemented for scripts");
+    if task.removes && !dry_run && !task.force && !task.removes_files.is_empty() {
+        // Check if any of the files/directories to be removed actually exist
+        let mut any_exist = false;
+        for file_path in &task.removes_files {
+            if Path::new(file_path).exists() {
+                any_exist = true;
+                break;
+            }
+        }
+        if !any_exist {
+            println!(
+                "Script removes resources that don't exist, skipping: {}",
+                task.path
+            );
+            return Ok(());
+        }
     }
 
     if dry_run {
@@ -226,7 +259,7 @@ pub async fn execute_script_task(task: &ScriptTask, dry_run: bool) -> Result<()>
     }
 
     // Execute the script
-    let mut command = Command::new(&task.path);
+    let mut command = TokioCommand::new(&task.path);
 
     // Add parameters
     command.args(&task.params);
@@ -241,19 +274,78 @@ pub async fn execute_script_task(task: &ScriptTask, dry_run: bool) -> Result<()>
         command.env(key, value);
     }
 
-    // Set timeout if specified
-    if let Some(timeout_secs) = task.timeout {
-        // Note: In a real implementation, you'd use tokio::process::Command
-        // with timeout handling. For now, we'll execute synchronously.
+    // Execute with timeout if specified
+    let output = if let Some(timeout_secs) = task.timeout {
         println!(
-            "Note: Script timeout not implemented (would timeout after {}s)",
-            timeout_secs
+            "Executing script with {}s timeout: {}",
+            timeout_secs, task.path
         );
-    }
 
-    let output = command
-        .output()
-        .with_context(|| format!("Failed to execute script: {}", task.path))?;
+        let timeout_duration = Duration::from_secs(timeout_secs as u64);
+
+        // Spawn the child process with piped stdout/stderr
+        command.stdout(Stdio::piped());
+        command.stderr(Stdio::piped());
+
+        let mut child = command
+            .spawn()
+            .with_context(|| format!("Failed to spawn script: {}", task.path))?;
+
+        // Take ownership of stdout and stderr
+        let mut stdout_handle = child
+            .stdout
+            .take()
+            .ok_or_else(|| anyhow::anyhow!("Failed to capture stdout for script: {}", task.path))?;
+        let mut stderr_handle = child
+            .stderr
+            .take()
+            .ok_or_else(|| anyhow::anyhow!("Failed to capture stderr for script: {}", task.path))?;
+
+        // Read stdout and stderr concurrently with process execution
+        let stdout_task = tokio::spawn(async move {
+            let mut stdout = Vec::new();
+            stdout_handle.read_to_end(&mut stdout).await.ok();
+            stdout
+        });
+
+        let stderr_task = tokio::spawn(async move {
+            let mut stderr = Vec::new();
+            stderr_handle.read_to_end(&mut stderr).await.ok();
+            stderr
+        });
+
+        // Use tokio::select! to race between timeout and process completion
+        tokio::select! {
+            status = child.wait() => {
+                let status = status.with_context(|| format!("Failed to wait for script: {}", task.path))?;
+
+                // Collect stdout and stderr from concurrent reads
+                let stdout = stdout_task.await.unwrap_or_default();
+                let stderr = stderr_task.await.unwrap_or_default();
+
+                std::process::Output {
+                    status,
+                    stdout,
+                    stderr,
+                }
+            }
+            _ = tokio::time::sleep(timeout_duration) => {
+                // Timeout occurred, kill the child process
+                let _ = child.kill().await;
+                return Err(anyhow::anyhow!(
+                    "Script execution timed out after {} seconds: {}",
+                    timeout_secs,
+                    task.path
+                ));
+            }
+        }
+    } else {
+        println!("Executing script: {}", task.path);
+        command
+            .output()
+            .await
+            .with_context(|| format!("Failed to execute script: {}", task.path))?
+    };
 
     // Check exit status
     if !output.status.success() {
@@ -319,6 +411,8 @@ mod tests {
             creates: false,
             removes: false,
             force: false,
+            creates_files: vec![],
+            removes_files: vec![],
         };
 
         let result = execute_script_task(&task, true).await;
@@ -337,6 +431,8 @@ mod tests {
             creates: false,
             removes: false,
             force: false,
+            creates_files: vec![],
+            removes_files: vec![],
         };
 
         let result = execute_script_task(&task, true).await;
@@ -371,6 +467,8 @@ mod tests {
             creates: false,
             removes: false,
             force: false,
+            creates_files: vec![],
+            removes_files: vec![],
         };
 
         let result = execute_script_task(&task, true).await;

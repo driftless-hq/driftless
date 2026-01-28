@@ -144,6 +144,80 @@
 //! args = ["build"]
 //! chdir = "/opt/myproject"
 //! ```
+//!
+//! ## Execute command with creates/removes checks
+//!
+//! This example executes a command that creates specific files and checks for their existence.
+//!
+//! **YAML Format:**
+//! ```yaml
+//! - type: raw
+//!   description: "Create configuration file"
+//!   executable: touch
+//!   args: ["/etc/myapp/config.conf"]
+//!   creates: true
+//!   creates_files: ["/etc/myapp/config.conf"]
+//! ```
+//!
+//! **JSON Format:**
+//! ```json
+//! {
+//!   "type": "raw",
+//!   "description": "Create configuration file",
+//!   "executable": "touch",
+//!   "args": ["/etc/myapp/config.conf"],
+//!   "creates": true,
+//!   "creates_files": ["/etc/myapp/config.conf"]
+//! }
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[tasks]]
+//! type = "raw"
+//! description = "Create configuration file"
+//! executable = "touch"
+//! args = ["/etc/myapp/config.conf"]
+//! creates = true
+//! creates_files = ["/etc/myapp/config.conf"]
+//! ```
+//!
+//! ## Execute command that removes files (idempotent)
+//!
+//! This example executes a command that removes specific files and checks for their existence.
+//!
+//! **YAML Format:**
+//! ```yaml
+//! - type: raw
+//!   description: "Remove temporary files"
+//!   executable: rm
+//!   args: ["-f", "/tmp/cache.dat"]
+//!   removes: true
+//!   removes_files: ["/tmp/cache.dat"]
+//! ```
+//!
+//! **JSON Format:**
+//! ```json
+//! {
+//!   "type": "raw",
+//!   "description": "Remove temporary files",
+//!   "executable": "rm",
+//!   "args": ["-f", "/tmp/cache.dat"],
+//!   "removes": true,
+//!   "removes_files": ["/tmp/cache.dat"]
+//! }
+//! ```
+//!
+//! **TOML Format:**
+//! ```toml
+//! [[tasks]]
+//! type = "raw"
+//! description = "Remove temporary files"
+//! executable = "rm"
+//! args = ["-f", "/tmp/cache.dat"]
+//! removes = true
+//! removes_files = ["/tmp/cache.dat"]
+//! ```
 
 /// Execute commands without shell processing task
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -175,12 +249,18 @@ pub struct RawTask {
     /// Whether to ignore errors
     #[serde(default)]
     pub ignore_errors: bool,
-    /// Whether the command creates resources
+    /// Whether the command creates resources. When enabled with `creates_files`, the command will be skipped if any of the specified files/directories already exist (idempotency check).
     #[serde(default)]
     pub creates: bool,
-    /// Whether the command removes resources
+    /// Whether the command removes resources. When enabled with `removes_files`, the command will be skipped if any of the specified files/directories don't exist (idempotency check).
     #[serde(default)]
     pub removes: bool,
+    /// Files/directories created by the command. Used with `creates` flag for idempotency - if any listed file/directory already exists, the command is skipped.
+    #[serde(default)]
+    pub creates_files: Vec<String>,
+    /// Files/directories removed by the command. Used with `removes` flag for idempotency - if any listed file/directory doesn't exist, the command is skipped.
+    #[serde(default)]
+    pub removes_files: Vec<String>,
     /// Force command execution
     #[serde(default)]
     pub force: bool,
@@ -194,6 +274,7 @@ pub fn default_exit_codes() -> Vec<i32> {
     vec![0]
 }
 use anyhow::{Context, Result};
+use std::path::Path;
 use std::process::{Command, Stdio};
 use std::time::Duration;
 
@@ -220,16 +301,83 @@ pub async fn execute_raw_task(task: &RawTask, dry_run: bool) -> Result<()> {
     }
 
     // Check if command creates/removes resources
-    if task.creates {
-        // Check if resources already exist
-        // This is a simplified check - in practice, you'd check for specific files/directories
-        println!("Note: 'creates' check not fully implemented for raw commands");
+    if task.creates && !dry_run && !task.force && !task.creates_files.is_empty() {
+        // Check if any of the files/directories that should be created already exist
+        for file_path in &task.creates_files {
+            let path = Path::new(file_path);
+            if path.exists() {
+                println!(
+                    "Command creates resources that already exist, skipping: {}",
+                    file_path
+                );
+                return Ok(());
+            }
+        }
     }
 
-    if task.removes {
-        // Check if resources need to be removed
-        // This is a simplified check - in practice, you'd check for specific files/directories
-        println!("Note: 'removes' check not fully implemented for raw commands");
+    if task.removes && !dry_run && !task.force && !task.removes_files.is_empty() {
+        // Check if any of the files/directories that should be removed don't exist
+        let mut all_exist = true;
+        for file_path in &task.removes_files {
+            let path = Path::new(file_path);
+            if !path.exists() {
+                all_exist = false;
+                break;
+            }
+        }
+        if !all_exist {
+            println!("Command removes resources that don't exist, skipping");
+            return Ok(());
+        }
+    }
+
+    // Validate executable exists and is executable
+    let executable_path = Path::new(&task.executable);
+    if executable_path.is_absolute() || task.executable.contains('/') {
+        // For absolute paths or paths with separators, check if the file exists
+        if !executable_path.exists() {
+            return Err(anyhow::anyhow!(
+                "Executable does not exist: {}",
+                task.executable
+            ));
+        }
+
+        // Check if executable is actually executable
+        use std::os::unix::fs::PermissionsExt;
+        let metadata = executable_path.metadata().with_context(|| {
+            format!("Failed to get metadata for executable: {}", task.executable)
+        })?;
+
+        if (metadata.permissions().mode() & 0o111) == 0 {
+            return Err(anyhow::anyhow!(
+                "Executable is not executable: {}",
+                task.executable
+            ));
+        }
+    } else {
+        // For commands without path separators, assume they're in PATH
+        // The actual execution will fail if they're not found
+        println!(
+            "Warning: Command '{}' specified without full path - assuming it's in PATH",
+            task.executable
+        );
+    }
+
+    // Validate working directory if specified
+    if let Some(ref chdir) = task.chdir {
+        let chdir_path = Path::new(chdir);
+        if !chdir_path.exists() {
+            return Err(anyhow::anyhow!(
+                "Working directory does not exist: {}",
+                chdir
+            ));
+        }
+        if !chdir_path.is_dir() {
+            return Err(anyhow::anyhow!(
+                "Working directory is not a directory: {}",
+                chdir
+            ));
+        }
     }
 
     // Execute the command directly (no shell processing)
@@ -353,6 +501,8 @@ mod tests {
             ignore_errors: false,
             creates: false,
             removes: false,
+            creates_files: vec![],
+            removes_files: vec![],
             force: false,
         };
 
@@ -373,6 +523,8 @@ mod tests {
             ignore_errors: false,
             creates: false,
             removes: false,
+            creates_files: vec![],
+            removes_files: vec![],
             force: false,
         };
 
@@ -393,6 +545,8 @@ mod tests {
             ignore_errors: true, // But ignore errors
             creates: false,
             removes: false,
+            creates_files: vec![],
+            removes_files: vec![],
             force: false,
         };
 
@@ -413,6 +567,8 @@ mod tests {
             ignore_errors: false,
             creates: false,
             removes: false,
+            creates_files: vec![],
+            removes_files: vec![],
             force: false,
         };
 
@@ -433,6 +589,8 @@ mod tests {
             ignore_errors: false,
             creates: false,
             removes: false,
+            creates_files: vec![],
+            removes_files: vec![],
             force: false,
         };
 
@@ -441,6 +599,81 @@ mod tests {
         assert!(result
             .unwrap_err()
             .to_string()
-            .contains("Failed to execute command"));
+            .contains("Executable does not exist"));
+    }
+
+    #[tokio::test]
+    async fn test_raw_command_creates_validation() {
+        use std::fs;
+        use tempfile::NamedTempFile;
+
+        // Create a temporary file that should be created
+        let temp_file = NamedTempFile::new().unwrap();
+        let temp_path = temp_file.path().to_str().unwrap().to_string();
+        drop(temp_file); // Remove it so the command can create it
+
+        let task = RawTask {
+            description: None,
+            executable: "touch".to_string(),
+            args: vec![temp_path.clone()],
+            chdir: None,
+            environment: HashMap::new(),
+            timeout: None,
+            exit_codes: vec![0],
+            ignore_errors: false,
+            creates: true,
+            removes: false,
+            creates_files: vec![temp_path.clone()],
+            removes_files: vec![],
+            force: false,
+        };
+
+        // First run should succeed (file doesn't exist)
+        let result = execute_raw_task(&task, false).await;
+        assert!(result.is_ok());
+        assert!(Path::new(&temp_path).exists());
+
+        // Second run should skip (file already exists)
+        let result = execute_raw_task(&task, false).await;
+        assert!(result.is_ok()); // Should succeed but skip execution
+
+        // Clean up
+        fs::remove_file(&temp_path).unwrap();
+    }
+
+    #[tokio::test]
+    async fn test_raw_command_removes_validation() {
+        use std::fs;
+        use tempfile::NamedTempFile;
+
+        // Create a temporary file that should be removed
+        let temp_file = NamedTempFile::new().unwrap();
+        let temp_path = temp_file.path().to_str().unwrap().to_string();
+        fs::write(&temp_path, "test content").unwrap();
+
+        let task = RawTask {
+            description: None,
+            executable: "rm".to_string(),
+            args: vec![temp_path.clone()],
+            chdir: None,
+            environment: HashMap::new(),
+            timeout: None,
+            exit_codes: vec![0],
+            ignore_errors: false,
+            creates: false,
+            removes: true,
+            creates_files: vec![],
+            removes_files: vec![temp_path.clone()],
+            force: false,
+        };
+
+        // First run should succeed (file exists)
+        let result = execute_raw_task(&task, false).await;
+        assert!(result.is_ok());
+        assert!(!Path::new(&temp_path).exists());
+
+        // Second run should skip (file doesn't exist)
+        let result = execute_raw_task(&task, false).await;
+        assert!(result.is_ok()); // Should succeed but skip execution
     }
 }

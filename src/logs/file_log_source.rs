@@ -115,23 +115,31 @@ pub struct MultilineConfig {
     pub pattern: String,
     /// Whether to negate the pattern match
     pub negate: bool,
-    /// What to do with lines that match (before/after)
+    /// What to do with lines that match (before/after/between)
     pub match_type: MultilineMatchType,
     /// Maximum number of lines to combine
     pub max_lines: Option<usize>,
     /// Timeout for multiline assembly
     #[allow(dead_code)]
     pub timeout: Option<Duration>,
+    /// Continue pattern for between matching
+    pub continue_pattern: Option<String>,
+    /// End pattern for between matching
+    pub end_pattern: Option<String>,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, serde::Serialize, serde::Deserialize, Default)]
 pub enum MultilineMatchType {
     /// Lines after the match are part of the same entry
+    #[default]
     #[allow(dead_code)]
     After,
     /// Lines before the match are part of the same entry
     #[allow(dead_code)]
     Before,
+    /// Lines between start and end patterns are combined
+    #[allow(dead_code)]
+    Between,
 }
 
 /// File log source for tailing log files
@@ -151,11 +159,60 @@ impl FileLogSource {
     }
 
     /// Parse multiline configuration from file options
-    fn parse_multiline_config(_config: &LogSource) -> Result<Option<MultilineConfig>> {
-        // For now, we'll use a simple approach - in a real implementation,
-        // this would parse from the config structure
-        // This is a placeholder for multiline config parsing
-        Ok(None)
+    fn parse_multiline_config(config: &LogSource) -> Result<Option<MultilineConfig>> {
+        // Parse multiline config from the parser configuration
+        if config.parser.multiline.enabled {
+            let multiline = &config.parser.multiline;
+
+            // Determine the pattern and match type based on configuration
+            let (pattern, match_type, continue_pattern, end_pattern) = match multiline.match_type {
+                crate::logs::MultilineMatchType::After => {
+                    let pattern = multiline
+                        .start_pattern
+                        .clone()
+                        .unwrap_or_else(|| r"^\s+".to_string()); // Default pattern for continuation lines
+                    (pattern, MultilineMatchType::After, None, None)
+                }
+                crate::logs::MultilineMatchType::Before => {
+                    let pattern = multiline
+                        .start_pattern
+                        .clone()
+                        .unwrap_or_else(|| r"^\s+".to_string());
+                    (pattern, MultilineMatchType::Before, None, None)
+                }
+                crate::logs::MultilineMatchType::Between => {
+                    let start_pattern = multiline.start_pattern.clone().ok_or_else(|| {
+                        anyhow::anyhow!("start_pattern is required for between matching")
+                    })?;
+                    let end_pattern = multiline.end_pattern.clone().ok_or_else(|| {
+                        anyhow::anyhow!("end_pattern is required for between matching")
+                    })?;
+                    // Use continue_pattern if provided, otherwise match all lines (.*) between start and end
+                    let continue_pattern = multiline
+                        .continue_pattern
+                        .clone()
+                        .or_else(|| Some(r".*".to_string()));
+                    (
+                        start_pattern,
+                        MultilineMatchType::Between,
+                        continue_pattern,
+                        Some(end_pattern),
+                    )
+                }
+            };
+
+            Ok(Some(MultilineConfig {
+                pattern,
+                negate: multiline.negate,
+                match_type,
+                max_lines: Some(multiline.max_lines),
+                timeout: multiline.timeout.map(Duration::from_secs),
+                continue_pattern,
+                end_pattern,
+            }))
+        } else {
+            Ok(None)
+        }
     }
 
     /// Start tailing the configured log files
@@ -310,17 +367,30 @@ impl FileLogSource {
             return Ok(lines);
         }
 
-        let pattern = Regex::new(&config.pattern)?;
+        let start_pattern = Regex::new(&config.pattern)?;
+        let continue_pattern = config
+            .continue_pattern
+            .as_ref()
+            .map(|p| Regex::new(p))
+            .transpose()?;
+        let end_pattern = config
+            .end_pattern
+            .as_ref()
+            .map(|p| Regex::new(p))
+            .transpose()?;
+
         let mut result = Vec::new();
         let mut current_entry = String::new();
         let mut in_multiline = false;
+        let mut between_started = false;
 
         for line in lines {
-            let matches = pattern.is_match(&line);
+            let start_matches = start_pattern.is_match(&line);
+            let should_start = start_matches != config.negate;
 
             match config.match_type {
                 MultilineMatchType::After => {
-                    if matches != config.negate {
+                    if should_start {
                         // This is a new log entry start
                         if !current_entry.is_empty() {
                             result.push(current_entry);
@@ -337,7 +407,7 @@ impl FileLogSource {
                     }
                 }
                 MultilineMatchType::Before => {
-                    if matches != config.negate {
+                    if should_start {
                         // This line belongs to the previous entry
                         if !current_entry.is_empty() {
                             current_entry.push('\n');
@@ -351,6 +421,58 @@ impl FileLogSource {
                         current_entry = line;
                     }
                 }
+                MultilineMatchType::Between => {
+                    if let (Some(ref end_pat), Some(ref cont_pat)) =
+                        (&end_pattern, &continue_pattern)
+                    {
+                        if should_start && !between_started {
+                            // Start of a new between block
+                            if !current_entry.is_empty() {
+                                result.push(current_entry);
+                            }
+                            current_entry = line.clone();
+                            between_started = true;
+                        } else if between_started {
+                            if end_pat.is_match(&line) {
+                                // End of the between block
+                                current_entry.push('\n');
+                                current_entry.push_str(&line);
+                                result.push(current_entry);
+                                current_entry = String::new();
+                                between_started = false;
+                            } else if cont_pat.is_match(&line) {
+                                // Continuation line within the block
+                                current_entry.push('\n');
+                                current_entry.push_str(&line);
+                            } else {
+                                // Line doesn't match continue pattern, treat as separate
+                                if !current_entry.is_empty() {
+                                    result.push(current_entry);
+                                    current_entry = String::new();
+                                    between_started = false;
+                                }
+                                result.push(line);
+                            }
+                        } else {
+                            // Not in a between block, treat as separate
+                            result.push(line);
+                        }
+                    } else {
+                        // Invalid between configuration, fall back to after matching
+                        if should_start {
+                            if !current_entry.is_empty() {
+                                result.push(current_entry);
+                            }
+                            current_entry = line;
+                            in_multiline = true;
+                        } else if in_multiline {
+                            current_entry.push('\n');
+                            current_entry.push_str(&line);
+                        } else {
+                            result.push(line);
+                        }
+                    }
+                }
             }
 
             // Check max lines limit
@@ -360,6 +482,7 @@ impl FileLogSource {
                     result.push(current_entry);
                     current_entry = String::new();
                     in_multiline = false;
+                    between_started = false;
                 }
             }
         }
@@ -389,6 +512,7 @@ mod tests {
     fn test_file_log_source_creation() {
         let config = LogSource {
             name: "test_source".to_string(),
+            source_type: "file".to_string(),
             enabled: true,
             paths: vec!["/tmp/test.log".to_string()],
             file_options: FileOptions::default(),
@@ -396,6 +520,8 @@ mod tests {
             filters: Vec::new(),
             outputs: Vec::new(),
             labels: HashMap::new(),
+            plugin_name: None,
+            plugin_source_name: None,
         };
 
         let source = FileLogSource::new(config);
@@ -410,6 +536,8 @@ mod tests {
             match_type: MultilineMatchType::After,
             max_lines: None,
             timeout: None,
+            continue_pattern: None,
+            end_pattern: None,
         };
 
         let source = FileLogSource::new(LogSource::default()).unwrap();
@@ -437,6 +565,8 @@ mod tests {
             match_type: MultilineMatchType::Before,
             max_lines: None,
             timeout: None,
+            continue_pattern: None,
+            end_pattern: None,
         };
 
         let source = FileLogSource::new(LogSource::default()).unwrap();
@@ -459,6 +589,7 @@ mod tests {
     fn test_missing_file_handling() {
         let config = LogSource {
             name: "test_source".to_string(),
+            source_type: "file".to_string(),
             enabled: true,
             paths: vec!["/nonexistent/file.log".to_string()],
             file_options: FileOptions {
@@ -469,6 +600,8 @@ mod tests {
             filters: Vec::new(),
             outputs: Vec::new(),
             labels: HashMap::new(),
+            plugin_name: None,
+            plugin_source_name: None,
         };
 
         let source = FileLogSource::new(config);

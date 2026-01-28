@@ -480,6 +480,7 @@ mod tests {
                 compression: 6,
                 extra_opts: vec![],
             }))],
+            state_dir: crate::apply::default_state_dir(),
         };
 
         let executor = crate::apply::executor::TaskExecutor::new(true);
