@@ -58,7 +58,7 @@ tower-http = { version = "0.6", features = ["cors"] }
 # TODO: Add remote secrets providers (AWS, GCP, Vault/OpenBao, etc)
 
 # File watching for configuration changes
-notify = "6.1"
+notify = "8.2"
 
 # Shell-like parsing for commands
 shlex = "1.0"
