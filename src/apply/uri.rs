@@ -478,7 +478,7 @@ mod tests {
     async fn test_uri_task_invalid_url() {
         let task = UriTask {
             description: None,
-            url: "http://invalid.url.that.does.not.exist".to_string(),
+            url: "http://[::1".to_string(),
             method: HttpMethod::Get,
             state: UriState::Present,
             headers: HashMap::new(),

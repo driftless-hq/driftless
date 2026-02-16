@@ -16,6 +16,7 @@ NC='\033[0m' # No Color
 
 FAILED=0
 FAIL_FAST=false
+CARGO_JOBS=${CARGO_BUILD_JOBS:-2}
 
 # Parse command line arguments
 while [[ $# -gt 0 ]]; do
@@ -57,10 +58,10 @@ run_validation() {
 run_validation "Code Formatting Check" cargo fmt --all -- --check
 
 # 2. Run clippy linter
-run_validation "Clippy Linter" cargo clippy -- -D warnings
+run_validation "Clippy Linter" cargo clippy -j "$CARGO_JOBS" -- -D warnings
 
 # 3. Run tests
-run_validation "Unit Tests" cargo test --all --quiet
+run_validation "Unit Tests" cargo test --all --quiet -j "$CARGO_JOBS"
 
 # 4. Check documentation is up-to-date
 run_validation "Documentation Validation" ./scripts/check-docs.sh

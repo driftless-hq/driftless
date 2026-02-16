@@ -131,3 +131,8 @@ lto = true
 codegen-units = 1
 panic = "abort"
 strip = true
+
+[profile.release-local]
+inherits = "release"
+lto = false
+codegen-units = 8
