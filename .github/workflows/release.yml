@@ -89,7 +89,7 @@ jobs:
         chmod +x release-artifacts/${{ matrix.asset_name }} || true
 
     - name: Upload build artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v6
       with:
         name: binary-${{ matrix.target }}
         path: release-artifacts/${{ matrix.asset_name }}
